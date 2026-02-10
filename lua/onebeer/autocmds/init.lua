@@ -2,8 +2,8 @@ local autocmds = require("onebeer.autocmds.helpers")
 local create_group = autocmds.create_group
 local create_autocmd = autocmds.create_autocmd
 local create_command = autocmds.create_command
-local utils = require("onebeer.utils")
 local state = require("onebeer.state")
+local utils = require("onebeer.utils")
 
 ---Helper to check LSP capability and set keymap
 ---@param capability string
@@ -34,7 +34,6 @@ end
 
 -- Groups
 local lintGrp = create_group("OneBeerWorkflowLint")
-local aiGrp = create_group("OneBeerAI")
 local lspGrp = create_group("OneBeerLsp")
 local ynkGrp = create_group("OneBeerHighlightYank")
 local filetypeGrp = create_group("OneBeerFiletype")
@@ -58,21 +57,6 @@ create_autocmd("TextYankPost", {
     vim.highlight.on_yank({ higroup = "IncSearch", timeout = 150 })
   end,
 })
-
--- AI related commands
--- create_autocmd("BufRead", {
---   group = aiGrp,
---   pattern = { "*.ts", "*.tsx", "*.js", "*.jsx" },
---   callback = function()
---     vim.schedule(function()
---       local ok, tabnine = pcall(require, "cmp_tabnine")
---       if not ok or type(tabnine.prefetch) ~= "function" then
---         return
---       end
---       tabnine:prefetch(vim.fn.expand("%:p"))
---     end)
---   end,
--- })
 
 -- Formatting and linting commands
 create_autocmd("BufWritePost", {
@@ -108,6 +92,7 @@ create_autocmd("FileType", {
     end
   end,
 })
+
 -- Initialize LSP client cache for statusline
 state.lsp_client_cache = {}
 
