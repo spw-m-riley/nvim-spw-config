@@ -1,0 +1,13 @@
+---
+base: lua51
+globals:
+  safe_req:
+    args:
+      - type: string
+        required: true
+      - type: function
+        required: false
+  R:
+    args:
+      - type: string
+        required: true

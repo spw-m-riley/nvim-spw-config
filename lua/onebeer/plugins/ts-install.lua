@@ -1,0 +1,42 @@
+return {
+  "lewis6991/ts-install.nvim",
+  lazy = false,
+  dependencies = {
+    "nvim-treesitter/nvim-treesitter",
+  },
+  config = function()
+    require("ts-install").setup({
+      auto_install = true,
+      ensure_installed = {
+        "astro",
+        "bash",
+        "css",
+        "dockerfile",
+        "go",
+        "gomod",
+        "gowork",
+        "graphql",
+        "hcl",
+        "html",
+        "javascript",
+        "jsdoc",
+        "json",
+        "lua",
+        "markdown",
+        "markdown_inline",
+        "regex",
+        "ruby",
+        "rust",
+        "scala",
+        "scss",
+        "svelte",
+        "templ",
+        "toml",
+        "tsx",
+        "typescript",
+        "yaml",
+        "zig",
+      },
+    })
+  end,
+}
