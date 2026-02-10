@@ -1,5 +1,5 @@
 return {
   "matt-riley/slides.nvim",
-  opt = {},
+  opts = {},
   lazy = false,
 }

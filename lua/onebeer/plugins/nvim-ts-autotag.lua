@@ -2,7 +2,7 @@
 ---@type LazySpec
 return {
   "windwp/nvim-ts-autotag",
-  event = "InsertEnter",
+  event = { "BufReadPre", "BufNewFile" },
   opts = {
     opts = {
       enable_close = true,          -- Auto close tags

@@ -2,8 +2,9 @@
 ---@type LazySpec
 return {
   "OXY2DEV/markview.nvim",
-  ft = "markdown",
+  lazy = false,
   dependencies = {
     "nvim-treesitter/nvim-treesitter",
+    "saghen/blink.cmp",
   },
 }

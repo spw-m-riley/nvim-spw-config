@@ -26,13 +26,5 @@ return {
     local autopairs = require("nvim-autopairs")
     autopairs.setup(opts)
 
-    -- Integration with blink.cmp
-    local ok, blink = pcall(require, "blink.cmp")
-    if ok then
-      autopairs.setup({
-        check_ts = opts.check_ts,
-        ts_config = opts.ts_config,
-      })
-    end
   end,
 }

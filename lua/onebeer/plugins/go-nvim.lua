@@ -35,7 +35,7 @@ return {
     --
     require("go").setup(opts)
   end,
-  event = { "FileType go" },
+  event = { "CmdlineEnter" },
   ft = { "go", "gomod", "templ" },
   build = ':lua require("go.install").update_all_sync()', -- if you need to install/update all binaries
 }

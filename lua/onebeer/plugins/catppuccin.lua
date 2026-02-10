@@ -25,7 +25,6 @@ return {
       mini = true,
       treesitter = true,
       treesitter_context = true,
-      ts_rainbow = true,
       which_key = true,
       native_lsp = {
         enabled = true,

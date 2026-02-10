@@ -42,7 +42,7 @@ return {
         return
       end
       return {
-        lsp_fallback = true,
+        lsp_format = "fallback",
         timeout_ms = FORMAT_TIMEOUT_MS,
         async = false,
       }

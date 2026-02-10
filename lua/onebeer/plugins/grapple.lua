@@ -2,7 +2,7 @@
 ---@type LazySpec
 return {
   "cbochs/grapple.nvim",
-  events = { "BufReadPre", "BufNewFile" },
+  event = { "BufReadPre", "BufNewFile" },
   opts = {
     scope = "git",
     statusline = {
