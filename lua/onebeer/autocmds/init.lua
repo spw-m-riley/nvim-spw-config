@@ -39,7 +39,7 @@ local ynkGrp = create_group("OneBeerHighlightYank")
 local filetypeGrp = create_group("OneBeerFiletype")
 
 create_autocmd("FileType", {
-  pattern = { "<filetype>" },
+  pattern = { "terraform-vars" },
   group = filetypeGrp,
   callback = function()
     vim.treesitter.start()

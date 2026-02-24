@@ -6,6 +6,7 @@ return {
     ensure_installed = {
       "gopls",
       "html",
+      "terraformls",
       "lua_ls",
       "ts_ls",
     },

@@ -5,6 +5,8 @@ return {
     "nvim-treesitter/nvim-treesitter",
   },
   config = function()
+    vim.treesitter.language.register("terraform", "terraform-vars")
+
     require("ts-install").setup({
       auto_install = true,
       ensure_installed = {
@@ -31,6 +33,7 @@ return {
         "scss",
         "svelte",
         "templ",
+        "terraform",
         "toml",
         "tsx",
         "typescript",

@@ -22,6 +22,7 @@ return {
       [ft.markdown] = { "markdownlint", "write_good", "woke" },
       [ft.sh] = { "shellcheck" },
       [ft.yaml] = { "yamllint" },
+      [ft.terraform] = { "tflint" },
     }
 
     local lint_group = create_group("OneBeerLint")

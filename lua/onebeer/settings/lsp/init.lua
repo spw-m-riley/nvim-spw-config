@@ -1,6 +1,7 @@
 local autocmds = require("onebeer.autocmds.helpers")
 local create_group = autocmds.create_group
 local create_autocmd = autocmds.create_autocmd
+require("onebeer.settings.filetypes")
 local lsp = vim.lsp
 
 ---Register LSP handler with custom configuration
@@ -82,4 +83,8 @@ if semantic_tokens and semantic_tokens.start then
       end
     end,
   })
+end
+
+if vim.fn.exepath("actions-languageserver") ~= "" then
+  vim.lsp.enable("actionsls")
 end

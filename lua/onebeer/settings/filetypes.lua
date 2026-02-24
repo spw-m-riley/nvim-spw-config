@@ -6,6 +6,7 @@ local M = {
   dockerfile = "dockerfile",
   dotenv = "dotenv",
   gitcommit = "gitcommit",
+  ghactions = "yaml.ghactions",
   gleam = "gleam",
   hcl = "hcl",
   html = "html",
@@ -23,6 +24,7 @@ local M = {
   svelte = "svelte",
   templ = "templ",
   yaml = "yaml",
+  terraform = "terraform",
   typescript = "typescript",
   typescriptreact = "typescriptreact",
 }
@@ -45,6 +47,7 @@ vim.filetype.add({
     ["Taskfile.yaml"] = M.yaml,
   },
   pattern = {
+    [".*/%.github/workflows/.*%.ya?ml"] = M.ghactions,
     ["Taskfile%..+%.ya?ml"] = M.yaml,
     ["taskfiles/.+%.[Yy][Aa]?[Mm][Ll]"] = M.yaml,
   },

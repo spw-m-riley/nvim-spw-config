@@ -10,12 +10,15 @@ return {
   },
   lazy = false,
   opts = {
+    { "skim" },
     file_icons = true,
     winopts = ui.float_winopts({
-      treesitter = true,
+      treesitter = false,
+      preview = { default = "bat" },
     }),
     files = {
       git_icons = true,
+      fzf_opts = { ["--ansi"] = false },
     },
     silent = true,
     grep = {

@@ -33,7 +33,6 @@ return {
       typescript = { "prettier", "oxfmt" },
       typescriptreact = { "prettier", "rustywind" },
       yaml = { "prettier" },
-      zsh = { "beautysh" },
     },
     default_format_opts = {
       lsp_format = "fallback",
