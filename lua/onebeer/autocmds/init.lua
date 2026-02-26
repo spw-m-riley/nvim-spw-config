@@ -187,7 +187,7 @@ create_autocmd({ "LspAttach" }, {
         group = create_group("LspCodelens_" .. ev.buf),
         callback = function()
           vim.schedule(function()
-            vim.lsp.codelens.enable(true, { bufnr = ev.buf })
+            vim.lsp.codelens.refresh({ bufnr = ev.buf })
           end)
         end,
       })

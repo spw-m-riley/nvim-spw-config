@@ -60,7 +60,7 @@ vim.lsp.util.open_floating_preview = (function(orig)
 end)(vim.lsp.util.open_floating_preview)
 
 local semantic_tokens = vim.lsp.semantic_tokens
-if semantic_tokens and semantic_tokens.start then
+if semantic_tokens and semantic_tokens.enable then
   local semantic_group = create_group("OneBeerSemanticTokens")
 
   create_autocmd("LspAttach", {
@@ -68,8 +68,7 @@ if semantic_tokens and semantic_tokens.start then
     callback = function(ev)
       local client = vim.lsp.get_client_by_id(ev.data.client_id)
       if client and client.server_capabilities.semanticTokensProvider then
-        semantic_tokens.enable(true)
-        -- semantic_tokens.start(ev.buf, client.id)
+        semantic_tokens.enable(true, { bufnr = ev.buf })
       end
     end,
   })
@@ -77,10 +76,7 @@ if semantic_tokens and semantic_tokens.start then
   create_autocmd("LspDetach", {
     group = semantic_group,
     callback = function(ev)
-      local client_id = ev.data.client_id
-      if client_id then
-        pcall(semantic_tokens.stop, ev.buf, client_id)
-      end
+      semantic_tokens.enable(false, { bufnr = ev.buf })
     end,
   })
 end
