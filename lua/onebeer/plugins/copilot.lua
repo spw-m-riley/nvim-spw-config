@@ -30,14 +30,6 @@ return {
           },
         },
         panel = { enabled = true },
-        nes = {
-          enabled = false,
-          keymap = {
-            accept_and_goto = false,
-            accept = false,
-            dismiss = false,
-          },
-        },
       })
     end, 100)
   end,
