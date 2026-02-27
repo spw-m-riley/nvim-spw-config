@@ -20,7 +20,6 @@
   "markview.nvim": { "branch": "main", "commit": "633e627f82011dc888ea4444a98c98bd783951b0" },
   "mason-lspconfig.nvim": { "branch": "main", "commit": "9e3a9fe4f1f9f34b19307a2695dee8fbbd0be776" },
   "mason.nvim": { "branch": "main", "commit": "44d1e90e1f66e077268191e3ee9d2ac97cc18e65" },
-  "mcphub.nvim": { "branch": "main", "commit": "7cd5db330f41b7bae02b2d6202218a061c3ebc1f" },
   "mini.clue": { "branch": "main", "commit": "d96fef9db8fcb38c058f2edb2eeb69cb8b2d462a" },
   "mini.files": { "branch": "main", "commit": "22c64f010eef047ed270e29e7cc266cd4740787e" },
   "mini.pairs": { "branch": "main", "commit": "d5a29b6254dad07757832db505ea5aeab9aad43a" },
