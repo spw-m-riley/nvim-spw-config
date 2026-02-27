@@ -72,6 +72,7 @@ function M.defaults()
   opt.viewoptions = "folds,cursor"
   opt.visualbell = true
   opt.wildmenu = true
+  opt.winbar = "%{%v:lua.require'onebeer.ui'.winbar()%}"
   opt.writebackup = true
 
   opt.shortmess:append({
@@ -94,10 +95,20 @@ function M.defaults()
   local function set_inlay_hint_hl()
     vim.api.nvim_set_hl(0, "LspInlayHint", { link = "Comment" })
   end
+  local function set_winbar_hl()
+    vim.api.nvim_set_hl(0, "OneBeerWinbarPath", { link = "WinBar" })
+    vim.api.nvim_set_hl(0, "OneBeerWinbarIcon", { link = "Title" })
+    vim.api.nvim_set_hl(0, "OneBeerWinbarModified", { link = "DiagnosticWarn" })
+    vim.api.nvim_set_hl(0, "OneBeerWinbarReadonly", { link = "DiagnosticError" })
+  end
   set_inlay_hint_hl()
+  set_winbar_hl()
   create_autocmd("ColorScheme", {
     group = highlight_group,
-    callback = set_inlay_hint_hl,
+    callback = function()
+      set_inlay_hint_hl()
+      set_winbar_hl()
+    end,
   })
 
   --  Return to the same position in the file when reopening

@@ -40,6 +40,16 @@ function M.defaults()
 
   map("n", "[d", vim.diagnostic.goto_prev, { desc = "Prev diagnostic" })
   map("n", "]d", vim.diagnostic.goto_next, { desc = "Next diagnostic" })
+  map("n", "zp", function()
+    local line = vim.fn.line(".")
+    local fold_start = vim.fn.foldclosed(line)
+    if fold_start == -1 then
+      return
+    end
+    local fold_end = vim.fn.foldclosedend(line)
+    local lines = vim.api.nvim_buf_get_lines(0, fold_start - 1, fold_end, false)
+    vim.lsp.util.open_floating_preview(lines, vim.bo.filetype, { border = "rounded" })
+  end, { desc = "Peek fold" })
 
   -- View messages
   map("n", "<leader>um", ":messages<CR>", { desc = "[U]I [M]essages" })

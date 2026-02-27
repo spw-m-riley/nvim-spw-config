@@ -22,7 +22,7 @@ return {
     require("nvim-dap-virtual-text")
     local utils = require("dap.utils")
 
-    dap.set_log_level("DEBUG")
+    dap.set_log_level("WARN")
 
     dap.adapters = {
       ["pwa-node"] = {

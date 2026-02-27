@@ -62,35 +62,9 @@ create_autocmd("TextYankPost", {
 create_autocmd("BufWritePost", {
   pattern = ".github/workflows/*",
   callback = function()
-    vim.schedule(function()
-      require("lint").try_lint("actionlint")
-    end)
+    require("lint").try_lint("actionlint")
   end,
   group = lintGrp,
-})
-
--- LSP commands
-create_autocmd("FileType", {
-  group = lspGrp,
-  pattern = "gleam",
-  callback = function()
-    local clients = vim.lsp.get_clients({ bufnr = 0 })
-    local is_attached = false
-
-    for _, client in ipairs(clients) do
-      if client.name == "gleam" then
-        is_attached = true
-        break
-      end
-    end
-
-    if not is_attached then
-      vim.lsp.start({
-        name = "gleam",
-        cmd = { "gleam", "lsp" },
-      })
-    end
-  end,
 })
 
 -- Initialize LSP client cache for statusline
@@ -100,9 +74,7 @@ create_autocmd({ "LspAttach" }, {
   group = lspGrp,
   callback = function(ev)
     -- Cache LSP clients for statusline performance
-    vim.schedule(function()
-      state.lsp_client_cache[ev.buf] = vim.lsp.get_clients({ bufnr = ev.buf })
-    end)
+    state.lsp_client_cache[ev.buf] = vim.lsp.get_clients({ bufnr = ev.buf })
 
     local bufopts = function(newOpts)
       if newOpts == nil then
@@ -119,9 +91,7 @@ create_autocmd({ "LspAttach" }, {
 
     local client = vim.lsp.get_client_by_id(client_id)
     if client and client.name == "copilot" then
-      vim.schedule(function()
-        reload_blink_provider("copilot")
-      end)
+      reload_blink_provider("copilot")
     end
     ---Enable or disable LSP inlay hints for a buffer, with backwards compatibility for API changes.
     ---@param buf integer
@@ -149,9 +119,7 @@ create_autocmd({ "LspAttach" }, {
     end
 
     if client and client.server_capabilities.inlayHintProvider and vim.lsp.inlay_hint then
-      vim.schedule(function()
-        set_inlay_hint(ev.buf, true)
-      end)
+      set_inlay_hint(ev.buf, true)
     end
 
     -- Enable document highlight
@@ -161,34 +129,26 @@ create_autocmd({ "LspAttach" }, {
         buffer = ev.buf,
         group = highlight_grp,
         callback = function()
-          vim.schedule(function()
-            vim.lsp.buf.document_highlight()
-          end)
+          vim.lsp.buf.document_highlight()
         end,
       })
       create_autocmd({ "CursorMoved", "CursorMovedI" }, {
         buffer = ev.buf,
         group = highlight_grp,
         callback = function()
-          vim.schedule(function()
-            vim.lsp.buf.clear_references()
-          end)
+          vim.lsp.buf.clear_references()
         end,
       })
     end
 
     -- Enable codelens
     if client and client.server_capabilities.codeLensProvider then
-      vim.schedule(function()
-        vim.lsp.codelens.enable(true, { bufnr = ev.buf })
-      end)
+      vim.lsp.codelens.enable(true, { bufnr = ev.buf })
       create_autocmd({ "BufEnter", "CursorHold", "InsertLeave" }, {
         buffer = ev.buf,
         group = create_group("LspCodelens_" .. ev.buf),
         callback = function()
-          vim.schedule(function()
-            vim.lsp.codelens.refresh({ bufnr = ev.buf })
-          end)
+          vim.lsp.codelens.refresh({ bufnr = ev.buf })
         end,
       })
     end
@@ -245,9 +205,7 @@ create_autocmd({ "LspAttach" }, {
 create_autocmd("LspDetach", {
   group = lspGrp,
   callback = function(ev)
-    vim.schedule(function()
-      state.lsp_client_cache[ev.buf] = nil
-    end)
+    state.lsp_client_cache[ev.buf] = nil
   end,
 })
 
@@ -261,7 +219,7 @@ local diag_group = create_group("OneBeerDiagnostics")
 create_autocmd("CursorHold", {
   group = diag_group,
   callback = function()
-    if vim.g.onebeer_inline_diagnostics_enabled == false then
+    if vim.g.onebeer_inline_diagnostics_enabled ~= false then
       return
     end
     vim.diagnostic.open_float(nil, { focus = false, scope = "cursor" })

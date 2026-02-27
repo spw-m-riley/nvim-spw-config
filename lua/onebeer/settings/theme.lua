@@ -2,9 +2,11 @@
 ---@param name string
 ---@return string
 local function getHighlightHex(name)
-  local colour = vim.api.nvim_get_hl_by_name(name, true)
-  local hex = "#" .. string.format("%06x", colour.foreground)
-  return hex
+  local ok, colour = pcall(vim.api.nvim_get_hl, 0, { name = name, link = false })
+  if not ok or not colour or not colour.fg then
+    return "#000000"
+  end
+  return "#" .. string.format("%06x", colour.fg)
 end
 
 ---@class OneBeerThemePalettes

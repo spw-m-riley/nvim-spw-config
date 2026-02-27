@@ -2,6 +2,36 @@
 ---@class OneBeerHealth
 local M = {}
 
+---@alias OneBeerInstallStatus "pending"|"installing"|"installed"|"failed"
+---@alias OneBeerInstallDone fun(ok:boolean)
+---@alias OneBeerInstallRunner fun(done:OneBeerInstallDone|nil)
+
+---@class OneBeerRunCommandOpts
+---@field title? string
+---@field cmd string[]
+---@field start_msg? string
+---@field success_msg? string
+---@field failure_msg? string
+
+---@class OneBeerInstallSpec
+---@field needs string[]|nil
+---@field check fun():boolean
+---@field run OneBeerInstallRunner
+---@field waiters OneBeerInstallDone[]|nil
+---@field status OneBeerInstallStatus|nil
+
+---@class OneBeerMissingItem
+---@field kind "external"|"mason"
+---@field name string
+
+---@class OneBeerMissingList
+---@field [integer] OneBeerMissingItem
+---@field _set table<string, boolean>|nil
+
+---@class OneBeerCommandSpec
+---@field name string
+---@field instruction string
+
 local mason_registry = (function()
   local ok, registry = pcall(require, "mason-registry")
   if ok then
@@ -10,6 +40,9 @@ local mason_registry = (function()
   return nil
 end)()
 
+---@param title string
+---@param msg string|nil
+---@param level? integer
 local function notify(title, msg, level)
   if not msg or msg == "" then
     return
@@ -19,6 +52,8 @@ local function notify(title, msg, level)
   end)
 end
 
+---@param opts OneBeerRunCommandOpts
+---@param done? OneBeerInstallDone
 local function run_command(opts, done)
   local title = opts.title or "Installer"
   notify(title, opts.start_msg)
@@ -59,6 +94,9 @@ local function run_command(opts, done)
   end
 end
 
+---@param pkg string
+---@param label? string
+---@return OneBeerInstallRunner
 local function brew_install(pkg, label)
   return function(done)
     run_command({
@@ -71,6 +109,9 @@ local function brew_install(pkg, label)
   end
 end
 
+---@param spec string
+---@param label? string
+---@return OneBeerInstallRunner
 local function mise_use(spec, label)
   return function(done)
     run_command({
@@ -83,6 +124,9 @@ local function mise_use(spec, label)
   end
 end
 
+---@param module string
+---@param label? string
+---@return OneBeerInstallRunner
 local function go_install(module, label)
   return function(done)
     run_command({
@@ -95,6 +139,9 @@ local function go_install(module, label)
   end
 end
 
+---@param pkg string
+---@param label? string
+---@return OneBeerInstallRunner
 local function npm_global(pkg, label)
   return function(done)
     run_command({
@@ -107,6 +154,7 @@ local function npm_global(pkg, label)
   end
 end
 
+---@type table<string, OneBeerInstallSpec>
 local install_specs = {
   brew = {
     check = function()
@@ -188,47 +236,13 @@ local install_specs = {
   },
 }
 
-local function has_executable(bin)
-  return vim.fn.executable(bin) == 1
-end
-
-install_specs.brew.check = function()
-  return has_executable("brew")
-end
-install_specs.mise.check = function()
-  return has_executable("mise")
-end
-install_specs.git.check = function()
-  return has_executable("git")
-end
-install_specs.rg.check = function()
-  return has_executable("rg")
-end
-install_specs.fzf.check = function()
-  return has_executable("fzf")
-end
-install_specs.jq.check = function()
-  return has_executable("jq")
-end
-install_specs.node.check = function()
-  return has_executable("node")
-end
-install_specs.go.check = function()
-  return has_executable("go")
-end
-install_specs.gojson.check = function()
-  return has_executable("gojson")
-end
-install_specs.quicktype.check = function()
-  return has_executable("quicktype")
-end
-
 for _, spec in pairs(install_specs) do
   spec.needs = spec.needs or {}
   spec.waiters = {}
   spec.status = "pending"
 end
 
+---@type table<string, string>
 local dependency_install_map = {
   brew = "brew",
   mise = "mise",
@@ -242,6 +256,8 @@ local dependency_install_map = {
   quicktype = "quicktype",
 }
 
+---@param spec OneBeerInstallSpec
+---@param ok boolean
 local function resolve_waiters(spec, ok)
   local waiters = spec.waiters
   spec.waiters = {}
@@ -250,6 +266,9 @@ local function resolve_waiters(spec, ok)
   end
 end
 
+---@param name string
+---@param cb? OneBeerInstallDone
+---@return boolean
 local function ensure_install(name, cb)
   local spec = install_specs[name]
   if not spec then
@@ -329,6 +348,7 @@ local function ensure_install(name, cb)
   return false
 end
 
+---@param name string
 local function ensure_dependency_install(name)
   local installer = dependency_install_map[name]
   if installer then
@@ -348,7 +368,7 @@ local mason_installable = {
 }
 
 ---Queue missing tools for optional installation at end of :checkhealth
----@param missing table|nil
+---@param missing OneBeerMissingList|nil
 ---@param kind "external"|"mason"
 ---@param name string
 local function queue_missing(missing, kind, name)
@@ -367,7 +387,7 @@ end
 ---Check if an executable is installed
 ---@param name string
 ---@param instruction string
----@param missing? table
+---@param missing? OneBeerMissingList
 ---@return boolean
 local function check_executable(name, instruction, missing)
   if vim.fn.executable(name) == 1 then
@@ -381,8 +401,8 @@ local function check_executable(name, instruction, missing)
 end
 
 ---Check multiple executables
----@param commands {name:string, instruction:string}[]
----@param missing? table
+---@param commands OneBeerCommandSpec[]
+---@param missing? OneBeerMissingList
 ---@return nil
 local function check_exes(commands, missing)
   for _, cmd in ipairs(commands) do
@@ -392,7 +412,7 @@ end
 
 ---Check formatter/linter is installed
 ---@param name string
----@param missing? table
+---@param missing? OneBeerMissingList
 ---@return nil
 local function check_formatter(name, missing)
   if vim.fn.executable(name) == 1 then
@@ -415,6 +435,7 @@ function M.check()
   end
 
   vim.health.start("OneBeer Config")
+  ---@type OneBeerCommandSpec[]
   local exes = {
     { name = "git", instruction = "Install git via `brew install git`" },
     { name = "rg", instruction = "Install ripgrep via `brew install ripgrep`" },
@@ -431,6 +452,7 @@ function M.check()
     { name = "mise", instruction = "Install mise via `brew install mise`" },
   }
 
+  ---@type OneBeerMissingList
   local missing = {}
 
   check_exes(exes, missing)

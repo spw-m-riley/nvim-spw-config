@@ -1,6 +1,9 @@
+---@module "onebeer.settings.diagnostics"
+---@type OneBeerIcons
 local icons = require("onebeer.settings.icons")
 
-vim.diagnostic.config({
+---@type vim.diagnostic.Opts
+local diagnostics_config = {
   underline = true,
   update_in_insert = false,
   virtual_text = {
@@ -10,4 +13,6 @@ vim.diagnostic.config({
   },
   severity_sort = true,
   signs = icons.get_diagnostic_signs(),
-})
+}
+
+vim.diagnostic.config(diagnostics_config)

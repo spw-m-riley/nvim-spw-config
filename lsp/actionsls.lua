@@ -1,3 +1,30 @@
+---@class ActionsRepoInfo
+---@field id integer
+---@field organizationOwned boolean
+
+---@class ActionsRepoConfig
+---@field id integer
+---@field owner string
+---@field name string
+---@field organizationOwned boolean
+---@field workspaceUri string
+
+---@class ActionslsConfig
+---@field cmd string[]
+---@field filetypes string[]
+---@field root_markers string[]
+---@field workspace_required boolean
+---@field init_options ActionslsInitOptions
+---@field on_new_config fun(new_config: ActionslsRuntimeConfig, root_dir: string)
+
+---@class ActionslsInitOptions
+---@field sessionToken string|nil
+---@field repos ActionsRepoConfig[]|nil
+
+---@class ActionslsRuntimeConfig
+---@field init_options ActionslsInitOptions|nil
+
+---@return string|nil
 local function get_github_token()
   local handle = io.popen("gh auth token 2>/dev/null")
   if not handle then
@@ -9,6 +36,9 @@ local function get_github_token()
   return token ~= "" and token or nil
 end
 
+---@param url string|nil
+---@return string|nil owner
+---@return string|nil repo
 local function parse_github_remote(url)
   if not url or url == "" then
     return nil, nil
@@ -27,6 +57,9 @@ local function parse_github_remote(url)
   return nil, nil
 end
 
+---@param owner string
+---@param repo string
+---@return ActionsRepoInfo|nil
 local function get_repo_info(owner, repo)
   local cmd = string.format(
     "gh repo view %s/%s --json id,owner --template '{{.id}}\\t{{.owner.type}}' 2>/dev/null",
@@ -52,6 +85,8 @@ local function get_repo_info(owner, repo)
   return nil
 end
 
+---@param root_dir string|nil
+---@return ActionsRepoConfig[]|nil
 local function get_repos_config(root_dir)
   if not root_dir or root_dir == "" then
     return nil
@@ -73,6 +108,7 @@ local function get_repos_config(root_dir)
     return nil
   end
 
+  ---@type ActionsRepoInfo|nil
   local info = get_repo_info(owner, name)
 
   return {
@@ -86,21 +122,27 @@ local function get_repos_config(root_dir)
   }
 end
 
+---@type string
 local server_cmd = vim.fn.exepath("actions-languageserver")
 if server_cmd == "" then
   server_cmd = "actions-languageserver"
 end
 
+---@type string|nil
 local session_token = get_github_token()
 
+---@type ActionslsConfig
 return {
   cmd = { server_cmd, "--stdio" },
   filetypes = { "yaml.ghactions" },
   root_markers = { ".git" },
   workspace_required = false,
+  ---@type ActionslsInitOptions
   init_options = {
     sessionToken = session_token,
   },
+  ---@param new_config ActionslsRuntimeConfig
+  ---@param root_dir string
   on_new_config = function(new_config, root_dir)
     new_config.init_options = new_config.init_options or {}
     new_config.init_options.sessionToken = session_token

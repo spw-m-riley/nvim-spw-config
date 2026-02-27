@@ -1,3 +1,7 @@
+---@alias LuaSnipNode any
+---@alias LuaSnipNodeList LuaSnipNode[]
+
+---@return LuaSnipNode
 local get_functions = function()
   local ls = require("luasnip")
   local t = ls.text_node
@@ -5,7 +9,9 @@ local get_functions = function()
 
   local get_buffer_path = vim.api.nvim_buf_get_name(0)
   local import_file_path = string.gsub(get_buffer_path, ".spec*.", "")
+  ---@type integer[]
   local buff_list = vim.api.nvim_list_bufs()
+  ---@type LuaSnipNodeList
   local sn_tbl = {}
   for _, val in next, buff_list do
     local iter_buf_name = vim.api.nvim_buf_get_name(val)
@@ -26,6 +32,7 @@ local get_functions = function()
       )
 
       for _, cap in query:iter_matches(root, val) do
+        ---@type string
         local method_name = q.get_node_text(cap[1], val)
         if not (method_name == "constructor") then
           table.insert(sn_tbl, t({ 'describe("#' .. method_name .. '", () => {', "", "});", "" }))

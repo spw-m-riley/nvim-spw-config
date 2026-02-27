@@ -1,3 +1,7 @@
+---@alias LuaSnipFunctionArgs table<integer, string[]>
+
+---@param args LuaSnipFunctionArgs
+---@return string
 local var_name = function(args)
   local name = args[1][1]
   return string.gsub(name, "(%a)([%w_']*)", function(first, rest)

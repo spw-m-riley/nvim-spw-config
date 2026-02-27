@@ -4,6 +4,21 @@ local create_autocmd = autocmds.create_autocmd
 require("onebeer.settings.filetypes")
 local lsp = vim.lsp
 
+vim.lsp.config("*", {
+  capabilities = {
+    textDocument = {
+      completion = {
+        completionItem = {
+          snippetSupport = true,
+        },
+      },
+      semanticTokens = {
+        multilineTokenSupport = true,
+      },
+    },
+  },
+})
+
 ---Register LSP handler with custom configuration
 ---@param handler_name string
 ---@param handler_fn function
@@ -83,4 +98,24 @@ end
 
 if vim.fn.exepath("actions-languageserver") ~= "" then
   vim.lsp.enable("actionsls")
+end
+
+if vim.fn.exepath("gleam") ~= "" then
+  vim.lsp.enable("gleam")
+end
+
+if vim.fn.exepath("gopls") ~= "" then
+  vim.lsp.enable("gopls")
+end
+
+if vim.fn.exepath("vscode-html-language-server") ~= "" then
+  vim.lsp.enable("html")
+end
+
+if vim.fn.exepath("terraform-ls") ~= "" then
+  vim.lsp.enable("terraformls")
+end
+
+if vim.fn.exepath("typescript-language-server") ~= "" then
+  vim.lsp.enable("ts_ls")
 end

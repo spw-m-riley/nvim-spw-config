@@ -1,9 +1,12 @@
+---@module "lazy"
+---@type LazySpec
 return {
   "lewis6991/ts-install.nvim",
   lazy = false,
   dependencies = {
     "nvim-treesitter/nvim-treesitter",
   },
+  ---@return nil
   config = function()
     vim.treesitter.language.register("terraform", "terraform-vars")
 

@@ -1,9 +1,11 @@
+--# selene: allow(global_usage)
 ---@class onebeer.utils
 local M = {}
 
 ---Print and return value (for debugging)
----@param v any
----@return any
+---@generic T
+---@param v T
+---@return T
 local function P(v)
   print(vim.inspect(v))
   return v
@@ -11,14 +13,14 @@ end
 
 ---Reload a module using plenary
 ---@param ... string
----@return any
+---@return unknown
 local function RELOAD(...)
   return require("plenary.reload").reload_module(...)
 end
 
 ---Reload and require a module
 ---@param name string
----@return any
+---@return unknown
 local function R(name)
   RELOAD(name)
   return require(name)
@@ -35,7 +37,7 @@ _G.R = R
 ---Safely require a module with error handling
 ---@param module string
 ---@param level? integer vim.log.levels
----@return boolean, any
+---@return boolean ok, unknown result
 M.safe_require = function(module, level)
   local ok, result = pcall(require, module)
   if not ok then
