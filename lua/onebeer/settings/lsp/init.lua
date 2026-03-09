@@ -96,7 +96,28 @@ if semantic_tokens and semantic_tokens.enable then
   })
 end
 
-if vim.fn.exepath("actions-languageserver") ~= "" then
+---@param command string
+---@return boolean
+local function is_executable(command)
+  if vim.fn.exepath(command) ~= "" then
+    return true
+  end
+  local mason_command = ("%s/mason/bin/%s"):format(vim.fn.stdpath("data"), command)
+  return vim.fn.executable(mason_command) == 1
+end
+
+---@param commands string[]
+---@return boolean
+local function has_any_executable(commands)
+  for _, command in ipairs(commands) do
+    if is_executable(command) then
+      return true
+    end
+  end
+  return false
+end
+
+if has_any_executable({ "actions-languageserver", "gh-actions-language-server", "actions-language-server" }) then
   vim.lsp.enable("actionsls")
 end
 

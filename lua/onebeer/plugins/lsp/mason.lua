@@ -5,6 +5,7 @@ return {
   opts = {
     ensure_installed = {
       "gopls",
+      "gh_actions_ls",
       "html",
       "terraformls",
       "lua_ls",
