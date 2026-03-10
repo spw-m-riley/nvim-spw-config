@@ -10,6 +10,8 @@ This is a full-featured Neovim setup built on [lazy.nvim](https://github.com/fol
 
 The namespace is `onebeer` and every module lives under `lua/onebeer/`. The entry point is `init.lua`, which boots the config in a deliberate sequence: utilities → settings → diagnostics → LSP → plugins → health → autocommands → custom commands → optional local overrides.
 
+If you want the in-editor reference instead of the README, use `:h onebeer`.
+
 ---
 
 ## How it's structured
@@ -226,6 +228,9 @@ nvim --headless "+Lazy! check" +qa
 
 # Full health check
 nvim --headless "+checkhealth onebeer" +qa
+
+# Rebuild local help tags after editing doc/onebeer.txt
+nvim --headless "+helptags doc" +qa
 ```
 
 The selene linter uses a custom standard library definition (`lua51+vim+onebeer`) to understand Neovim and config-specific globals. Plugin spec files are excluded from the stricter rules.

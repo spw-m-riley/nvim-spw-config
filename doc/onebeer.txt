@@ -1,0 +1,215 @@
+*onebeer.txt*	OneBeer Neovim configuration
+
+This is the native help reference for the OneBeer config.
+
+For a quick floating cheatsheet, use |OneBeerHelp|. For the persistent
+reference that works with |:help|, start here.
+
+==============================================================================
+CONTENTS					*onebeer* *onebeer-contents*
+
+1. Overview.................................|onebeer-overview|
+2. Startup flow.............................|onebeer-startup|
+3. Installation and first run...............|onebeer-install|
+4. Keymaps and custom commands..............|onebeer-keymaps|
+5. Git and GitHub workflow..................|onebeer-git|
+6. AI workflow..............................|onebeer-ai|
+7. Health and troubleshooting...............|onebeer-health|
+8. Local overrides..........................|onebeer-local|
+
+==============================================================================
+OVERVIEW						*onebeer-overview*
+
+OneBeer is a personal Neovim configuration built on |lazy.nvim|. The config
+code lives under the `onebeer` namespace in `lua/onebeer/`, and `init.lua`
+boots it in a deliberate sequence: utilities, settings, diagnostics, LSP,
+plugins, health checks, autocommands, custom commands, and optional local
+overrides.
+
+The overall shape is intentionally opinionated:
+
+- one plugin spec per file under `lua/onebeer/plugins/`
+- server-specific LSP config in `lsp/*.lua`
+- shared helper functions in `onebeer.utils`
+- machine-specific tweaks in `lua/onebeer/local.lua`
+
+Use this help file when you want the durable reference. Use |OneBeerHelp|
+when you just need the short in-editor cheatsheet.
+
+==============================================================================
+STARTUP FLOW						*onebeer-startup*
+
+`init.lua` is the entrypoint. It enables the Lua loader and then loads the
+config in this order:
+
+1. `onebeer.utils`
+2. `onebeer.settings`
+3. diagnostics and LSP defaults
+4. `onebeer.config`
+5. `onebeer.lazy`
+6. `onebeer.health`
+7. `onebeer.autocmds`
+8. `onebeer.tools.commands`
+9. optional `onebeer.local`
+
+That layout keeps ownership clear:
+
+- `lsp/*.lua` owns per-server language-server settings
+- `lua/onebeer/plugins/` owns plugin setup
+- `lua/onebeer/autocmds/init.lua` owns cross-cutting editor behavior
+- `lua/onebeer/tools/commands.lua` owns the small helper command surface
+
+==============================================================================
+INSTALLATION AND FIRST RUN				*onebeer-install*
+
+Requirements:
+
+- Neovim 0.11.0 or newer
+- `git`, `rg`, `fzf`, and `gh`
+- a Nerd Font
+
+Helpful extras:
+
+- `mise` for Node.js and Go toolchains
+- `brew` for system packages
+
+Clone the repository to your config directory and open Neovim. On first
+startup:
+
+- |lazy.nvim| bootstraps plugin installation
+- Mason installs curated LSP servers
+- |:checkhealth| onebeer highlights missing external tools
+
+The config also ships native help, so after startup you can use:
+
+>
+	:h onebeer
+<
+
+==============================================================================
+KEYMAPS AND CUSTOM COMMANDS				*onebeer-keymaps*
+						*onebeer-commands*
+						*OneBeerHelp*
+						*OneBeerDoctor*
+
+Leader is mapped to <Space>.
+
+Important groups:
+
+- `<leader>s`	search and picker workflows through fzf-lua
+- `<leader>u`	UI toggles, diagnostics helpers, logs, and messages
+- `<leader>l`	Gitsigns hunk actions
+- `<leader>m`	move lines up and down
+- `<leader>j`	JSON conversion helpers
+
+Common entry points:
+
+- `<leader>sh`	search help tags with fzf-lua
+- `<leader>sc`	search custom and built-in commands
+- `<leader>sk`	search active keymaps
+- `<leader>uh`	open the floating OneBeer cheatsheet
+- `<leader>ud`	run the aggregated doctor view
+- `<leader>ul`	open the LSP log file
+- `<leader>uf`	toggle format-on-save for the current buffer
+- `<leader>uF`	toggle format-on-save globally
+- `<leader>uB`	toggle linting for the current buffer
+- `<leader>uL`	toggle linting globally
+- `<leader>um`	show `:messages`
+- `<leader>jg`	convert JSON to Go structs
+- `<leader>jt`	convert JSON to TypeScript types
+- `[d` and `]d`	jump to previous and next diagnostics
+
+|OneBeerHelp| opens a short floating cheatsheet. |OneBeerDoctor| runs
+`checkhealth`, `Lazy! check`, and `LspInfo`, then shows the collected output
+in an fzf-backed picker or fallback float.
+
+==============================================================================
+GIT AND GITHUB WORKFLOW					*onebeer-git*
+						*onebeer-octo*
+
+OneBeer splits Git responsibilities across a few tools:
+
+- `gitsigns.nvim` for hunk-level buffer actions
+- `neogit` for Git porcelain workflows
+- `diffview.nvim` for diff and history views
+- `octo.nvim` for GitHub-native workflows
+
+GitHub entry points are kept under the `<leader>o` namespace:
+
+- `<leader>oi`	list GitHub issues
+- `<leader>op`	list pull requests
+- `<leader>od`	list discussions
+- `<leader>on`	list notifications
+
+Octo uses `fzf-lua` as its picker backend in this config and expects a working
+GitHub CLI login. If GitHub-backed features fail, verify:
+
+>
+	:!gh auth status
+<
+
+Some Projects v2 features may require refreshing the token with the
+`read:project` scope.
+
+==============================================================================
+AI WORKFLOW						*onebeer-ai*
+
+OneBeer uses two main AI surfaces:
+
+- `copilot.lua` for GitHub Copilot completions
+- Sidekick for prompt-driven Copilot CLI workflows
+
+Copilot completions are integrated into the completion stack. Sidekick is the
+interactive assistant surface and lives under the `<leader>a` group.
+
+The config can disable Copilot automatically for paths listed in
+`onebeer.config`'s `nopilot_dirs`.
+
+==============================================================================
+HEALTH AND TROUBLESHOOTING				*onebeer-health*
+						*onebeer-troubleshooting*
+
+Start with:
+
+>
+	:checkhealth onebeer
+<
+
+That health check is the main dependency overview for the config. It reports
+missing external tools and can guide installs for the supported toolchain.
+
+Useful maintenance commands from the repo root:
+
+>
+	selene .
+	stylua --check .
+	nvim --headless "+Lazy! check" +qa
+	nvim --headless "+checkhealth onebeer" +qa
+	nvim --headless "+helptags doc" +qa
+<
+
+If something feels off:
+
+- run `:checkhealth onebeer`
+- run |OneBeerDoctor|
+- check the LSP log with `<leader>ul`
+- confirm `gh auth status` before using Octo
+- rebuild help tags after editing this file
+
+==============================================================================
+LOCAL OVERRIDES						*onebeer-local*
+
+Machine-specific changes belong in:
+
+>
+	lua/onebeer/local.lua
+<
+
+If that file exists, OneBeer loads it last. Use it for personal fonts,
+transparency settings, host-specific keymaps, or any other tweak that should
+stay out of version control.
+
+Keep shared behavior in the tracked config and keep machine-specific behavior
+in `onebeer.local`.
+
+vim:tw=78:ts=8:noet:ft=help:norl:
