@@ -1,0 +1,10 @@
+{
+  "lspServers": {
+    "lua": {
+      "command": "/Users/matthew.riley/.local/share/nvim/mason/bin/lua-language-server",
+      "fileExtensions": {
+        ".lua": "lua"
+      }
+    }
+  }
+}
