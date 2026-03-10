@@ -163,7 +163,7 @@ local install_specs = {
     run = function(done)
       notify(
         "Homebrew",
-        "Homebrew is required but must be installed manually. Run `/bin/bash -c \"$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)\"` in a terminal.",
+        'Homebrew is required but must be installed manually. Run `/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"` in a terminal.',
         vim.log.levels.ERROR
       )
       if done then
@@ -358,6 +358,7 @@ end
 
 local mason_installable = {
   stylua = true,
+  shfmt = true,
   oxlint = true,
   selene = true,
   shellcheck = true,
@@ -424,6 +425,51 @@ local function check_formatter(name, missing)
   queue_missing(missing, "mason", name)
 end
 
+---Check an executable without offering automated installation.
+---@param name string
+---@param instruction string
+---@return boolean
+local function check_manual_executable(name, instruction)
+  if vim.fn.executable(name) == 1 then
+    vim.health.ok(("`%s` is installed"):format(name))
+    return true
+  end
+
+  vim.health.warn(("`%s` is not installed. %s"):format(name, instruction))
+  return false
+end
+
+---Check that at least one executable in a preferred/fallback chain is available.
+---@param names string[]
+---@param label string
+---@param instruction string
+---@return boolean
+local function check_any_executable(names, label, instruction)
+  for _, name in ipairs(names) do
+    if vim.fn.executable(name) == 1 then
+      vim.health.ok(("`%s` is available via `%s`"):format(label, name))
+      return true
+    end
+  end
+
+  vim.health.warn(("`%s` is not installed. %s"):format(label, instruction))
+  return false
+end
+
+---Check an optional executable and report it as informational when missing.
+---@param name string
+---@param instruction string
+---@return boolean
+local function check_optional_executable(name, instruction)
+  if vim.fn.executable(name) == 1 then
+    vim.health.ok(("`%s` is installed (optional fast path)"):format(name))
+    return true
+  end
+
+  vim.health.info(("`%s` is optional. %s"):format(name, instruction))
+  return false
+end
+
 ---Run the OneBeer health checks and emit vim.health diagnostics.
 ---@return nil
 function M.check()
@@ -459,10 +505,29 @@ function M.check()
 
   vim.health.start("Formatters & Linters")
   check_formatter("stylua", missing)
+  check_any_executable(
+    { "shfmt", "beautysh" },
+    "shfmt/beautysh",
+    "Install `shfmt` via `brew install shfmt` or provide `beautysh` as a fallback formatter"
+  )
+  check_any_executable(
+    { "prettierd", "prettier" },
+    "prettierd/prettier",
+    "Install `prettierd` via `npm install -g @fsouza/prettierd` or install `prettier` via `npm install -g prettier`"
+  )
+  check_manual_executable("eslint", "Install via `npm install -g eslint`")
+  check_optional_executable(
+    "eslint_d",
+    "Install via `npm install -g eslint_d` to enable the faster JS/TS InsertLeave lint path"
+  )
   check_formatter("oxlint", missing)
   check_formatter("selene", missing)
+  check_manual_executable("markdownlint", "Install via `npm install -g markdownlint-cli`")
+  check_manual_executable("write-good", "Install via `npm install -g write-good`")
+  check_manual_executable("woke", "Install via `brew install woke`")
   check_formatter("shellcheck", missing)
   check_formatter("yamllint", missing)
+  check_manual_executable("tflint", "Install via `brew install tflint`")
   check_formatter("hadolint", missing)
   check_formatter("gitlint", missing)
   check_formatter("actionlint", missing)

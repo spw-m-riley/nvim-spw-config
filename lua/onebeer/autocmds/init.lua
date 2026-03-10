@@ -33,7 +33,6 @@ local function reload_blink_provider(provider)
 end
 
 -- Groups
-local lintGrp = create_group("OneBeerWorkflowLint")
 local lspGrp = create_group("OneBeerLsp")
 local ynkGrp = create_group("OneBeerHighlightYank")
 local filetypeGrp = create_group("OneBeerFiletype")
@@ -56,15 +55,6 @@ create_autocmd("TextYankPost", {
   callback = function()
     vim.highlight.on_yank({ higroup = "IncSearch", timeout = 150 })
   end,
-})
-
--- Formatting and linting commands
-create_autocmd("BufWritePost", {
-  pattern = ".github/workflows/*",
-  callback = function()
-    require("lint").try_lint("actionlint")
-  end,
-  group = lintGrp,
 })
 
 -- Initialize LSP client cache for statusline

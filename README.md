@@ -53,14 +53,17 @@ The namespace is `onebeer` and every module lives under `lua/onebeer/`. The entr
 
 ## Language support
 
-LSP is managed by [Mason](https://github.com/williamboman/mason.nvim) with server-specific config files in `lsp/`. The following servers are installed and configured:
+LSP install/curation is managed by [Mason](https://github.com/williamboman/mason.nvim) in `lua/onebeer/plugins/lsp/mason.lua`, with server-specific config files in `lsp/`. The following curated servers are installed and configured:
 
 | Language | Server | Notable features |
 |---|---|---|
 | Go | `gopls` | Inlay hints, shadow/unused analysis, codelenses (govulncheck, tidy) |
 | TypeScript / JavaScript | `ts_ls` | Full inlay hints, import organisation, file operations |
 | Lua | `lua_ls` | Neovim API aware, strict workspace scanning limits, formatting off (stylua owns that) |
+| JSON | `jsonls` | JSON language features; formatting handled by conform |
 | HTML | `html` | — |
+| Shell | `bashls` | Shell language features |
+| Astro | `astro` | Astro language features; formatting handled by conform |
 | Terraform | `terraformls` | — |
 | Gleam | `gleam` | — |
 | GitHub Actions | `gh_actions_ls` | Workflow file linting |
@@ -69,7 +72,18 @@ LSP is managed by [Mason](https://github.com/williamboman/mason.nvim) with serve
 
 Formatting is handled by [conform.nvim](https://github.com/stevearc/conform.nvim) — it owns format-on-save for every supported filetype. LSP formatting is intentionally disabled wherever conform has a better tool (e.g. `lua_ls` defers to `stylua`).
 
-Linting runs through [nvim-lint](https://github.com/mfussenegger/nvim-lint) with support for: `eslint`, `oxlint`, `selene`, `shellcheck`, `yamllint`, `hadolint`, `gitlint`, and `actionlint`.
+The main formatter paths are:
+
+- `stylua` for Lua
+- `shfmt` first, `beautysh` fallback for `sh` / `zsh`
+- `prettierd` first, `prettier` fallback for JS / TS / web filetypes
+
+Linting runs through [nvim-lint](https://github.com/mfussenegger/nvim-lint) with a split low-latency workflow:
+
+- JS / TS / Astro use `oxlint` on `InsertLeave`, with optional `eslint_d` when it is installed
+- JS / TS / Astro use `eslint` on `BufWritePost`
+- Markdown / prose use `markdownlint`, `write-good`, and `woke` on save
+- Shell / YAML / Terraform / Docker / gitcommit / GitHub Actions use `shellcheck`, `yamllint`, `tflint`, `hadolint`, `gitlint`, and `actionlint`
 
 ---
 

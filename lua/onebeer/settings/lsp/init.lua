@@ -3,36 +3,26 @@ local create_group = autocmds.create_group
 local create_autocmd = autocmds.create_autocmd
 require("onebeer.settings.filetypes")
 local lsp = vim.lsp
+local M = {}
 
-vim.lsp.config("*", {
-  capabilities = {
-    textDocument = {
-      completion = {
-        completionItem = {
-          snippetSupport = true,
-        },
-      },
-      semanticTokens = {
-        multilineTokenSupport = true,
+local base_capabilities = {
+  textDocument = {
+    completion = {
+      completionItem = {
+        snippetSupport = true,
       },
     },
+    semanticTokens = {
+      multilineTokenSupport = true,
+    },
   },
+}
+
+M.base_capabilities = vim.deepcopy(base_capabilities)
+
+vim.lsp.config("*", {
+  capabilities = vim.deepcopy(base_capabilities),
 })
-
----Register LSP handler with custom configuration
----@param handler_name string
----@param handler_fn function
-local function setup_lsp_handler(handler_name, handler_fn)
-  lsp.handlers[handler_name] = handler_fn
-end
-
-setup_lsp_handler("textDocument/hover", function()
-  return vim.lsp.buf.hover({ border = "rounded" })
-end)
-
-setup_lsp_handler("textDocument/signatureHelp", function()
-  return vim.lsp.buf.signature_help({ border = "rounded" })
-end)
 
 local original_progress = lsp.handlers["$/progress"]
 lsp.handlers["$/progress"] = function(err, result, ctx, config)
@@ -106,6 +96,8 @@ local function is_executable(command)
   return vim.fn.executable(mason_command) == 1
 end
 
+M.is_executable = is_executable
+
 ---@param commands string[]
 ---@return boolean
 local function has_any_executable(commands)
@@ -117,26 +109,6 @@ local function has_any_executable(commands)
   return false
 end
 
-if has_any_executable({ "actions-languageserver", "gh-actions-language-server", "actions-language-server" }) then
-  vim.lsp.enable("actionsls")
-end
+M.has_any_executable = has_any_executable
 
-if vim.fn.exepath("gleam") ~= "" then
-  vim.lsp.enable("gleam")
-end
-
-if vim.fn.exepath("gopls") ~= "" then
-  vim.lsp.enable("gopls")
-end
-
-if vim.fn.exepath("vscode-html-language-server") ~= "" then
-  vim.lsp.enable("html")
-end
-
-if vim.fn.exepath("terraform-ls") ~= "" then
-  vim.lsp.enable("terraformls")
-end
-
-if vim.fn.exepath("typescript-language-server") ~= "" then
-  vim.lsp.enable("ts_ls")
-end
+return M
