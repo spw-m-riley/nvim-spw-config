@@ -61,7 +61,7 @@ end
 local help_lines = {
   "OneBeer Quick Help",
   "------------------",
-  "Use :h onebeer for the full manual",
+  "Need the full tour? :h onebeer has you covered",
   "Leader aa/ap/... -> Sidekick + Copilot CLI",
   "Leader a         -> Align multicursors",
   "Leader c         -> Code actions, diagnostics, Copilot",
@@ -84,8 +84,8 @@ local help_lines = {
   "[h / ]h          -> Prev/Next hunk",
   "[r / ]r          -> Prev/Next reference",
   "ai / ii          -> Snacks scope text-objects",
-  "<leader>uh       -> OneBeerHelp",
-  "<leader>ud       -> OneBeerDoctor",
+  "<leader>uh       -> Reopen this quick guide",
+  "<leader>ud       -> Run OneBeerDoctor",
 }
 
 local exec2 = vim.api.nvim_exec2

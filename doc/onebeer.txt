@@ -1,12 +1,14 @@
-*onebeer.txt*OneBeer Neovim configuration reference
+*onebeer.txt*	OneBeer Neovim configuration reference
 
-OneBeer is a personal Neovim configuration with a native help manual.
+OneBeer is a personal Neovim configuration with a native help manual built to
+make the setup easier to learn and maintain.
 
 Use |:help| for the full reference. Use |OneBeerHelp| for the short floating
-cheatsheet. The native helpfile is the canonical source of truth.
+cheatsheet when you just need a quick nudge. The native helpfile is the
+canonical source of truth.
 
 ==============================================================================
-CONTENTS*onebeer* *onebeer-contents*
+CONTENTS                                    *onebeer* *onebeer-contents*
 
 1. Overview.....................................|onebeer-overview|
 2. Startup and ownership........................|onebeer-startup|
@@ -23,13 +25,14 @@ CONTENTS*onebeer* *onebeer-contents*
 13. Plugin index................................|onebeer-plugin-index|
 
 ==============================================================================
-OVERVIEW*onebeer-overview*
+OVERVIEW                                    *onebeer-overview*
 
-OneBeer is a full-featured Neovim setup built on |lazy.nvim|. The config code
+OneBeer is a full-featured Neovim setup built on |lazy.nvim|. Most config code
 lives under the `onebeer` namespace in `lua/onebeer/`, while per-server LSP
 settings live in `lsp/*.lua`.
 
-The config is intentionally opinionated:
+The config is intentionally opinionated so it stays easier to extend without
+guessing where things belong:
 
 - one plugin spec per file under `lua/onebeer/plugins/`
 - server-specific LSP settings under `lsp/*.lua`
@@ -37,23 +40,23 @@ The config is intentionally opinionated:
 - cross-cutting editor behavior in `onebeer.autocmds`
 - machine-local changes in `lua/onebeer/local.lua`
 
-The two built-in help surfaces are:
+The two built-in help surfaces give you a quick path and a deep path:
 
 - |OneBeerHelp|   quick floating cheatsheet
 - |onebeer|       full persistent manual
 
-If you only remember one entrypoint, remember this:
+If you only remember one entrypoint, start here:
 
 >
 :h onebeer
 <
 
 ==============================================================================
-STARTUP AND OWNERSHIP*onebeer-startup*
+STARTUP AND OWNERSHIP                       *onebeer-startup*
 *onebeer-conventions*
 
-`init.lua` is the entrypoint. It enables the Lua loader and then loads the
-config in a deliberate order:
+`init.lua` is the entrypoint. It enables the Lua loader, then brings the
+config up in a deliberate order so each layer arrives with what it expects:
 
 1. `onebeer.utils`
 2. `onebeer.settings`
@@ -66,7 +69,7 @@ config in a deliberate order:
 9. `onebeer.tools.commands`
 10. optional `onebeer.local`
 
-That load order defines ownership boundaries:
+That load order also doubles as an ownership map:
 
 - `lua/onebeer/settings/` owns editor defaults, theme-related settings,
   diagnostics defaults, and global LSP behavior.
@@ -77,7 +80,7 @@ That load order defines ownership boundaries:
 - `lua/onebeer/tools/` owns config-local commands and generators.
 - `lua/onebeer/local.lua` is reserved for machine-specific, non-tracked edits.
 
-Useful maintainer conventions:
+A few maintainer conventions help the repo stay calm over time:
 
 - Put new plugins in their own file under `lua/onebeer/plugins/`.
 - Use `onebeer.utils.safe_require()` instead of unchecked `require()` calls
@@ -88,20 +91,20 @@ Useful maintainer conventions:
   helpers across plugin specs.
 
 ==============================================================================
-INSTALLATION AND FIRST RUN*onebeer-install*
+INSTALLATION AND FIRST RUN                  *onebeer-install*
 
-Requirements:
+Core requirements:
 
 - Neovim 0.11.0 or newer
 - `git`, `rg`, `fzf`, `gh`
 - a Nerd Font
 
-Recommended tools:
+Recommended tools for a smoother first run:
 
 - `mise` for Node.js and Go toolchains
 - `brew` for system packages
 
-First-run behavior:
+First-run behavior you can expect:
 
 - `lazy.nvim` bootstraps itself if not already installed.
 - Mason installs the curated language-server set.
@@ -117,22 +120,22 @@ nvim
 :checkhealth onebeer
 <
 
-If you plan to use GitHub-native features such as Octo or the GitHub Actions
-language server integration, make sure this succeeds:
+If you want GitHub-native features such as Octo or the GitHub Actions
+language server integration, make sure this succeeds first:
 
 >
 :!gh auth status
 <
 
-After checkout, the help reference is immediately available via |onebeer|.
+After checkout, the help reference is ready right away via |onebeer|.
 
 ==============================================================================
-EDITOR DEFAULTS AND UI*onebeer-ui*
+EDITOR DEFAULTS AND UI                      *onebeer-ui*
 *onebeer-theme*
 *onebeer-dashboard*
 *onebeer-notifications*
 
-Core editor defaults:
+Core editor defaults at a glance:
 
 - leader is `<Space>`
 - clipboard uses `unnamedplus`
@@ -151,7 +154,7 @@ Theme and chrome:
 - Lualine shows mode, filename, branch, diff, and attached LSP clients.
 - the winbar shows file icon, path, modified marker, and readonly marker.
 
-Dashboard and UI helpers:
+Dashboard and UI helpers that round things out:
 
 - `snacks.nvim` owns the startup dashboard, notifier, scope highlighting,
   reference jumping, statuscolumn, and smooth-scroll controls.
@@ -160,20 +163,20 @@ Dashboard and UI helpers:
 - `tiny-inline-diagnostic.nvim` is enabled by default and replaces native
   virtual text until toggled off.
 
-Useful UI entrypoints:
+Useful UI entrypoints to keep handy:
 
-KeyMeaning ~
-`<leader>sd`open Snacks dashboard
-`<leader>un`show notification history
-`<leader>uv`toggle native diagnostics virtual text
-`<leader>uw`toggle Snacks words/reference overlay
-`<leader>us`toggle statuscolumn visibility
-`<leader>uS`toggle Snacks smooth scroll
-`<leader>cd`toggle inline diagnostics
-`<leader>uu`toggle Undotree
-`<leader>p`toggle Precognition hints
+Key		Meaning ~
+`<leader>sd`	open Snacks dashboard
+`<leader>un`	show notification history
+`<leader>uv`	toggle native diagnostics virtual text
+`<leader>uw`	toggle Snacks words/reference overlay
+`<leader>us`	toggle statuscolumn visibility
+`<leader>uS`	toggle Snacks smooth scroll
+`<leader>cd`	toggle inline diagnostics
+`<leader>uu`	toggle Undotree
+`<leader>p`	toggle Precognition hints
 
-Notes:
+A few behavior notes:
 
 - Inline diagnostics start enabled and native virtual text starts disabled.
 - When inline diagnostics are disabled, `CursorHold` falls back to a floating
@@ -182,14 +185,10 @@ Notes:
   disabled by the user toggle.
 
 ==============================================================================
-FILETYPES, LSP, AND LANGUAGE SUPPORT*onebeer-lsp*
+FILETYPES, LSP, AND LANGUAGE SUPPORT        *onebeer-lsp*
 *onebeer-filetypes*
-*onebeer-lsp-go*
-*onebeer-lsp-typescript*
-*onebeer-lsp-lua*
-*onebeer-lsp-actions*
 
-Custom filetypes:
+Custom filetypes recognized by the config:
 
 - `.astro` -> `astro`
 - `.templ` -> `templ`
@@ -200,7 +199,7 @@ Custom filetypes:
 - `.github/workflows/*.yml` -> `yaml.ghactions`
 - `Taskfile*` patterns -> `yaml`
 
-Global LSP behavior:
+Global LSP behavior you can count on:
 
 - rounded borders are forced for LSP floating previews
 - semantic tokens are enabled on attach when the server supports them
@@ -211,19 +210,19 @@ Global LSP behavior:
 
 Common LSP mappings (buffer-local when supported):
 
-KeyMeaning ~
-`gD`declaration
-`gd`definitions through FzfLua
-`gr`references through FzfLua
-`gi`implementations through FzfLua
-`K`hover details
-`<C-k>`signature help
-`<leader>ca`code actions through FzfLua
-`<leader>cr`rename symbol
-`<leader>ctd`type definition
-`<leader>cti`toggle inlay hints for current buffer
-`<leader>cl`run codelens action
-`[d` / `]d`previous / next diagnostic
+Key		Meaning ~
+`gD`		declaration
+`gd`		definitions through FzfLua
+`gr`		references through FzfLua
+`gi`		implementations through FzfLua
+`K`		hover details
+`<C-k>`	signature help
+`<leader>ca`	code actions through FzfLua
+`<leader>cr`	rename symbol
+`<leader>ctd`	type definition
+`<leader>cti`	toggle inlay hints for current buffer
+`<leader>cl`	run codelens action
+`[d` / `]d`	previous / next diagnostic
 
 Diagnostics defaults:
 
@@ -232,7 +231,7 @@ Diagnostics defaults:
 - sign icons pulled from `onebeer.settings.icons`
 - inline diagnostics preferred over native virtual text by default
 
-Curated language-server install set via Mason:
+Curated language-server install set through Mason:
 
 - `astro`
 - `bashls`
@@ -244,29 +243,29 @@ Curated language-server install set via Mason:
 - `lua_ls`
 - `ts_ls`
 
-Language-specific notes:
+Language-specific notes worth knowing:
 
-Go*onebeer-lsp-go*
+Go                                          *onebeer-lsp-go*
 - `gopls` enables aggressive inlay hints.
 - analyses include `unusedvariable`, `unusedparams`, and `shadow`.
 - staticcheck is enabled.
 - codelenses include generate, gc details, govulncheck, tidy, vendor, and
   dependency upgrade helpers.
 
-TypeScript / JavaScript*onebeer-lsp-typescript*
+TypeScript / JavaScript                     *onebeer-lsp-typescript*
 - `ts_ls` is the active TypeScript/JavaScript server.
 - inlay hints are enabled broadly for parameters, variables, returns,
   properties, and enum members.
 - rename/import/file-operation preferences are explicitly tuned for editor use.
 - `typescript-tools.nvim` exists in the repo but is disabled.
 
-Lua*onebeer-lsp-lua*
+Lua                                         *onebeer-lsp-lua*
 - `lua_ls` treats the config directory and the Luv library as its workspace.
 - third-party prompts are disabled.
 - workspace scanning is intentionally limited for performance.
 - formatting is disabled because |FormatToggle| uses Conform / Stylua instead.
 
-GitHub Actions*onebeer-lsp-actions*
+GitHub Actions                              *onebeer-lsp-actions*
 - Actions workflow YAML gets a dedicated `yaml.ghactions` filetype.
 - the config resolves a GitHub token via `gh auth token` when available.
 - the server inspects the repo remote to build repo metadata for workflow lint
@@ -282,45 +281,46 @@ Treesitter and parser notes:
 - `nvim-ts-autotag` auto-closes and renames matching tags in markup-like files.
 
 ==============================================================================
-SEARCH, FILES, AND NAVIGATION*onebeer-search*
+SEARCH, FILES, AND NAVIGATION               *onebeer-search*
 *onebeer-files*
 *onebeer-navigation*
 
-Search is centered on `fzf-lua`.
+Search is centered on `fzf-lua`, so most discovery flows stay fast and
+consistent.
 
-KeyMeaning ~
-`<leader>sb`search open buffers
-`<leader>sf`search files using frecency in current cwd
-`<leader>sg`live grep
-`<leader>sh`search help tags
-`<leader>sk`search keymaps
-`<leader>sc`search commands
-`<leader>sr`search recent files in cwd
-`<leader>sR`resume previous picker
-`<leader>ss`document symbols
-`<leader>st`workspace symbols
-`<leader>sdd`document diagnostics
-`<leader>sdw`workspace diagnostics
-`<leader>sq`quickfix list
-`<leader>sl`location list
-`<leader>svb`git blame picker
-`<leader>svc`git commits picker
-`<leader>svB`git branches picker
-`<leader>svs`git status picker
+Key		Meaning ~
+`<leader>sb`	search open buffers
+`<leader>sf`	search files using frecency in current cwd
+`<leader>sg`	live grep
+`<leader>sh`	search help tags
+`<leader>sk`	search keymaps
+`<leader>sc`	search commands
+`<leader>sr`	search recent files in cwd
+`<leader>sR`	resume previous picker
+`<leader>ss`	document symbols
+`<leader>st`	workspace symbols
+`<leader>sdd`	document diagnostics
+`<leader>sdw`	workspace diagnostics
+`<leader>sq`	quickfix list
+`<leader>sl`	location list
+`<leader>svb`	git blame picker
+`<leader>svc`	git commits picker
+`<leader>svB`	git branches picker
+`<leader>svs`	git status picker
 
 Files and project navigation:
 
-KeyMeaning ~
-`<leader>f`open Mini.files at current file or cwd
-`<leader>go`open Grapple tag list
-`<leader>gt`toggle Grapple tag for current file
-`<leader>gT`toggle Grapple tags window
-`<leader>gs`toggle Grapple scopes
-`<leader>gf`cycle Grapple forward
-`<leader>gb`cycle Grapple backward
-`<leader>g1..g4`jump to Grapple slot 1-4
+Key		Meaning ~
+`<leader>f`	open Mini.files at current file or cwd
+`<leader>go`	open Grapple tag list
+`<leader>gt`	toggle Grapple tag for current file
+`<leader>gT`	toggle Grapple tags window
+`<leader>gs`	toggle Grapple scopes
+`<leader>gf`	cycle Grapple forward
+`<leader>gb`	cycle Grapple backward
+`<leader>g1..g4`	jump to Grapple slot 1-4
 
-Motion helpers:
+Motion helpers that cut down on travel:
 
 - `flash.nvim` maps `s` for jump, `S` for Treesitter jump, `r` for remote
   flash in operator-pending mode, and `R` for Treesitter search.
@@ -329,15 +329,13 @@ Motion helpers:
 - `zp` peeks folded text in a rounded floating preview.
 
 ==============================================================================
-GIT AND GITHUB WORKFLOWS*onebeer-git*
-*onebeer-gitsigns*
-*onebeer-neogit*
-*onebeer-github*
+GIT AND GITHUB WORKFLOWS                    *onebeer-git*
 *onebeer-octo*
 
-OneBeer intentionally splits Git responsibilities across multiple tools.
+OneBeer intentionally splits Git responsibilities across a few tools so
+each surface can stay focused.
 
-Gitsigns*onebeer-gitsigns*
+Gitsigns                                    *onebeer-gitsigns*
 - hunk signs are shown in the signcolumn
 - untracked files are attached by default
 - inline blame is available but disabled by default
@@ -345,42 +343,42 @@ Gitsigns*onebeer-gitsigns*
 
 Buffer-local Gitsigns mappings:
 
-KeyMeaning ~
-`<leader>cgb`full blame for current line
-`<leader>lhs`stage hunk or visual range
-`<leader>lhr`reset hunk or visual range
-`<leader>lhp`preview hunk
-`<leader>lhu`undo staged hunk
-`<leader>lht`toggle current-line blame
-`[h` / `]h`previous / next hunk
+Key		Meaning ~
+`<leader>cgb`	full blame for current line
+`<leader>lhs`	stage hunk or visual range
+`<leader>lhr`	reset hunk or visual range
+`<leader>lhp`	preview hunk
+`<leader>lhu`	undo staged hunk
+`<leader>lht`	toggle current-line blame
+`[h` / `]h`	previous / next hunk
 
-Neogit and repo operations*onebeer-neogit*
+Neogit and repo operations                  *onebeer-neogit*
 
-KeyMeaning ~
-`<leader>vn`open Neogit
-`<leader>vc`open commit view
-`<leader>vp`push
-`<leader>vP`pull
-`<leader>vg`open current remote location in browser
-`<leader>vB`show inline blame via Snacks
+Key		Meaning ~
+`<leader>vn`	open Neogit
+`<leader>vc`	open commit view
+`<leader>vp`	push
+`<leader>vP`	pull
+`<leader>vg`	open current remote location in browser
+`<leader>vB`	show inline blame via Snacks
 
-Neogit integrates with Diffview and fzf-lua. It is the primary Git porcelain
+Neogit integrates with Diffview and fzf-lua. It is the main Git porcelain
 surface in this config.
 
-GitHub-native workflows*onebeer-github*
+GitHub-native workflows                        *onebeer-github*
 - `octo.nvim` is the GitHub layer
 - `gh` CLI authentication is expected
 - `fzf-lua` is the picker backend for Octo
 
 GitHub entrypoints:
 
-KeyMeaning ~
-`<leader>oi`list GitHub issues
-`<leader>op`list pull requests
-`<leader>od`list discussions
-`<leader>on`list notifications
+Key		Meaning ~
+`<leader>oi`	list GitHub issues
+`<leader>op`	list pull requests
+`<leader>od`	list discussions
+`<leader>on`	list notifications
 
-If GitHub-backed features fail, start by checking:
+If GitHub-backed features feel off, start by checking:
 
 >
 :!gh auth status
@@ -389,11 +387,12 @@ If GitHub-backed features fail, start by checking:
 Projects v2 operations may require a token refreshed with `read:project`.
 
 ==============================================================================
-AI, COMPLETION, AND SNIPPETS*onebeer-ai*
+AI, COMPLETION, AND SNIPPETS                *onebeer-ai*
 *onebeer-completion*
 *onebeer-snippets*
 
-AI feature gating:
+AI feature gating keeps assistant features available where they help and
+quiet where they should stay quiet:
 
 - `onebeer.config` computes whether Copilot is enabled.
 - Copilot and Sidekick are disabled automatically when the current working
@@ -402,18 +401,18 @@ AI feature gating:
 
 Copilot and Sidekick entrypoints:
 
-KeyMeaning ~
-`<leader>cp`open Copilot panel
-`<leader>aa`toggle Sidekick Copilot CLI
-`<leader>ap`open prompt picker
-`<leader>ae`explain code
-`<leader>af`fix diagnostics
-`<leader>at`write tests
-`<leader>ar`review current file or selection
-`<leader>ao`refactor code
-`<leader>ac`generate commit message
+Key		Meaning ~
+`<leader>cp`	open Copilot panel
+`<leader>aa`	toggle Sidekick Copilot CLI
+`<leader>ap`	open prompt picker
+`<leader>ae`	explain code
+`<leader>af`	fix diagnostics
+`<leader>at`	write tests
+`<leader>ar`	review current file or selection
+`<leader>ao`	refactor code
+`<leader>ac`	generate commit message
 
-The prompt set includes explain, explain_error, fix, refactor, optimize,
+The prompt set covers explain, explain_error, fix, refactor, optimize,
 tests, docs, types, review, review_selection, and commit-oriented prompts.
 
 Completion behavior:
@@ -435,10 +434,10 @@ Snippet behavior:
 
 Snippet keys:
 
-KeyMeaning ~
-`CTRL-L`next snippet choice
-`CTRL-H`previous snippet choice
-`CTRL-U`open choice selection UI
+Key		Meaning ~
+`CTRL-L`	next snippet choice
+`CTRL-H`	previous snippet choice
+`CTRL-U`	open choice selection UI
 
 Local snippet packs currently ship for:
 
@@ -446,26 +445,23 @@ Local snippet packs currently ship for:
 - Lua
 - Astro
 
-Examples include Go error checks, handler templates, structs, table-driven
-tests, Lua safe `require` blocks, and Lazy spec stubs.
+Included examples cover Go error checks, handler templates, structs,
+table-driven tests, Lua safe `require` blocks, and Lazy spec stubs.
 
 ==============================================================================
-TESTING, DEBUGGING, SESSIONS, UTILITIES*onebeer-testing*
-*onebeer-debugging*
-*onebeer-sessions*
-*onebeer-multicursor*
+TESTING, DEBUGGING, SESSIONS, UTILITIES     *onebeer-testing*
 
-Testing via `neotest`*onebeer-testing*
+Testing via `neotest`
 
-KeyMeaning ~
-`<leader>tt`run nearest test
-`<leader>tf`run current file tests
-`<leader>td`debug nearest test
-`<leader>ts`toggle summary window
-`<leader>to`open output for current run
-`<leader>tO`toggle output panel
-`<leader>tS`stop test run
-`<leader>tw`toggle watch mode
+Key		Meaning ~
+`<leader>tt`	run nearest test
+`<leader>tf`	run current file tests
+`<leader>td`	debug nearest test
+`<leader>ts`	toggle summary window
+`<leader>to`	open output for current run
+`<leader>tO`	toggle output panel
+`<leader>tS`	stop test run
+`<leader>tw`	toggle watch mode
 
 Adapter notes:
 
@@ -474,58 +470,57 @@ Adapter notes:
 - Vitest and plenary adapters are enabled.
 - discovery is disabled and concurrent runs are enabled.
 
-Debugging via `nvim-dap`*onebeer-debugging*
+Debugging via `nvim-dap`                       *onebeer-debugging*
 
-KeyMeaning ~
-`<leader>ds`start / continue
-`<leader>di`step into
-`<leader>do`step out
-`<leader>dv`step over
-`<leader>db`toggle breakpoint
-`<leader>du`toggle DAP UI
-`<leader>dg`debug current Go test
+Key		Meaning ~
+`<leader>ds`	start / continue
+`<leader>di`	step into
+`<leader>do`	step out
+`<leader>dv`	step over
+`<leader>db`	toggle breakpoint
+`<leader>du`	toggle DAP UI
+`<leader>dg`	debug current Go test
 
-Notes:
+A few debugging notes:
 
 - Node debugging uses the `pwa-node` adapter via `js-debug-adapter`.
 - DAP UI opens automatically on session start and closes on exit.
 - virtual text is enabled for DAP sessions.
 
-Sessions and diagnostics lists*onebeer-sessions*
+Sessions and diagnostics lists              *onebeer-sessions*
 
-KeyMeaning ~
-`<leader>qs`restore session for current workspace
-`<leader>qS`restore last session
-`<leader>qd`disable session saving for current workspace
-`<leader>qf`open diagnostics list in Trouble
+Key		Meaning ~
+`<leader>qs`	restore session for current workspace
+`<leader>qS`	restore last session
+`<leader>qd`	disable session saving for current workspace
+`<leader>qf`	open diagnostics list in Trouble
 
-Other utilities:
+Other utilities worth remembering:
 
 - `StartupTime` is available for startup profiling.
 - `slides.nvim` is installed for code-slide workflows.
 - `markview.nvim` activates for Markdown buffers.
 - `wakatime` support exists in the repo but is disabled.
 
-Multicursor*onebeer-multicursor*
+Multicursor                                 *onebeer-multicursor*
 
-KeyMeaning ~
-`<Up>` / `<Down>`add cursor above / below
-`CTRL-N`add cursor to next match
-`CTRL-S`skip next match
-`<Left>` / `<Right>`rotate main cursor
-`<leader>x`delete main cursor
-`CTRL-Q`add cursor or freeze other cursors
-`<Esc>`re-enable or clear multicursors
-`<leader>a`align cursors
-Visual `S`split cursors by regex
-Visual `I` / `A`insert / append per selected line
-Visual `M`match cursors by regex
-`<leader>t` / `<leader>T`transpose cursor contents
+Key		Meaning ~
+`<Up>` / `<Down>`	add cursor above / below
+`CTRL-N`	add cursor to next match
+`CTRL-S`	skip next match
+`<Left>` / `<Right>`	rotate main cursor
+`<leader>x`	delete main cursor
+`CTRL-Q`	add cursor or freeze other cursors
+`<Esc>`		re-enable or clear multicursors
+`<leader>a`	align cursors
+Visual `S`		split cursors by regex
+Visual `I` / `A`	insert / append per selected line
+Visual `M`		match cursors by regex
+`<leader>t` / `<leader>T`	transpose cursor contents
 
 ==============================================================================
-COMMANDS AND TOGGLES*onebeer-keymaps*
+COMMANDS AND TOGGLES                        *onebeer-keymaps*
 *onebeer-commands*
-*onebeer-json-tools*
 *OneBeerHelp*
 *OneBeerDoctor*
 *InspectTree*
@@ -538,41 +533,42 @@ COMMANDS AND TOGGLES*onebeer-keymaps*
 *TrimWhitespaceToggle*
 *LoaderResetCache*
 
-Native help is canonical. |OneBeerHelp| is the short floating overview.
+Native help stays canonical. |OneBeerHelp| is the short floating overview
+when you just need a quick refresher.
 
 Built-in commands:
 
-CommandMeaning ~
-`OneBeerHelp`open the quick floating cheatsheet
-`OneBeerDoctor`run `checkhealth`, `Lazy! check`, and `LspInfo`
-`InspectTree`open Treesitter inspector (or fallback playground inspector)
-`InspectSyntax`run `:Inspect` for highlight groups at cursor
-`InspectLog`open the current LSP log file
-`FormatToggle`toggle format-on-save globally
-`FormatToggleBuffer`toggle format-on-save for current buffer
-`LintToggle`toggle linting globally
-`LintToggleBuffer`toggle linting for current buffer
-`TrimWhitespaceToggle`toggle trailing-whitespace cleanup on save
-`LoaderResetCache`reset Neovim Lua loader cache
+Command		Meaning ~
+`OneBeerHelp`		open the quick floating cheatsheet
+`OneBeerDoctor`	run `checkhealth`, `Lazy! check`, and `LspInfo`
+`InspectTree`		open Treesitter inspector (or fallback playground inspector)
+`InspectSyntax`	run `:Inspect` for highlight groups at cursor
+`InspectLog`		open the current LSP log file
+`FormatToggle`		toggle format-on-save globally
+`FormatToggleBuffer`	toggle format-on-save for current buffer
+`LintToggle`		toggle linting globally
+`LintToggleBuffer`	toggle linting for current buffer
+`TrimWhitespaceToggle`	toggle trailing-whitespace cleanup on save
+`LoaderResetCache`	reset Neovim Lua loader cache
 
-Common non-command keymaps worth remembering:
+Common non-command keymaps worth keeping nearby:
 
-KeyMeaning ~
-`<leader>,`clear search highlighting
-`<leader>um`show `:messages`
-`<leader>uh`open |OneBeerHelp|
-`<leader>ud`open |OneBeerDoctor|
-`<leader>ul`open |InspectLog|
-`<leader>uf` / `<leader>uF`format toggle buffer / global
-`<leader>uB` / `<leader>uL`lint toggle buffer / global
-`<leader>mj` / `<leader>mk`move lines down / up
-`CTRL-W H/J/K/L`resize current split
+Key		Meaning ~
+`<leader>,`		clear search highlighting
+`<leader>um`	show `:messages`
+`<leader>uh`	open |OneBeerHelp|
+`<leader>ud`	open |OneBeerDoctor|
+`<leader>ul`	open |InspectLog|
+`<leader>uf` / `<leader>uF`	format toggle buffer / global
+`<leader>uB` / `<leader>uL`	lint toggle buffer / global
+`<leader>mj` / `<leader>mk`	move lines down / up
+`CTRL-W H/J/K/L`	resize current split
 
-JSON generators*onebeer-json-tools*
+JSON generators                             *onebeer-json-tools*
 
-KeyMeaning ~
-`<leader>jg`convert JSON to Go structs
-`<leader>jt`convert JSON to TypeScript types
+Key		Meaning ~
+`<leader>jg`	convert JSON to Go structs
+`<leader>jt`	convert JSON to TypeScript types
 
 Generator notes:
 
@@ -583,7 +579,7 @@ Generator notes:
 - both prompt for output names before writing files
 
 ==============================================================================
-HEALTH, DEVELOPMENT, TROUBLESHOOTING*onebeer-health*
+HEALTH, DEVELOPMENT, TROUBLESHOOTING        *onebeer-health*
 *onebeer-development*
 *onebeer-troubleshooting*
 
@@ -593,7 +589,7 @@ Primary health entrypoint:
 :checkhealth onebeer
 <
 
-What the health check covers:
+The health check gives you a practical readiness sweep across:
 
 - Neovim version requirement
 - core external tools such as `git`, `rg`, `brew`, `node`, `go`, `fzf`, `jq`
@@ -613,7 +609,7 @@ Dependency automation notes:
 - `npm -g` is used for `quicktype`.
 - Mason installs are attempted for selected formatters and linters.
 
-Recommended repo validation commands:
+Recommended repo validation commands when you are changing the config:
 
 >
 selene .
@@ -623,7 +619,7 @@ nvim --headless "+checkhealth onebeer" +qa
 nvim --headless "+helptags doc" +qa
 <
 
-Troubleshooting checklist:
+Troubleshooting checklist to work through in order:
 
 - run |OneBeerDoctor|
 - open the LSP log with |InspectLog|
@@ -643,10 +639,10 @@ Linting and formatting behavior:
 - Markdown/prose linting runs `markdownlint`, `write-good`, and `woke`.
 
 ==============================================================================
-LOCAL OVERRIDES AND NEOVIDE*onebeer-local*
+LOCAL OVERRIDES AND NEOVIDE                 *onebeer-local*
 *onebeer-neovide*
 
-Local overrides:
+Local overrides are the right home for machine-specific tweaks:
 
 - machine-specific behavior belongs in `lua/onebeer/local.lua`
 - that file is loaded last if it exists
@@ -661,7 +657,7 @@ Neovide behavior:
   - `neovide_cursor_trail_length = 0.1`
   - `neovide_remember_window_size = true`
 
-Local guidance:
+Local guidance for keeping shared config tidy:
 
 - keep shared behavior in tracked files
 - keep machine-specific behavior in `onebeer.local`
@@ -732,24 +728,24 @@ QUICK REFERENCE                               *onebeer-keymap-summary*
 
 Leader groups:
 
-PrefixMeaning ~
-`<leader>a`AI / Sidekick prompts (`<leader>a` alone aligns multicursors)
-`<leader>c`code actions, diagnostics, inlay hints, codelens, Copilot panel
-`<leader>d`debugger
-`<leader>f`files
-`<leader>g`Grapple navigation
-`<leader>j`JSON generators
-`<leader>l`line-hunk actions
-`<leader>m`move lines
-`<leader>o`GitHub workflows
-`<leader>p`Precognition
-`<leader>q`Trouble + sessions
-`<leader>s`search
-`<leader>t`tests / multicursor transpose
-`<leader>u`UI, doctor, log, toggles
-`<leader>v`VCS helpers
+Prefix		Meaning ~
+`<leader>a`	AI / Sidekick prompts (`<leader>a` alone aligns multicursors)
+`<leader>c`	code actions, diagnostics, inlay hints, codelens, Copilot panel
+`<leader>d`	debugger
+`<leader>f`	files
+`<leader>g`	Grapple navigation
+`<leader>j`	JSON generators
+`<leader>l`	line-hunk actions
+`<leader>m`	move lines
+`<leader>o`	GitHub workflows
+`<leader>p`	Precognition
+`<leader>q`	Trouble + sessions
+`<leader>s`	search
+`<leader>t`	tests / multicursor transpose
+`<leader>u`	UI, doctor, log, toggles
+`<leader>v`	VCS helpers
 
-Use `<leader>sk` for keymap discovery, `<leader>sc` for command discovery, and
-|OneBeerHelp| or |onebeer| for documentation.
+Use `<leader>sk` for keymap discovery, `<leader>sc` for command discovery,
+and |OneBeerHelp| or |onebeer| whenever you want the map again.
 
 vim:tw=78:ts=8:noet:ft=help:norl:

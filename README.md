@@ -10,8 +10,8 @@ This is a full-featured Neovim setup built on [lazy.nvim](https://github.com/fol
 
 The namespace is `onebeer` and every module lives under `lua/onebeer/`. The entry point is `init.lua`, which boots the config in a deliberate sequence: utilities → settings → diagnostics → LSP → plugins → health → autocommands → custom commands → optional local overrides.
 
-If you want the in-editor reference instead of the README, use `:h onebeer`. For the short floating
-cheatsheet, use `<leader>uh` or `:OneBeerHelp`.
+If you want a friendly in-editor reference, use `:h onebeer`. For the quick floating
+cheatsheet, tap `<leader>uh` or run `:OneBeerHelp`.
 
 ---
 
