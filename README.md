@@ -114,6 +114,14 @@ Linting runs through [nvim-lint](https://github.com/mfussenegger/nvim-lint) with
 
 - **[gitsigns.nvim](https://github.com/lewis6991/gitsigns.nvim)** — hunk signs, inline blame, staging hunks without leaving the buffer.
 - **[neogit](https://github.com/NeogitOrg/neogit)** + **[diffview.nvim](https://github.com/sindrets/diffview.nvim)** — a Magit-style git interface with a full diff viewer. Commit, rebase, and resolve conflicts without leaving Neovim.
+- **[octo.nvim](https://github.com/pwntester/octo.nvim)** — the GitHub workflow layer. List and edit issues, PRs, discussions, and notifications from Neovim while leaving core Git work to Neogit, Diffview, and Gitsigns.
+
+  Default entry points:
+
+  - **`<leader>oi`** — GitHub issues
+  - **`<leader>op`** — GitHub pull requests
+  - **`<leader>od`** — GitHub discussions
+  - **`<leader>on`** — GitHub notifications
 
 ### Testing & debugging
 
@@ -169,7 +177,7 @@ There are also two JSON conversion tools:
 ### Requirements
 
 - Neovim >= 0.11.0
-- `git`, `ripgrep` (`rg`), `fzf`
+- `git`, `ripgrep` (`rg`), `fzf`, `gh` ([GitHub CLI](https://cli.github.com/))
 - A [Nerd Font](https://www.nerdfonts.com/) — the config is set up with MonoLisa Nerd Font but any will work
 
 ### Recommended
@@ -190,6 +198,8 @@ Then open Neovim. Lazy.nvim will bootstrap itself and install all plugins on fir
 ### Health check
 
 Run `:checkhealth onebeer` to see the status of every external dependency. Missing tools can be auto-installed directly from the health check — it knows the full dependency chain (brew → mise → go → gojson, etc.) and will walk you through it step by step. > If it's your first time setting up, start here.
+
+If you plan to use `octo.nvim`, also make sure `gh auth status` succeeds. Features that touch GitHub Projects v2 may additionally require refreshing your token with the `read:project` scope.
 
 ### Local overrides
 

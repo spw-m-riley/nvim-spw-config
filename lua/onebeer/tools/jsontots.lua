@@ -31,7 +31,10 @@ function M.generate()
 
   local handle = io.popen(cmd, "w")
   if not handle then
-    vim.notify("Failed to run quicktype. Ensure jq and quicktype are installed (e.g. `npm i -g quicktype`).", vim.log.levels.ERROR)
+    vim.notify(
+      "Failed to run quicktype. Ensure jq and quicktype are installed (e.g. `npm i -g quicktype`).",
+      vim.log.levels.ERROR
+    )
     return
   end
   handle:write(json)

@@ -55,7 +55,8 @@ end
 ---@param defaults OneBeerConfigDefaults
 ---@return boolean
 local function should_enable_tabnine(defaults)
-  local passwd = (uv and uv.os_get_passwd and uv.os_get_passwd()) or (vim.loop and vim.loop.os_get_passwd and vim.loop.os_get_passwd())
+  local passwd = (uv and uv.os_get_passwd and uv.os_get_passwd())
+    or (vim.loop and vim.loop.os_get_passwd and vim.loop.os_get_passwd())
   local user = (passwd and passwd.username) or ""
   local out = user:lower() == defaults.user:lower()
   return out
@@ -69,7 +70,7 @@ local defaults = resolve_defaults()
 ---@field tabnine boolean
 local M = {
   copilot = should_enable_copilot(defaults),
-  tabnine = should_enable_tabnine(defaults)
+  tabnine = should_enable_tabnine(defaults),
 }
 
 return M

@@ -19,7 +19,12 @@ return {
           { icon = " ", key = "g", desc = "Live Grep", action = "<leader>sg" },
           { icon = " ", key = "r", desc = "Recent Files", action = "<leader>sr" },
           { icon = " ", key = "b", desc = "Buffers", action = "<leader>sb" },
-          { icon = " ", key = "c", desc = "Edit Config", action = ":lua Snacks.dashboard.pick('files', { cwd = vim.fn.stdpath('config') })" },
+          {
+            icon = " ",
+            key = "c",
+            desc = "Edit Config",
+            action = ":lua Snacks.dashboard.pick('files', { cwd = vim.fn.stdpath('config') })",
+          },
         },
       },
       sections = {
@@ -191,7 +196,8 @@ return {
           vim.g.onebeer_statuscolumn_manual_off = false
           vim.o.statuscolumn = vim.g.onebeer_statuscolumn_expr or STATUSCOL_EXPR
         end
-        vim.g.onebeer_statuscolumn_cached = vim.o.statuscolumn ~= "" and vim.o.statuscolumn or vim.g.onebeer_statuscolumn_cached
+        vim.g.onebeer_statuscolumn_cached = vim.o.statuscolumn ~= "" and vim.o.statuscolumn
+          or vim.g.onebeer_statuscolumn_cached
         vim.notify(("Statuscolumn %s"):format(enabled and "hidden" or "shown"))
       end,
       desc = "[U]I toggle [S]tatuscolumn",

@@ -31,27 +31,33 @@ local preq = s({
 })
 
 -- Neovim plugin configuration pattern
-local nvim = s({
-  trig = "nvim",
-  name = "Neovim plugin config",
-  dscr = "Neovim plugin config pattern",
-}, fmt(
-  [[
+local nvim = s(
+  {
+    trig = "nvim",
+    name = "Neovim plugin config",
+    dscr = "Neovim plugin config pattern",
+  },
+  fmt(
+    [[
     local {} = require('{}')
     
     {}.setup({{
       {}
     }})
-  ]], { i(1, "plugin"), i(2), rep(1), i(0) }
-))
+  ]],
+    { i(1, "plugin"), i(2), rep(1), i(0) }
+  )
+)
 
 -- Lazy spec definition
-local lazy = s({
-  trig = "lazy",
-  name = "Lazy.nvim spec",
-  dscr = "Lazy.nvim spec definition",
-}, fmt(
-  [[
+local lazy = s(
+  {
+    trig = "lazy",
+    name = "Lazy.nvim spec",
+    dscr = "Lazy.nvim spec definition",
+  },
+  fmt(
+    [[
     return {{
       "{}",
       event = "{}",
@@ -62,22 +68,28 @@ local lazy = s({
         {}
       end,
     }}
-  ]], { i(1, "plugin.name"), i(2, "VeryLazy"), i(3), i(0) }
-))
+  ]],
+    { i(1, "plugin.name"), i(2, "VeryLazy"), i(3), i(0) }
+  )
+)
 
 -- Conditional require with pcall
-local creq = s({
-  trig = "creq",
-  name = "Conditional require",
-  dscr = "Conditional require with pcall",
-}, fmt(
-  [[
+local creq = s(
+  {
+    trig = "creq",
+    name = "Conditional require",
+    dscr = "Conditional require with pcall",
+  },
+  fmt(
+    [[
     local ok, {} = pcall(require, '{}')
     if not ok then
       return
     end
-  ]], { i(1), i(2) }
-))
+  ]],
+    { i(1), i(2) }
+  )
+)
 
 table.insert(snippets, preq)
 table.insert(snippets, nvim)

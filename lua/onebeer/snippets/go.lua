@@ -20,7 +20,7 @@ return {
       { i(1), i(2), i(3), i(4) }
     )
   ),
-  
+
   -- HTTP handler pattern
   s(
     { trig = "handler", dscr = "HTTP handler function" },
@@ -33,7 +33,7 @@ return {
       { i(1, "example"), i(0) }
     )
   ),
-  
+
   -- Struct with json tags
   s(
     { trig = "struct", dscr = "Go struct with json tags" },
@@ -46,7 +46,7 @@ return {
       { i(1, "Name"), i(2, "Field"), rep(2) }
     )
   ),
-  
+
   -- Interface definition
   s(
     { trig = "iface", dscr = "Interface definition" },
@@ -59,7 +59,7 @@ return {
       { i(1), i(0) }
     )
   ),
-  
+
   -- Goroutine pattern
   s(
     { trig = "go", dscr = "Goroutine with waitgroup" },
@@ -73,7 +73,7 @@ return {
       { i(0) }
     )
   ),
-  
+
   -- Testing table-driven tests
   s(
     { trig = "tabletest", dscr = "Table-driven test pattern" },
@@ -101,7 +101,7 @@ return {
       { i(1), i(2), i(3), i(4), i(5), i(6), i(7), i(8) }
     )
   ),
-  
+
   -- Benchmark test
   s(
     { trig = "bench", dscr = "Benchmark test" },

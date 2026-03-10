@@ -15,8 +15,7 @@ local get_functions = function()
   local sn_tbl = {}
   for _, val in next, buff_list do
     local iter_buf_name = vim.api.nvim_buf_get_name(val)
-    if not (iter_buf_name == "" or iter_buf_name == nil) and (iter_buf_name == import_file_path)
-    then
+    if not (iter_buf_name == "" or iter_buf_name == nil) and (iter_buf_name == import_file_path) then
       local q = require("vim.treesitter.query")
       local lang_tree = vim.treesitter.get_parser(val, "typescript", {})
       local syntax_tree = lang_tree:parse()

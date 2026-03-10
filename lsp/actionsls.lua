@@ -95,11 +95,8 @@ end
 ---@param repo string
 ---@return ActionsRepoInfo|nil
 local function get_repo_info(owner, repo)
-  local cmd = string.format(
-    "gh repo view %s/%s --json id,owner --template '{{.id}}\\t{{.owner.type}}' 2>/dev/null",
-    owner,
-    repo
-  )
+  local cmd =
+    string.format("gh repo view %s/%s --json id,owner --template '{{.id}}\\t{{.owner.type}}' 2>/dev/null", owner, repo)
   local handle = io.popen(cmd)
   if not handle then
     return nil

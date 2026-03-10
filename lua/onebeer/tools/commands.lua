@@ -144,7 +144,7 @@ local function doctor()
   local preview_cmd = table.concat({
     "awk '",
     "NR>=({1}-20)&&NR<=({1}+40)",
-    "{ printf(\"%5d │ %s\\n\", NR, $0) }",
+    '{ printf("%5d │ %s\\n", NR, $0) }',
     string.format("' %s", vim.fn.shellescape(tmpfile)),
   })
   fzf.fzf_exec(entries, {

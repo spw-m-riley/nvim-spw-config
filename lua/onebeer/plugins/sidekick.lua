@@ -165,13 +165,17 @@ Output only the commit message, nothing else.]],
       context = {
         git_diff = function()
           local handle = io.popen("git diff --staged 2>/dev/null")
-          if not handle then return false end
+          if not handle then
+            return false
+          end
           local result = handle:read("*a")
           handle:close()
           -- Fall back to unstaged diff if nothing is staged
           if result == "" then
             handle = io.popen("git diff 2>/dev/null")
-            if not handle then return false end
+            if not handle then
+              return false
+            end
             result = handle:read("*a")
             handle:close()
           end

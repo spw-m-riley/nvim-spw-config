@@ -30,7 +30,7 @@ return {
       { delimiters = "[]" }
     )
   ),
-  
+
   -- Astro layout
   s(
     { trig = "layout", dscr = "Astro layout component" },
@@ -60,7 +60,7 @@ return {
       { delimiters = "[]" }
     )
   ),
-  
+
   -- Astro frontmatter
   s(
     { trig = "front", dscr = "Astro frontmatter" },
