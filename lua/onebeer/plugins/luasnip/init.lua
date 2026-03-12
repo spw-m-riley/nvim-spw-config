@@ -9,6 +9,7 @@ return {
   config = function()
     local luasnip = require("luasnip")
     local conf_dir = vim.fn.stdpath("config")
+    local backspace = vim.api.nvim_replace_termcodes("<BS>", true, true, true)
 
     require("luasnip.loaders.from_vscode").lazy_load()
     local types = require("luasnip.util.types")
@@ -34,11 +35,24 @@ return {
         luasnip.change_choice(1)
       end
     end)
-    vim.keymap.set({ "i", "s" }, "<C-h>", function()
+    vim.keymap.set("i", "<C-h>", function()
+      if luasnip.choice_active() then
+        luasnip.change_choice(-1)
+        return ""
+      end
+
+      local mini_pairs = rawget(_G, "MiniPairs")
+      if mini_pairs and type(mini_pairs.bs) == "function" then
+        return mini_pairs.bs()
+      end
+
+      return backspace
+    end, { expr = true, replace_keycodes = false, desc = "LuaSnip previous choice or backspace" })
+    vim.keymap.set("s", "<C-h>", function()
       if luasnip.choice_active() then
         luasnip.change_choice(-1)
       end
-    end)
+    end, { desc = "LuaSnip previous choice" })
     vim.keymap.set("i", "<C-u>", require("luasnip.extras.select_choice"))
   end,
 }

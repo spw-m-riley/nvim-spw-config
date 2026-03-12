@@ -12,6 +12,7 @@ return {
       "gh_actions_ls",
       "html",
       "jsonls",
+      "yamlls",
       "terraformls",
       "lua_ls",
       "ts_ls",
@@ -75,6 +76,9 @@ return {
     end)
     enable("jsonls", function()
       return vim.fn.exepath("vscode-json-language-server") ~= ""
+    end)
+    enable("yamlls", function()
+      return lsp_settings.is_executable("yaml-language-server")
     end)
     enable("bashls", function()
       return vim.fn.exepath("bash-language-server") ~= ""
