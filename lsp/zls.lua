@@ -16,11 +16,10 @@ local function resolve_zls_cmd(root_dir)
 end
 
 return {
-  cmd = resolve_zls_cmd(),
+  cmd = function(dispatchers, config)
+    return vim.lsp.rpc.start(resolve_zls_cmd(config and config.root_dir or nil), dispatchers)
+  end,
   filetypes = { "zig", "zir" },
   root_markers = { "zls.json", "build.zig", ".git" },
-  before_init = function(_, config)
-    config.cmd = resolve_zls_cmd(config.root_dir)
-  end,
   workspace_required = false,
 }

@@ -9,26 +9,26 @@ local actions_server_cmd_candidates = {
 }
 
 -- Repo-root lsp/*.lua files own per-server config. Keep this registry limited
--- to package names plus availability checks so later language tracks can add
+-- to ensure-installed lspconfig IDs plus availability checks so later language tracks can add
 -- shared-surface entries in one place without moving config ownership.
 local servers = {
   {
     name = "actionsls",
-    package = "gh_actions_ls",
+    ensure = "gh_actions_ls",
     is_available = function()
       return lsp_settings.resolve_executable(actions_server_cmd_candidates) ~= nil
     end,
   },
   {
     name = "astro",
-    package = "astro",
+    ensure = "astro",
     is_available = function()
       return lsp_settings.is_executable("astro-ls")
     end,
   },
   {
     name = "bashls",
-    package = "bashls",
+    ensure = "bashls",
     is_available = function()
       return lsp_settings.is_executable("bash-language-server")
     end,
@@ -41,42 +41,42 @@ local servers = {
   },
   {
     name = "gopls",
-    package = "gopls",
+    ensure = "gopls",
     is_available = function()
       return lsp_settings.is_executable("gopls")
     end,
   },
   {
     name = "html",
-    package = "html",
+    ensure = "html",
     is_available = function()
       return lsp_settings.is_executable("vscode-html-language-server")
     end,
   },
   {
     name = "jsonls",
-    package = "jsonls",
+    ensure = "jsonls",
     is_available = function()
       return lsp_settings.is_executable("vscode-json-language-server")
     end,
   },
   {
     name = "lua_ls",
-    package = "lua_ls",
+    ensure = "lua_ls",
     is_available = function()
       return lsp_settings.is_executable("lua-language-server")
     end,
   },
   {
     name = "pyright",
-    package = "pyright",
+    ensure = "pyright",
     is_available = function()
       return lsp_settings.is_executable("pyright-langserver")
     end,
   },
   {
     name = "ruff",
-    package = "ruff",
+    ensure = "ruff",
     is_available = function()
       return lsp_settings.is_executable("ruff")
     end,
@@ -89,35 +89,35 @@ local servers = {
   },
   {
     name = "rust_analyzer",
-    package = "rust-analyzer",
+    ensure = "rust_analyzer",
     is_available = function()
       return lsp_settings.is_executable("rust-analyzer")
     end,
   },
   {
     name = "terraformls",
-    package = "terraformls",
+    ensure = "terraformls",
     is_available = function()
       return lsp_settings.is_executable("terraform-ls")
     end,
   },
   {
     name = "ts_ls",
-    package = "ts_ls",
+    ensure = "ts_ls",
     is_available = function()
       return lsp_settings.is_executable("typescript-language-server")
     end,
   },
   {
     name = "yamlls",
-    package = "yamlls",
+    ensure = "yamlls",
     is_available = function()
       return lsp_settings.is_executable("yaml-language-server")
     end,
   },
   {
     name = "zls",
-    package = "zls",
+    ensure = "zls",
     is_available = function()
       return lsp_settings.is_executable("zls")
     end,
@@ -128,8 +128,8 @@ local function mason_packages()
   local packages = {}
 
   for _, server in ipairs(servers) do
-    if server.package then
-      table.insert(packages, server.package)
+    if server.ensure then
+      table.insert(packages, server.ensure)
     end
   end
 

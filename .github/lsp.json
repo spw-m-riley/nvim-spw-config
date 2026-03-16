@@ -1,72 +1,9 @@
 {
   "lspServers": {
-    "gleam": {
-      "command": "gleam",
-      "args": ["lsp"],
-      "fileExtensions": {
-        ".gleam": "gleam"
-      }
-    },
-    "gopls": {
-      "command": "/Users/matthew.riley/.local/share/nvim/mason/bin/gopls",
-      "fileExtensions": {
-        ".go": "go"
-      }
-    },
     "lua_ls": {
-      "command": "/Users/matthew.riley/.local/share/nvim/mason/bin/lua-language-server",
+      "command": "lua-language-server",
       "fileExtensions": {
         ".lua": "lua"
-      }
-    },
-    "pyright": {
-      "command": "/Users/matthew.riley/.local/share/nvim/mason/bin/pyright-langserver",
-      "args": ["--stdio"],
-      "fileExtensions": {
-        ".py": "python",
-        ".pyi": "python"
-      }
-    },
-    "ruff": {
-      "command": "/Users/matthew.riley/.local/share/nvim/mason/bin/ruff",
-      "args": ["server"],
-      "fileExtensions": {
-        ".py": "python",
-        ".pyi": "python"
-      }
-    },
-    "ruby_lsp": {
-      "command": "ruby-lsp",
-      "fileExtensions": {
-        ".erb": "eruby",
-        ".rb": "ruby"
-      }
-    },
-    "rust_analyzer": {
-      "command": "/Users/matthew.riley/.local/share/nvim/mason/bin/rust-analyzer",
-      "fileExtensions": {
-        ".rs": "rust"
-      }
-    },
-    "ts_ls": {
-      "command": "/Users/matthew.riley/.local/share/nvim/mason/bin/typescript-language-server",
-      "args": ["--stdio"],
-      "fileExtensions": {
-        ".cjs": "javascript",
-        ".cts": "typescript",
-        ".js": "javascript",
-        ".jsx": "javascriptreact",
-        ".mjs": "javascript",
-        ".mts": "typescript",
-        ".ts": "typescript",
-        ".tsx": "typescriptreact"
-      }
-    },
-    "zls": {
-      "command": "/Users/matthew.riley/.local/share/nvim/mason/bin/zls",
-      "fileExtensions": {
-        ".zig": "zig",
-        ".zir": "zir"
       }
     }
   }

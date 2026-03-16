@@ -38,9 +38,7 @@ local function setup_copilot_lsp()
     end
   end
 
-  if not vim.lsp.config._configs.copilot then
-    vim.lsp.config("copilot", {})
-  end
+  vim.lsp.config("copilot", {})
 
   if not vim.lsp.is_enabled("copilot") then
     vim.lsp.enable("copilot")

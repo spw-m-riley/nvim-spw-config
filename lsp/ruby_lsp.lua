@@ -1,5 +1,4 @@
 ---@class RubyLspRuntimeConfig : vim.lsp.Config
----@field cmd_cwd? string
 
 local lsp_settings = require("onebeer.settings.lsp")
 
@@ -30,19 +29,14 @@ end
 local function start_ruby_lsp(dispatchers, config)
   local root_dir = config and config.root_dir or nil
 
-  return vim.lsp.rpc.start(
-    { resolve_server_cmd() },
-    dispatchers,
-    root_dir and { cwd = config.cmd_cwd or root_dir } or nil
-  )
+  return vim.lsp.rpc.start({ resolve_server_cmd() }, dispatchers, root_dir and { cwd = root_dir } or nil)
 end
 
 ---@param client vim.lsp.Client
 ---@param config RubyLspRuntimeConfig
 ---@return boolean
 local function reuse_client(client, config)
-  config.cmd_cwd = config.root_dir
-  return client.config.cmd_cwd == config.cmd_cwd
+  return client.config.root_dir == config.root_dir
 end
 
 ---@type vim.lsp.Config
