@@ -24,6 +24,18 @@ vim.lsp.config("*", {
   capabilities = vim.deepcopy(base_capabilities),
 })
 
+---@param client vim.lsp.Client
+local function disable_formatting(client)
+  if not client or not client.server_capabilities then
+    return
+  end
+
+  client.server_capabilities.documentFormattingProvider = false
+  client.server_capabilities.documentRangeFormattingProvider = false
+end
+
+M.disable_formatting = disable_formatting
+
 local original_progress = lsp.handlers["$/progress"]
 lsp.handlers["$/progress"] = function(err, result, ctx, config)
   if original_progress then
@@ -87,13 +99,41 @@ if semantic_tokens and semantic_tokens.enable then
 end
 
 ---@param command string
+---@return string
+local function mason_bin_path(command)
+  return ("%s/mason/bin/%s"):format(vim.fn.stdpath("data"), command)
+end
+
+M.mason_bin_path = mason_bin_path
+
+---@param commands string|string[]
+---@return string|nil
+local function resolve_executable(commands)
+  if type(commands) == "string" then
+    commands = { commands }
+  end
+
+  for _, command in ipairs(commands) do
+    local command_path = vim.fn.exepath(command)
+    if command_path ~= "" then
+      return command_path
+    end
+
+    local mason_command = mason_bin_path(command)
+    if vim.fn.executable(mason_command) == 1 then
+      return mason_command
+    end
+  end
+
+  return nil
+end
+
+M.resolve_executable = resolve_executable
+
+---@param command string
 ---@return boolean
 local function is_executable(command)
-  if vim.fn.exepath(command) ~= "" then
-    return true
-  end
-  local mason_command = ("%s/mason/bin/%s"):format(vim.fn.stdpath("data"), command)
-  return vim.fn.executable(mason_command) == 1
+  return resolve_executable(command) ~= nil
 end
 
 M.is_executable = is_executable

@@ -29,34 +29,13 @@ local actions_workflow_dirs = {
   "/.forgejo/workflows",
   "/.gitea/workflows",
 }
+local lsp_settings = require("onebeer.settings.lsp")
 
 local actions_server_cmd_candidates = {
   "actions-languageserver",
   "gh-actions-language-server",
   "actions-language-server",
 }
-
----@param command string
----@return string
-local function mason_bin_path(command)
-  return ("%s/mason/bin/%s"):format(vim.fn.stdpath("data"), command)
-end
-
----@param command string
----@return string|nil
-local function resolve_executable(command)
-  local cmd_path = vim.fn.exepath(command)
-  if cmd_path ~= "" then
-    return cmd_path
-  end
-
-  local mason_cmd = mason_bin_path(command)
-  if vim.fn.executable(mason_cmd) == 1 then
-    return mason_cmd
-  end
-
-  return nil
-end
 
 ---@return string|nil
 local function get_github_token()
@@ -172,11 +151,9 @@ end
 
 ---@return string
 local function resolve_server_cmd()
-  for _, cmd in ipairs(actions_server_cmd_candidates) do
-    local cmd_path = resolve_executable(cmd)
-    if cmd_path then
-      return cmd_path
-    end
+  local cmd_path = lsp_settings.resolve_executable(actions_server_cmd_candidates)
+  if cmd_path then
+    return cmd_path
   end
 
   return actions_server_cmd_candidates[1]

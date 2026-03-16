@@ -1,4 +1,6 @@
 ---@type vim.lsp.Config
+local lsp_settings = require("onebeer.settings.lsp")
+
 return {
   settings = {
     json = {
@@ -6,8 +8,5 @@ return {
     },
   },
   -- Conform owns JSON formatting; prevent jsonls from competing.
-  on_init = function(client)
-    client.server_capabilities.documentFormattingProvider = false
-    client.server_capabilities.documentRangeFormattingProvider = false
-  end,
+  on_init = lsp_settings.disable_formatting,
 }
