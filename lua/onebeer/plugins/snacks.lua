@@ -58,6 +58,9 @@ return {
         { section = "startup" },
       },
     },
+    quickfile = {
+      enabled = true,
+    },
     styles = {
       notification = ui.snacks_float_style(nil, "notification"),
       notification_history = ui.snacks_float_style(),
