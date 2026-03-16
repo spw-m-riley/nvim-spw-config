@@ -2,6 +2,7 @@
 local FORMAT_TIMEOUT_MS = 2000
 local autocmds = require("onebeer.autocmds.helpers")
 local create_command = autocmds.create_command
+local ft = require("onebeer.settings.filetypes")
 
 ---@module "lazy"
 ---@type LazySpec
@@ -13,26 +14,29 @@ return {
   ---@type conform.setupOpts
   opts = {
     formatters_by_ft = {
-      astro = { "prettierd", "prettier", "rustywind", stop_after_first = false },
-      css = { "prettierd", "prettier", stop_after_first = true },
-      gleam = { "gleamfmt" },
-      hcl = { "hclfmt" },
-      html = { "prettierd", "prettier", "rustywind", stop_after_first = false },
-      go = { "goimports" },
-      javascript = { "prettierd", "prettier", stop_after_first = true },
-      javascriptreact = { "prettierd", "prettier", "rustywind", stop_after_first = false },
-      json = { "prettierd", "prettier", stop_after_first = true },
-      lua = { "stylua" },
-      markdown = { "prettierd", "prettier", stop_after_first = true },
-      rust = { "rustfmt" },
-      sh = { "shfmt", "beautysh", stop_after_first = true },
-      sql = { "sqlfluff" },
-      svelte = { "prettierd", "prettier", stop_after_first = true },
-      templ = { "templ" },
-      typescript = { "prettierd", "prettier", stop_after_first = true },
-      typescriptreact = { "prettierd", "prettier", "rustywind", stop_after_first = false },
-      yaml = { "prettierd", "prettier", stop_after_first = true },
-      zsh = { "shfmt", "beautysh", stop_after_first = true },
+      [ft.astro] = { "prettierd", "prettier", "rustywind", stop_after_first = false },
+      [ft.css] = { "prettierd", "prettier", stop_after_first = true },
+      [ft.gleam] = { "gleam" },
+      [ft.go] = { "goimports" },
+      [ft.hcl] = { "hclfmt" },
+      [ft.html] = { "prettierd", "prettier", "rustywind", stop_after_first = false },
+      [ft.javascript] = { "prettierd", "prettier", stop_after_first = true },
+      [ft.javascriptreact] = { "prettierd", "prettier", "rustywind", stop_after_first = false },
+      [ft.json] = { "prettierd", "prettier", stop_after_first = true },
+      [ft.lua] = { "stylua" },
+      [ft.markdown] = { "prettierd", "prettier", stop_after_first = true },
+      [ft.python] = { "ruff_format" },
+      [ft.ruby] = { "rubocop" },
+      [ft.rust] = { "rustfmt" },
+      [ft.sh] = { "shfmt", "beautysh", stop_after_first = true },
+      [ft.sql] = { "sqlfluff" },
+      [ft.svelte] = { "prettierd", "prettier", stop_after_first = true },
+      [ft.templ] = { "templ" },
+      [ft.typescript] = { "prettierd", "prettier", stop_after_first = true },
+      [ft.typescriptreact] = { "prettierd", "prettier", "rustywind", stop_after_first = false },
+      [ft.yaml] = { "prettierd", "prettier", stop_after_first = true },
+      [ft.zig] = { "zigfmt" },
+      [ft.zsh] = { "shfmt", "beautysh", stop_after_first = true },
     },
     default_format_opts = {
       lsp_format = "fallback",

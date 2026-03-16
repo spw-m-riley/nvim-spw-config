@@ -68,6 +68,33 @@ local servers = {
     end,
   },
   {
+    name = "pyright",
+    package = "pyright",
+    is_available = function()
+      return lsp_settings.is_executable("pyright-langserver")
+    end,
+  },
+  {
+    name = "ruff",
+    package = "ruff",
+    is_available = function()
+      return lsp_settings.is_executable("ruff")
+    end,
+  },
+  {
+    name = "ruby_lsp",
+    is_available = function()
+      return vim.fn.exepath("ruby-lsp") ~= ""
+    end,
+  },
+  {
+    name = "rust_analyzer",
+    package = "rust-analyzer",
+    is_available = function()
+      return lsp_settings.is_executable("rust-analyzer")
+    end,
+  },
+  {
     name = "terraformls",
     package = "terraformls",
     is_available = function()
@@ -86,6 +113,13 @@ local servers = {
     package = "yamlls",
     is_available = function()
       return lsp_settings.is_executable("yaml-language-server")
+    end,
+  },
+  {
+    name = "zls",
+    package = "zls",
+    is_available = function()
+      return lsp_settings.is_executable("zls")
     end,
   },
 }

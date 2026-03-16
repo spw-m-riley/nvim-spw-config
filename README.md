@@ -21,13 +21,17 @@ cheatsheet, tap `<leader>uh` or run `:OneBeerHelp`.
 .config/nvim/
 ├── init.lua                   # Entry point
 ├── lsp/                       # Per-server LSP configs
-│   ├── gopls.lua
-│   ├── ts_ls.lua
-│   ├── lua_ls.lua
-│   ├── html.lua
-│   ├── terraformls.lua
+│   ├── actionsls.lua
 │   ├── gleam.lua
-│   └── actionsls.lua
+│   ├── gopls.lua
+│   ├── lua_ls.lua
+│   ├── pyright.lua
+│   ├── ruff.lua
+│   ├── ruby_lsp.lua
+│   ├── rust_analyzer.lua
+│   ├── terraformls.lua
+│   ├── ts_ls.lua
+│   └── zls.lua
 └── lua/onebeer/
     ├── config.lua             # Feature flags (Copilot on/off per directory)
     ├── lazy.lua               # Plugin manager bootstrap
@@ -56,20 +60,22 @@ cheatsheet, tap `<leader>uh` or run `:OneBeerHelp`.
 
 ## Language support
 
-LSP install/curation is managed by [Mason](https://github.com/williamboman/mason.nvim) in `lua/onebeer/plugins/lsp/mason.lua`, with server-specific config files in `lsp/`. The following curated servers are installed and configured:
+LSP enablement is centralized in `lua/onebeer/plugins/lsp/mason.lua`, while each repo-root `lsp/*.lua` file still owns its server-specific config. Mason installs the shared first-class server set, and runtime-owned servers stay opt-in when their executable is already on `PATH`. `.github/lsp.json` mirrors the extension-safe subset for Copilot CLI code intelligence.
 
-| Language | Server | Notable features |
+| Language | Surface | Ownership notes |
 |---|---|---|
-| Go | `gopls` | Inlay hints, shadow/unused analysis, codelenses (govulncheck, tidy) |
-| TypeScript / JavaScript | `ts_ls` | Full inlay hints, import organisation, file operations |
-| Lua | `lua_ls` | Neovim API aware, strict workspace scanning limits, formatting off (stylua owns that) |
-| JSON | `jsonls` | JSON language features; formatting handled by conform |
-| HTML | `html` | — |
-| Shell | `bashls` | Shell language features |
-| Astro | `astro` | Astro language features; formatting handled by conform |
-| Terraform | `terraformls` | — |
-| Gleam | `gleam` | — |
-| GitHub Actions | `gh_actions_ls` | Workflow file linting |
+| Go | `gopls` + Treesitter + `goimports` | Inlay hints, shadow/unused analysis, and codelenses stay with `gopls` |
+| TypeScript / JavaScript | `ts_ls` + Treesitter + Prettier + ESLint | `ts_ls` owns code intelligence; `nvim-lint` keeps the existing JS/TS fast/save split |
+| Lua | `lua_ls` + Treesitter + `stylua` | Neovim-aware workspace, strict scanning limits, formatting off in LSP |
+| Python | `pyright` + `ruff` + Treesitter + `ruff format` | Pyright owns type analysis, Ruff owns imports/formatting, and diagnostics stay with the LSP pair |
+| Rust | `rust_analyzer` + Treesitter + `rustfmt` | `rust_analyzer` handles diagnostics/code actions; Conform keeps `rustfmt` ownership |
+| Ruby | `ruby_lsp` + Treesitter + `rubocop` | Ruby stays runtime-owned; shared policy will not prefer a Mason-managed gem over your active Ruby environment |
+| Zig | `zls` + Treesitter + `zig fmt` | `zls` owns diagnostics/code actions; Conform owns formatting |
+| Gleam | `gleam` + Treesitter + `gleam format` | Explicit partial support: runtime-managed LSP/formatter, no extra `nvim-lint` layer |
+| SQL | Treesitter + `sqlfluff` | Explicit partial support in wave 1: parser + formatter only, no SQL LSP |
+| GitHub Actions | `gh_actions_ls` | Path-aware YAML support in Neovim; not mirrored in `.github/lsp.json` because that config is extension-only |
+
+Astro, HTML, JSON, Shell, and Terraform keep their existing curated server surface (`astro`, `html`, `jsonls`, `bashls`, `terraformls`) without changing ownership.
 
 ### Formatting & linting
 
@@ -78,6 +84,11 @@ Formatting is handled by [conform.nvim](https://github.com/stevearc/conform.nvim
 The main formatter paths are:
 
 - `stylua` for Lua
+- `ruff format` for Python
+- `rubocop` for Ruby
+- `rustfmt` for Rust
+- `zig fmt` for Zig
+- `sqlfluff` for SQL
 - `shfmt` first, `beautysh` fallback for `sh` / `zsh`
 - `prettierd` first, `prettier` fallback for JS / TS / web filetypes
 
@@ -87,6 +98,7 @@ Linting runs through [nvim-lint](https://github.com/mfussenegger/nvim-lint) with
 - JS / TS / Astro use `eslint` on `BufWritePost`
 - Markdown / prose use `markdownlint`, `write-good`, and `woke` on save
 - Shell / YAML / Terraform / Docker / gitcommit / GitHub Actions use `shellcheck`, `yamllint`, `tflint`, `hadolint`, `gitlint`, and `actionlint`
+- Python / Rust / Ruby / Zig diagnostics stay LSP-owned, and Gleam / SQL intentionally skip `nvim-lint` in wave 1
 
 ---
 

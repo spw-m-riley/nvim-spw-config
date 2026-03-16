@@ -17,6 +17,17 @@ return {
       [ft.typescriptreact] = true,
       [ft.astro] = true,
     }
+    local lint_skipped_filetypes = {
+      [ft.eruby] = true,
+      [ft.gleam] = true,
+      [ft.go] = true,
+      [ft.python] = true,
+      [ft.ruby] = true,
+      [ft.rust] = true,
+      [ft.sql] = true,
+      [ft.zig] = true,
+      [ft.zir] = true,
+    }
     local has_eslint_d = vim.fn.exepath("eslint_d") ~= "" and lint.linters.eslint_d ~= nil
     local js_ts_fast_linters = { "oxlint" }
     if has_eslint_d then
@@ -58,7 +69,7 @@ return {
         if vim.g.disable_lint or vim.b[bufnr].disable_lint then
           return
         end
-        if vim.bo[bufnr].filetype == ft.go then
+        if lint_skipped_filetypes[vim.bo[bufnr].filetype] then
           return
         end
         vim.api.nvim_buf_call(bufnr, function()
@@ -83,6 +94,9 @@ return {
         local filetype = vim.bo[args.buf].filetype
         if js_ts_filetypes[filetype] then
           debounced_lint(args.buf, { "eslint" })
+          return
+        end
+        if lint_skipped_filetypes[filetype] then
           return
         end
         debounced_lint(args.buf)

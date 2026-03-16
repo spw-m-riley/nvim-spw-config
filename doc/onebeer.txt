@@ -231,7 +231,7 @@ Diagnostics defaults:
 - sign icons pulled from `onebeer.settings.icons`
 - inline diagnostics preferred over native virtual text by default
 
-Curated language-server install set through Mason:
+Shared language-server enablement policy:
 
 - `astro`
 - `bashls`
@@ -239,9 +239,18 @@ Curated language-server install set through Mason:
 - `gh_actions_ls`
 - `html`
 - `jsonls`
-- `terraformls`
 - `lua_ls`
+- `pyright`
+- `ruff`
+- `rust_analyzer`
+- `terraformls`
 - `ts_ls`
+- `zls`
+
+Runtime-managed LSPs that are enabled only when their executable already exists:
+
+- `gleam`
+- `ruby_lsp`
 
 Language-specific notes worth knowing:
 
@@ -258,6 +267,39 @@ TypeScript / JavaScript                     *onebeer-lsp-typescript*
   properties, and enum members.
 - rename/import/file-operation preferences are explicitly tuned for editor use.
 - `typescript-tools.nvim` exists in the repo but is disabled.
+
+Python
+- `pyright` and `ruff` intentionally attach together for Python buffers.
+- `pyright` keeps type analysis and `LspPyrightSetPythonPath`.
+- `ruff` owns import organization and formatting handoff, while hover stays with
+  `pyright`.
+
+Rust
+- `rust_analyzer` runs with build scripts and proc macros enabled.
+- diagnostics prefer `clippy`.
+- formatting stays disabled in the server because Conform owns `rustfmt`.
+
+Ruby
+- `ruby_lsp` stays tied to the active Ruby runtime.
+- shared policy does not Mason-install a separate Ruby LSP gem runtime.
+- formatting and on-type formatting stay disabled because Conform owns
+  `rubocop`.
+
+Zig
+- `zls` is enabled when the executable is available.
+- a local `zls.json` is picked up automatically when present at the workspace
+  root.
+- formatting stays with Conform / `zig fmt`.
+
+Gleam
+- Gleam is explicit partial support in wave 1.
+- it keeps runtime-managed LSP + formatter + parser coverage.
+- it does not add a separate `nvim-lint` layer.
+
+SQL
+- SQL is explicit partial support in wave 1.
+- Treesitter + Conform (`sqlfluff`) are enabled.
+- no SQL LSP is enabled in this wave.
 
 Lua                                         *onebeer-lsp-lua*
 - `lua_ls` treats the config directory and the Luv library as its workspace.
@@ -276,7 +318,8 @@ GitHub Actions                              *onebeer-lsp-actions*
 Treesitter and parser notes:
 
 - `nvim-treesitter` is on the `main` branch and updates via `:TSUpdate`.
-- `ts-install.nvim` auto-installs parsers for the configured language list.
+- `ts-install.nvim` auto-installs parsers for the configured language list,
+  including Python, Gleam, SQL, Ruby, Rust, and Zig.
 - `terraform-vars` is registered as the `terraform` language.
 - `nvim-ts-autotag` auto-closes and renames matching tags in markup-like files.
 
@@ -632,11 +675,18 @@ Linting and formatting behavior:
 
 - Conform owns format-on-save.
 - Lua formatting uses `stylua`.
+- Python formatting uses `ruff format`.
+- Ruby formatting uses `rubocop`.
+- Rust formatting uses `rustfmt`.
+- Zig formatting uses `zig fmt`.
+- SQL formatting uses `sqlfluff`.
 - shell formatting prefers `shfmt` with `beautysh` fallback.
 - JS/TS/web formatting prefers `prettierd` with `prettier` fallback.
 - JS/TS/Astro linting uses a fast InsertLeave path (`oxlint`, optional
   `eslint_d`) and a save-time `eslint` pass.
 - Markdown/prose linting runs `markdownlint`, `write-good`, and `woke`.
+- Python/Rust/Ruby/Zig diagnostics stay LSP-owned.
+- Gleam and SQL intentionally skip `nvim-lint` in wave 1.
 
 ==============================================================================
 LOCAL OVERRIDES AND NEOVIDE                 *onebeer-local*
