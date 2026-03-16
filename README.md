@@ -212,7 +212,11 @@ Then open Neovim. Lazy.nvim will bootstrap itself and install all plugins on fir
 
 ### Health check
 
-Run `:checkhealth onebeer` to see the status of every external dependency. Missing tools can be auto-installed directly from the health check — it knows the full dependency chain (brew → mise → go → gojson, etc.) and will walk you through it step by step. > If it's your first time setting up, start here.
+Run `:checkhealth onebeer` to see the status of every external dependency. It reports exact versions for the core toolchain, keeps the guided installer flow for the existing brew → mise → go → gojson chain when you run it interactively, and calls out language-surface tools such as `ruff`, `rustfmt`, `sqlfluff`, `ruby-lsp`, `rubocop`, `gleam`, `zig`, and `zls` without pretending missing runtime-managed tools are already healthy. If it's your first time setting up, start here.
+
+Server, client, and parser state stay in their own providers: `:checkhealth vim.lsp`, `:checkhealth mason`, and `:checkhealth ts-install`.
+
+Verified extra `:checkhealth` providers in this environment are `lazy`, `mason`, `nvim-treesitter`, `sidekick`, `snacks`, `ts-install`, and `fzf-lua-frecency`. `:checkhealth copilot` is intentionally not listed because it currently returns `No healthcheck found for "copilot" plugin`.
 
 If you plan to use `octo.nvim`, also make sure `gh auth status` succeeds. Features that touch GitHub Projects v2 may additionally require refreshing your token with the `read:project` scope.
 
@@ -224,25 +228,30 @@ Create `lua/onebeer/local.lua` for anything machine-specific — fonts, transpar
 
 ## Development and linting
 
-When working on the config itself:
+When working on the config itself, use this validation matrix:
+
+| Tier | Command | What it validates |
+|---|---|---|
+| Core | `selene .` | Lua lint across the repo |
+| Core | `stylua --check .` | formatting drift |
+| Core | `nvim --headless "+Lazy! check" +qa` | plugin manager / lockfile state |
+| Core | `nvim --headless "+checkhealth onebeer" +qa` | repo-owned dependency and language-tooling readiness |
+| Core | `nvim --headless "+checkhealth vim.lsp" +qa` | Neovim LSP client state |
+| Verified add-on | `nvim --headless "+checkhealth lazy" +qa` | `lazy.nvim` + luarocks environment |
+| Verified add-on | `nvim --headless "+checkhealth mason" +qa` | Mason registry and external runtime availability |
+| Verified add-on | `nvim --headless "+checkhealth nvim-treesitter" +qa` | parser runtime/tooling state |
+| Verified add-on | `nvim --headless "+checkhealth sidekick" +qa` | Copilot LSP + optional AI CLI surface |
+| Verified add-on | `nvim --headless "+checkhealth snacks" +qa` | optional UI/runtime integrations |
+| Verified add-on | `nvim --headless "+checkhealth ts-install" +qa` | Treesitter install/query state |
+| Verified add-on | `nvim --headless "+checkhealth fzf-lua-frecency" +qa` | frecency extension wiring |
+
+Current validation on this machine still expects explicit warnings from `lazy` (Lua 5.1 / luarocks), `mason` (optional Composer/PHP/Java/Julia runtimes), `sidekick` (missing optional AI CLIs), `snacks` (headless/renderer-specific features), and `ts-install` (existing local `ecma`, `html_tags`, and `jsx` query issues). Treat those as signal to understand, not noise to hide.
+
+Use `stylua .` when you want to apply formatting instead of only checking it.
+
+After editing `doc/onebeer.txt`, rebuild local help tags with:
 
 ```sh
-# Lint
-selene .
-
-# Check formatting
-stylua --check .
-
-# Apply formatting
-stylua .
-
-# Validate plugins
-nvim --headless "+Lazy! check" +qa
-
-# Full health check
-nvim --headless "+checkhealth onebeer" +qa
-
-# Rebuild local help tags after editing doc/onebeer.txt
 nvim --headless "+helptags doc" +qa
 ```
 

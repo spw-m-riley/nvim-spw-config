@@ -109,8 +109,9 @@ First-run behavior you can expect:
 - `lazy.nvim` bootstraps itself if not already installed.
 - Mason installs the curated language-server set.
 - `ts-install.nvim` auto-installs the configured Treesitter parsers.
-- |:checkhealth| `onebeer` reports missing dependencies and can offer guided
-  installs for supported tools.
+- |:checkhealth| `onebeer` reports exact versions for core tools, flags
+  language-surface tooling explicitly, and can offer guided installs for
+  supported tools when you run it interactively.
 
 Basic setup flow:
 
@@ -634,14 +635,36 @@ Primary health entrypoint:
 
 The health check gives you a practical readiness sweep across:
 
-- Neovim version requirement
+- Neovim version requirement, including the exact running `NVIM ...` build line
 - core external tools such as `git`, `rg`, `brew`, `node`, `go`, `fzf`, `jq`
 - JSON-generator dependencies such as `gojson` and `quicktype`
 - formatter and linter chains such as `stylua`, `shfmt` / `beautysh`,
   `prettierd` / `prettier`, `selene`, `oxlint`, `shellcheck`, `yamllint`,
   `hadolint`, `gitlint`, `actionlint`, and optional `eslint_d`
+- language-surface tooling such as `ruff`, `rustfmt`, `sqlfluff`, `ruby-lsp`,
+  `rubocop`, `gleam`, `zig`, and `zls`, with runtime-managed tools reported
+  explicitly when they are absent
 - interactive installation offers for supported external and Mason-managed
   tools
+
+Adjacent providers worth using when you touch those surfaces:
+
+- `:checkhealth vim.lsp`
+- `:checkhealth mason`
+- `:checkhealth ts-install`
+
+Verified plugin-specific health commands in this environment:
+
+- `:checkhealth lazy`
+- `:checkhealth mason`
+- `:checkhealth nvim-treesitter`
+- `:checkhealth sidekick`
+- `:checkhealth snacks`
+- `:checkhealth ts-install`
+- `:checkhealth fzf-lua-frecency`
+
+`:checkhealth copilot` is intentionally not listed because it currently
+returns `No healthcheck found for "copilot" plugin`.
 
 Dependency automation notes:
 
@@ -659,8 +682,25 @@ selene .
 stylua --check .
 nvim --headless "+Lazy! check" +qa
 nvim --headless "+checkhealth onebeer" +qa
+nvim --headless "+checkhealth vim.lsp" +qa
+nvim --headless "+checkhealth lazy" +qa
+nvim --headless "+checkhealth mason" +qa
+nvim --headless "+checkhealth nvim-treesitter" +qa
+nvim --headless "+checkhealth sidekick" +qa
+nvim --headless "+checkhealth snacks" +qa
+nvim --headless "+checkhealth ts-install" +qa
+nvim --headless "+checkhealth fzf-lua-frecency" +qa
 nvim --headless "+helptags doc" +qa
 <
+
+Known validated warnings on this machine that should stay explicit instead of
+being papered over:
+
+- `lazy`: Lua 5.1 / luarocks warning
+- `mason`: optional Composer, PHP, Java, and Julia runtime warnings
+- `sidekick`: missing optional AI CLI warnings
+- `snacks`: headless or renderer-specific optional feature warnings
+- `ts-install`: existing local `ecma`, `html_tags`, and `jsx` query issues
 
 Troubleshooting checklist to work through in order:
 

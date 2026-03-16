@@ -40,6 +40,43 @@ local mason_registry = (function()
   return nil
 end)()
 
+local version_commands = {
+  actionlint = { "actionlint", "-version" },
+  beautysh = { "beautysh", "--version" },
+  brew = { "brew", "--version" },
+  eslint = { "eslint", "--version" },
+  eslint_d = { "eslint_d", "--version" },
+  fzf = { "fzf", "--version" },
+  git = { "git", "--version" },
+  gitlint = { "gitlint", "--version" },
+  gleam = { "gleam", "--version" },
+  go = { "go", "version" },
+  hadolint = { "hadolint", "--version" },
+  jq = { "jq", "--version" },
+  markdownlint = { "markdownlint", "--version" },
+  mise = { "mise", "--version" },
+  node = { "node", "--version" },
+  oxlint = { "oxlint", "--version" },
+  prettier = { "prettier", "--version" },
+  prettierd = { "prettierd", "--version" },
+  quicktype = { "quicktype", "--version" },
+  ruff = { "ruff", "--version" },
+  rg = { "rg", "--version" },
+  rubocop = { "rubocop", "--version" },
+  ["ruby-lsp"] = { "ruby-lsp", "--version" },
+  rustfmt = { "rustfmt", "--version" },
+  selene = { "selene", "--version" },
+  shellcheck = { "shellcheck", "--version" },
+  sqlfluff = { "sqlfluff", "--version" },
+  stylua = { "stylua", "--version" },
+  tflint = { "tflint", "--version" },
+  woke = { "woke", "--version" },
+  ["write-good"] = { "write-good", "--version" },
+  yamllint = { "yamllint", "--version" },
+  zls = { "zls", "--version" },
+  zig = { "zig", "version" },
+}
+
 ---@param title string
 ---@param msg string|nil
 ---@param level? integer
@@ -50,6 +87,91 @@ local function notify(title, msg, level)
   vim.schedule(function()
     vim.notify(msg, level or vim.log.levels.INFO, { title = title })
   end)
+end
+
+---@param text string|nil
+---@return string|nil
+local function first_non_empty_line(text)
+  if not text or text == "" then
+    return nil
+  end
+
+  for _, line in ipairs(vim.split(text, "\n", { trimempty = true })) do
+    local trimmed = vim.trim(line)
+    if trimmed ~= "" then
+      return trimmed
+    end
+  end
+
+  return nil
+end
+
+---@param cmd string[]
+---@return string|nil
+local function capture_command_output(cmd)
+  if vim.system then
+    local ok, result = pcall(function()
+      return vim.system(cmd, { text = true }):wait(1000)
+    end)
+    if not ok or not result or result.code ~= 0 then
+      return nil
+    end
+
+    local output = result.stdout or ""
+    if result.stderr and result.stderr ~= "" then
+      output = output == "" and result.stderr or (output .. "\n" .. result.stderr)
+    end
+    return output ~= "" and output or nil
+  end
+
+  local output = vim.fn.system(cmd)
+  if vim.v.shell_error ~= 0 then
+    return nil
+  end
+  return output
+end
+
+---@param name string
+---@return string|nil
+local function executable_version(name)
+  local cmd = version_commands[name]
+  if not cmd then
+    return nil
+  end
+
+  return first_non_empty_line(capture_command_output(cmd))
+end
+
+---@param name string
+---@param note? string
+---@return string
+local function installed_message(name, note)
+  local details = {}
+  local version = executable_version(name)
+  if version then
+    table.insert(details, version)
+  end
+  if note and note ~= "" then
+    table.insert(details, note)
+  end
+
+  if #details == 0 then
+    return ("`%s` is installed"):format(name)
+  end
+
+  return ("`%s` is installed (%s)"):format(name, table.concat(details, "; "))
+end
+
+---@param label string
+---@param name string
+---@return string
+local function available_message(label, name)
+  local version = executable_version(name)
+  if version then
+    return ("`%s` is available via `%s` (%s)"):format(label, name, version)
+  end
+
+  return ("`%s` is available via `%s`"):format(label, name)
 end
 
 ---@param opts OneBeerRunCommandOpts
@@ -359,6 +481,7 @@ end
 local mason_installable = {
   stylua = true,
   shfmt = true,
+  ruff = true,
   oxlint = true,
   selene = true,
   shellcheck = true,
@@ -392,7 +515,7 @@ end
 ---@return boolean
 local function check_executable(name, instruction, missing)
   if vim.fn.executable(name) == 1 then
-    vim.health.ok(("`%s` is installed"):format(name))
+    vim.health.ok(installed_message(name))
     return true
   end
 
@@ -417,7 +540,7 @@ end
 ---@return nil
 local function check_formatter(name, missing)
   if vim.fn.executable(name) == 1 then
-    vim.health.ok(("`%s` is installed"):format(name))
+    vim.health.ok(installed_message(name))
     return
   end
 
@@ -431,7 +554,7 @@ end
 ---@return boolean
 local function check_manual_executable(name, instruction)
   if vim.fn.executable(name) == 1 then
-    vim.health.ok(("`%s` is installed"):format(name))
+    vim.health.ok(installed_message(name))
     return true
   end
 
@@ -447,7 +570,7 @@ end
 local function check_any_executable(names, label, instruction)
   for _, name in ipairs(names) do
     if vim.fn.executable(name) == 1 then
-      vim.health.ok(("`%s` is available via `%s`"):format(label, name))
+      vim.health.ok(available_message(label, name))
       return true
     end
   end
@@ -462,11 +585,24 @@ end
 ---@return boolean
 local function check_optional_executable(name, instruction)
   if vim.fn.executable(name) == 1 then
-    vim.health.ok(("`%s` is installed (optional fast path)"):format(name))
+    vim.health.ok(installed_message(name, "optional fast path"))
     return true
   end
 
   vim.health.info(("`%s` is optional. %s"):format(name, instruction))
+  return false
+end
+
+---@param name string
+---@param instruction string
+---@return boolean
+local function check_runtime_executable(name, instruction)
+  if vim.fn.executable(name) == 1 then
+    vim.health.ok(installed_message(name, "runtime-managed surface"))
+    return true
+  end
+
+  vim.health.info(("`%s` is not installed on this machine. %s"):format(name, instruction))
   return false
 end
 
@@ -475,7 +611,12 @@ end
 function M.check()
   vim.health.start("Neovim Version")
   if vim.fn.has("nvim-0.11.0") == 1 then
-    vim.health.ok("Using Neovim >= 0.11.0")
+    local version = first_non_empty_line(vim.api.nvim_exec2("version", { output = true }).output)
+    if version then
+      vim.health.ok(("%s (requires >= 0.11.0)"):format(version))
+    else
+      vim.health.ok("Using Neovim >= 0.11.0")
+    end
   else
     vim.health.report_error("Neovim >= 0.11.0 is required")
   end
@@ -532,7 +673,33 @@ function M.check()
   check_formatter("gitlint", missing)
   check_formatter("actionlint", missing)
 
+  vim.health.start("Language Tooling")
+  check_formatter("ruff", missing)
+  check_manual_executable("rustfmt", "Install via `rustup component add rustfmt`")
+  check_manual_executable("sqlfluff", "Install via `pipx install sqlfluff` or `uv tool install sqlfluff`")
+  check_runtime_executable(
+    "ruby-lsp",
+    "Install via `gem install ruby-lsp` in the Ruby runtime Neovim uses to enable Ruby LSP support"
+  )
+  check_runtime_executable(
+    "rubocop",
+    "Install via `gem install rubocop` in the Ruby runtime Neovim uses to enable Ruby formatting"
+  )
+  check_runtime_executable("gleam", "Install Gleam to enable the runtime-managed Gleam LSP + formatter surface")
+  check_runtime_executable("zig", "Install Zig to enable `zig fmt` support")
+  check_runtime_executable("zls", "Install `zls` or let Mason manage it to enable Zig LSP support")
+  vim.health.info(
+    "Validate Mason-managed servers and attachment separately with `:checkhealth mason`, `:checkhealth vim.lsp`, and `:checkhealth ts-install`."
+  )
+
   if #missing > 0 then
+    if #vim.api.nvim_list_uis() == 0 then
+      vim.health.info(
+        "Automatic install prompts are skipped in headless sessions; rerun `:checkhealth onebeer` interactively to install missing tools."
+      )
+      return
+    end
+
     local lines = { "Install missing dependencies now?" }
     for _, item in ipairs(missing) do
       if item.kind == "mason" then
