@@ -18,6 +18,24 @@ return {
     local blink = require("blink.cmp")
     local lsp_settings = require("onebeer.settings.lsp")
 
+    local function sidekick_nes_jump_or_apply()
+      if not config.copilot then
+        return false
+      end
+
+      local ok, sidekick = pcall(require, "sidekick")
+      return ok and sidekick.nes_jump_or_apply() or false
+    end
+
+    local function accept_inline_completion()
+      local inline_completion = vim.lsp and vim.lsp.inline_completion
+      if not inline_completion or type(inline_completion.get) ~= "function" then
+        return false
+      end
+
+      return inline_completion.get() or false
+    end
+
     vim.lsp.config("*", {
       capabilities = blink.get_lsp_capabilities(vim.deepcopy(lsp_settings.base_capabilities)),
     })
@@ -60,13 +78,8 @@ return {
         ["<Down>"] = { "select_next", "fallback" },
         ["<Tab>"] = {
           "snippet_forward",
-          function()
-            return require("sidekick").nes_jump_or_apply()
-          end,
-          function()
-            local ic = vim.lsp and vim.lsp.inline_completion
-            return ic and ic.get and ic.get() or false
-          end,
+          sidekick_nes_jump_or_apply,
+          accept_inline_completion,
           "fallback",
         },
         ["<C-k>"] = { "show_documentation", "fallback" },
