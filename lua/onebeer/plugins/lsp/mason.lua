@@ -76,7 +76,6 @@ local servers = {
   },
   {
     name = "ruff",
-    ensure = "ruff",
     is_available = function()
       return lsp_settings.is_executable("ruff")
     end,

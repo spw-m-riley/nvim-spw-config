@@ -481,7 +481,6 @@ end
 local mason_installable = {
   stylua = true,
   shfmt = true,
-  ruff = true,
   oxlint = true,
   selene = true,
   shellcheck = true,
@@ -674,7 +673,10 @@ function M.check()
   check_formatter("actionlint", missing)
 
   vim.health.start("Language Tooling")
-  check_formatter("ruff", missing)
+  check_runtime_executable(
+    "ruff",
+    "Install via `uv tool install ruff`, `brew install ruff`, or `pipx install ruff` to enable Ruff formatting + LSP support"
+  )
   check_manual_executable("rustfmt", "Install via `rustup component add rustfmt`")
   check_manual_executable("sqlfluff", "Install via `pipx install sqlfluff` or `uv tool install sqlfluff`")
   check_runtime_executable(
