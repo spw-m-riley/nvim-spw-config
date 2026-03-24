@@ -32,13 +32,18 @@ local M = {}
 ---@field name string
 ---@field instruction string
 
-local mason_registry = (function()
-  local ok, registry = pcall(require, "mason-registry")
-  if ok then
-    return registry
+local mason_registry
+
+---@return MasonRegistry|nil
+local function get_mason_registry()
+  if mason_registry ~= nil then
+    return mason_registry
   end
-  return nil
-end)()
+
+  local ok, registry = pcall(require, "mason-registry")
+  mason_registry = ok and registry or false
+  return mason_registry or nil
+end
 
 local version_commands = {
   actionlint = { "actionlint", "-version" },
@@ -717,8 +722,9 @@ function M.check()
         if item.kind == "external" then
           ensure_dependency_install(item.name)
         elseif item.kind == "mason" then
-          if mason_registry and mason_installable[item.name] and mason_registry.has_package(item.name) then
-            local ok, pkg = pcall(mason_registry.get_package, item.name)
+          local registry = get_mason_registry()
+          if registry and mason_installable[item.name] and registry.has_package(item.name) then
+            local ok, pkg = pcall(registry.get_package, item.name)
             if ok and pkg and not pkg:is_installed() then
               local success, err = pcall(function()
                 pkg:install()

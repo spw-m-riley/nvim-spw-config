@@ -7,6 +7,8 @@ return {
   enabled = function()
     return config.copilot
   end,
+  event = { "BufReadPre", "BufNewFile" },
+  cmd = "Sidekick",
   opts = {
     cli = {
       watch = true, -- auto-reload files changed by Copilot
@@ -184,7 +186,6 @@ Output only the commit message, nothing else.]],
       },
     },
   },
-  lazy = false,
   keys = {
     -- Toggle Copilot CLI
     {

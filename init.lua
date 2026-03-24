@@ -25,7 +25,6 @@ if ok_config then
   vim.g.onebeer = config
 end
 safe_require("onebeer.lazy")
-safe_require("onebeer.health")
 safe_require("onebeer.autocmds")
 safe_require("onebeer.tools.commands")
 
