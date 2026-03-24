@@ -352,6 +352,12 @@ Key		Meaning ~
 `<leader>svB`	git branches picker
 `<leader>svs`	git status picker
 
+For syntax-aware rewrites, `ssr.nvim` opens structural search and replace on
+the current Treesitter node or visual selection:
+
+Key		Meaning ~
+`<leader>cs`	structural search and replace (current node / visual selection)
+
 Files and project navigation:
 
 Key		Meaning ~
@@ -787,6 +793,7 @@ Code intelligence and editing
 - `blink.lua`              completion engine
 - `copilot.lua`            Copilot panel and backend
 - `sidekick.lua`           Copilot CLI prompt workflows
+- `ssr.lua`                structural search and replace
 - `lazydev.lua`            Lua development library injection
 - `conform.lua`            format-on-save orchestration
 - `lint.lua`               lint orchestration
@@ -820,7 +827,7 @@ Leader groups:
 
 Prefix		Meaning ~
 `<leader>a`	AI / Sidekick prompts (`<leader>a` alone aligns multicursors)
-`<leader>c`	code actions, diagnostics, inlay hints, codelens, Copilot panel
+`<leader>c`	code actions, diagnostics, inlay hints, codelens, Copilot, SSR
 `<leader>d`	debugger
 `<leader>f`	files
 `<leader>g`	Grapple navigation

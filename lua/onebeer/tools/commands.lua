@@ -64,7 +64,7 @@ local help_lines = {
   "Need the full tour? :h onebeer has you covered",
   "Leader aa/ap/... -> Sidekick + Copilot CLI",
   "Leader a         -> Align multicursors",
-  "Leader c         -> Code actions, diagnostics, Copilot",
+  "Leader c         -> Code actions, diagnostics, Copilot, SSR",
   "Leader d         -> Debugger (nvim-dap)",
   "Leader f         -> Mini.files explorer",
   "Leader g         -> Grapple marks",

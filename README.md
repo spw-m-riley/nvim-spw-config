@@ -166,6 +166,7 @@ Linting runs through [nvim-lint](https://github.com/mfussenegger/nvim-lint) with
 - **[undotree](https://github.com/mbbill/undotree)** — visual undo history. Never lose a change.
 - **[persistence.nvim](https://github.com/folke/persistence.nvim)** — automatically saves and restores sessions per working directory.
 - **[multicursor.nvim](https://github.com/jake-stewart/multicursor.nvim)** — multiple cursors when you really need them.
+- **[ssr.nvim](https://github.com/cshuaimin/ssr.nvim)** — Treesitter-aware structural search and replace for the current node or visual selection via `<leader>cs`.
 - **[slides.nvim](https://github.com/sphamba/smear-cursor.nvim)** — build and present code slides without leaving Neovim. Handy for demos and walkthroughs.
 
 ---
