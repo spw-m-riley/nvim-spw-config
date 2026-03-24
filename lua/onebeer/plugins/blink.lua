@@ -96,12 +96,6 @@ return {
             enabled = config.copilot,
             score_offset = 60,
           },
-          -- tabnine = {
-          --   name = "cmp_tabnine",
-          --   module = "blink.compat.source",
-          --   enabled = vim.g.onebeer.copilot,
-          --   score_offset = 30,
-          -- },
           lazydev = { name = "LazyDev", module = "lazydev.integrations.blink", score_offset = 100 },
         },
         default = { "lsp", "copilot", "path", "snippets", "buffer", "lazydev" },

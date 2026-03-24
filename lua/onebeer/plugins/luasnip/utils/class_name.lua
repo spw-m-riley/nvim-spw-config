@@ -1,6 +1,6 @@
 ---@alias CapitaliseFn fun(str: string): string
 ---@type CapitaliseFn
-local caps = require("plugins.luasnip.utils.capitalise")
+local caps = require("onebeer.plugins.luasnip.utils.capitalise")
 
 ---@return string
 local class_name = function()
