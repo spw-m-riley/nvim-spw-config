@@ -8,7 +8,7 @@ A personal Neovim configuration built around the idea that your editor should ge
 
 This is a full-featured Neovim setup built on [lazy.nvim](https://github.com/folke/lazy.nvim). It covers everything from LSP to AI assistance, debugging to git workflows, all with lazy-loading so startup stays snappy.
 
-The namespace is `onebeer` and every module lives under `lua/onebeer/`. The entry point is `init.lua`, which boots the config in a deliberate sequence: utilities → settings → diagnostics → LSP → plugins → health → autocommands → custom commands → optional local overrides.
+The namespace is `onebeer` and every module lives under `lua/onebeer/`. The entry point is `init.lua`, which boots the config in a deliberate sequence: utilities → settings → diagnostics → LSP → plugins → autocommands → custom commands → optional local overrides. Health surfaces load on demand through `:checkhealth onebeer` and `:OneBeerDoctor`.
 
 If you want a friendly in-editor reference, use `:h onebeer`. For the quick floating
 cheatsheet, tap `<leader>uh` or run `:OneBeerHelp`.
@@ -246,7 +246,7 @@ When working on the config itself, use this validation matrix:
 | Verified add-on | `nvim --headless "+checkhealth ts-install" +qa` | Treesitter install/query state |
 | Verified add-on | `nvim --headless "+checkhealth fzf-lua-frecency" +qa` | frecency extension wiring |
 
-Current validation on this machine still expects explicit warnings from `lazy` (Lua 5.1 / luarocks), `mason` (optional Composer/PHP/Java/Julia runtimes), `sidekick` (missing optional AI CLIs), `snacks` (headless/renderer-specific features), and `ts-install` (existing local `ecma`, `html_tags`, and `jsx` query issues). Treat those as signal to understand, not noise to hide.
+Current validation on this machine still expects explicit warnings from `lazy` (Lua 5.1 / luarocks), `mason` (optional Composer/PHP/Java/Julia runtimes), `sidekick` (missing optional AI CLIs), and `snacks` (headless/renderer-specific features). If `ts-install` reports local `ecma`, `html_tags`, or `jsx` query issues under `~/.local/share/nvim/ts-install` while `nvim-treesitter` health is otherwise clean, treat that as local parser-cache drift and repair the local `ts-install` cache rather than editing the repo parser list.
 
 Use `stylua .` when you want to apply formatting instead of only checking it.
 

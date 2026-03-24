@@ -64,10 +64,12 @@ config up in a deliberate order so each layer arrives with what it expects:
 4. LSP defaults
 5. `onebeer.config`
 6. `onebeer.lazy`
-7. `onebeer.health`
-8. `onebeer.autocmds`
-9. `onebeer.tools.commands`
-10. optional `onebeer.local`
+7. `onebeer.autocmds`
+8. `onebeer.tools.commands`
+9. optional `onebeer.local`
+
+Health surfaces are loaded on demand through |:checkhealth| `onebeer` and
+|OneBeerDoctor| instead of during normal startup.
 
 That load order also doubles as an ownership map:
 
@@ -706,7 +708,12 @@ being papered over:
 - `mason`: optional Composer, PHP, Java, and Julia runtime warnings
 - `sidekick`: missing optional AI CLI warnings
 - `snacks`: headless or renderer-specific optional feature warnings
-- `ts-install`: existing local `ecma`, `html_tags`, and `jsx` query issues
+
+If `:checkhealth ts-install` reports local `ecma`, `html_tags`, or `jsx`
+query issues under `~/.local/share/nvim/ts-install` while
+`:checkhealth nvim-treesitter` is otherwise clean, treat that as local parser
+cache drift and repair the local `ts-install` cache rather than editing the
+repo parser list.
 
 Troubleshooting checklist to work through in order:
 
