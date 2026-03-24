@@ -9,6 +9,10 @@ return {
       border = ui.float_winopts().border,
     }
   end,
+  config = function(_, opts)
+    require("onebeer.patches.ssr").apply()
+    require("ssr").setup(opts)
+  end,
   keys = {
     {
       "<leader>cs",
