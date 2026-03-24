@@ -49,7 +49,6 @@
   "sidekick.nvim": { "branch": "main", "commit": "8ad0ede3ff9065878a853e4b037ba6ac88231fb0" },
   "slides.nvim": { "branch": "main", "commit": "ed93633354af10152f7c2024e0184e9fa48c328f" },
   "snacks.nvim": { "branch": "main", "commit": "ad9ede6a9cddf16cedbd31b8932d6dcdee9b716e" },
-  "ssr.nvim": { "branch": "main", "commit": "7c95cfa5836508f08ae833a4b31d2ed265560f64" },
   "tiny-inline-diagnostic.nvim": { "branch": "main", "commit": "ba133b3e932416e4b9507095731a6d7276878fe8" },
   "trouble.nvim": { "branch": "main", "commit": "bd67efe408d4816e25e8491cc5ad4088e708a69a" },
   "ts-install.nvim": { "branch": "main", "commit": "7c5569256212d17041d5f3057e5fcbaf646f6643" },
