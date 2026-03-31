@@ -117,7 +117,7 @@ Linting runs through [nvim-lint](https://github.com/mfussenegger/nvim-lint) with
 
 - **[fzf-lua](https://github.com/ibhagwan/fzf-lua)** — fuzzy everything: files, buffers, LSP symbols, references, git log, frecency.
 - **[flash.nvim](https://github.com/folke/flash.nvim)** — jump anywhere on screen in a keystroke or two.
-- **[grapple.nvim](https://github.com/cbochs/grapple.nvim)** — tag files you care about, scoped per git repo. Instant switching between your hot files.
+- **[waystone.nvim](https://github.com/matt-riley/waystone.nvim)** — persistent slot-based marks scoped per git repo. Jump between your hot files and cursor positions.
 - **[mini.files](https://github.com/echasnovski/mini.files)** — file explorer in a floating window.
 
 ### Completion & snippets

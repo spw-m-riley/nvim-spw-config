@@ -67,7 +67,7 @@ local help_lines = {
   "Leader c         -> Code actions, diagnostics, Copilot, SSR",
   "Leader d         -> Debugger (nvim-dap)",
   "Leader f         -> Mini.files explorer",
-  "Leader g         -> Grapple marks",
+  "Leader g         -> Waystone marks",
   "Leader jg / jt   -> JSON generators",
   "Leader l         -> Gitsigns hunk actions",
   "Leader m         -> Move lines",

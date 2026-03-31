@@ -26,7 +26,7 @@ return {
         { mode = "n", keys = "<Leader>jg", desc = "JSON to Go" },
         { mode = "n", keys = "<Leader>jt", desc = "JSON to TypeScript" },
         { mode = "n", keys = "<Leader>l", desc = "[L]ine hunks" },
-        { mode = "n", keys = "<Leader>g", desc = "[G]rapple" },
+        { mode = "n", keys = "<Leader>g", desc = "Waystone" },
         { mode = "n", keys = "<Leader>m", desc = "[M]ove lines" },
         { mode = "n", keys = "<Leader>p", desc = "[P]recognition" },
         { mode = "n", keys = "<Leader>q", desc = "[Q]uickfix & Sessions" },
