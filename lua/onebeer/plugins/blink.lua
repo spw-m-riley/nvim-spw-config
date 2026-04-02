@@ -92,7 +92,7 @@ return {
         providers = {
           copilot = {
             name = "copilot",
-            module = "blink-cmp-copilot",
+            module = "onebeer.blink.copilot",
             enabled = config.copilot,
             score_offset = 60,
           },

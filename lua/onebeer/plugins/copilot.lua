@@ -75,12 +75,6 @@ local function setup_copilot_lsp()
       enable_inline_completion(client, bufnr)
     end
   end
-
-  vim.lsp.config("copilot", {})
-
-  if not vim.lsp.is_enabled("copilot") then
-    vim.lsp.enable("copilot")
-  end
 end
 
 return {
