@@ -3,11 +3,15 @@ local M = {}
 
 local payload_start = "__ONEBEER_PACK_REVIEW_JSON_START__"
 local payload_end = "__ONEBEER_PACK_REVIEW_JSON_END__"
+local short_sha_length = 8
 
 ---@param names string[]|nil
 ---@return string[]|nil
 local function normalize_names(names)
-  if names == nil or #names == 0 then
+  if names == nil or names == vim.NIL then
+    return nil
+  end
+  if type(names) ~= "table" or #names == 0 then
     return nil
   end
   return names
@@ -66,6 +70,26 @@ local function summarize_details(lines)
   return ""
 end
 
+---@param text string
+---@return string
+local function shorten_commit_shas(text)
+  return (
+    text:gsub("%f[%x](%x%x%x%x%x%x%x%x%x%x%x%x%x*)%f[^%x]", function(sha)
+      return sha:sub(1, short_sha_length)
+    end)
+  )
+end
+
+---@param lines string[]
+---@return string[]
+local function shorten_detail_lines(lines)
+  local shortened = {}
+  for i, line in ipairs(lines) do
+    shortened[i] = shorten_commit_shas(line)
+  end
+  return shortened
+end
+
 ---@param lines string[]
 ---@return onebeer.PackReviewRow[]
 local function parse_review_lines(lines)
@@ -85,7 +109,8 @@ local function parse_review_lines(lines)
       table.remove(current.details, #current.details)
     end
 
-    local summary = summarize_details(current.details)
+    local details = shorten_detail_lines(current.details)
+    local summary = summarize_details(details)
     if not current.active then
       summary = summary ~= "" and ("not active - " .. summary) or "not active"
     end
@@ -95,7 +120,7 @@ local function parse_review_lines(lines)
       name = current.name,
       status = current.group,
       summary = summary ~= "" and summary or nil,
-      details = current.details,
+      details = details,
     }
     current = nil
   end
@@ -177,6 +202,20 @@ local function update_names(rows)
     end
   end
   return normalize_names(names)
+end
+
+---@param rows onebeer.PackReviewRow[]
+---@return onebeer.PackReviewRow[]
+local function mark_done_rows(rows)
+  local updated_rows = {}
+  for i, row in ipairs(rows) do
+    local next_row = vim.tbl_deep_extend("force", {}, row)
+    if next_row.status == "Update" then
+      next_row.status = "Done"
+    end
+    updated_rows[i] = next_row
+  end
+  return updated_rows
 end
 
 ---@param opts { names?: string[]|nil }
@@ -318,6 +357,7 @@ function M.open_update(names)
               rows = state.rows,
               message = {
                 ("Applying %d %s..."):format(#pending, pluralize(#pending, "update", "updates")),
+                "This window will stay open and mark completed plugins as [Done].",
               },
               on_apply = state.on_apply,
               on_cancel = state.on_cancel,
@@ -340,12 +380,15 @@ function M.open_update(names)
                   return
                 end
 
-                review_view.close(active_ctx)
-                vim.notify(
-                  ("Applied %d %s"):format(#pending, pluralize(#pending, "plugin update", "plugin updates")),
-                  vim.log.levels.INFO,
-                  { title = "Pack review" }
-                )
+                review_view.update(active_ctx, {
+                  phase = "done",
+                  rows = mark_done_rows(state.rows or {}),
+                  message = {
+                    ("Applied %d %s."):format(#pending, pluralize(#pending, "plugin update", "plugin updates")),
+                    "Review the results, then press q to close.",
+                  },
+                  on_cancel = state.on_cancel,
+                })
               end)
             end, 10)
           end,

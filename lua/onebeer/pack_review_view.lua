@@ -1,5 +1,6 @@
 ---@module "onebeer.pack_review_view"
 local ui = require("onebeer.ui")
+local ns = vim.api.nvim_create_namespace("onebeer.pack_review")
 
 ---@class onebeer.PackReviewRow
 ---@field id? string
@@ -26,6 +27,153 @@ local ui = require("onebeer.ui")
 ---@field line_to_row table<integer, string>
 
 local M = {}
+
+---@param phase onebeer.PackReviewPhase|nil
+---@return string
+local function phase_highlight(phase)
+  if phase == "error" then
+    return "OneBeerPackReviewPhaseError"
+  end
+  if phase == "applying" then
+    return "OneBeerPackReviewPhaseApplying"
+  end
+  if phase == "done" then
+    return "OneBeerPackReviewPhaseDone"
+  end
+  if phase == "ready" then
+    return "OneBeerPackReviewPhaseReady"
+  end
+  return "OneBeerPackReviewPhaseLoading"
+end
+
+---@param status string|nil
+---@return string
+local function status_highlight(status)
+  if status == "Error" then
+    return "OneBeerPackReviewStatusError"
+  end
+  if status == "Done" then
+    return "OneBeerPackReviewStatusDone"
+  end
+  if status == "Update" then
+    return "OneBeerPackReviewStatusUpdate"
+  end
+  return "OneBeerPackReviewStatusSame"
+end
+
+---@param status string|nil
+---@return string
+local function row_name_highlight(status)
+  if status == "Error" then
+    return "OneBeerPackReviewRowNameError"
+  end
+  if status == "Done" then
+    return "OneBeerPackReviewRowNameDone"
+  end
+  if status == "Update" then
+    return "OneBeerPackReviewRowNameUpdate"
+  end
+  return "OneBeerPackReviewRowNameSame"
+end
+
+---@param status string|nil
+---@return string
+local function summary_highlight(status)
+  if status == "Error" then
+    return "OneBeerPackReviewSummaryError"
+  end
+  if status == "Done" then
+    return "OneBeerPackReviewSummaryDone"
+  end
+  if status == "Update" then
+    return "OneBeerPackReviewSummaryUpdate"
+  end
+  return "OneBeerPackReviewSummarySame"
+end
+
+---@param phase onebeer.PackReviewPhase|nil
+---@return string
+local function action_line(phase)
+  if phase == "ready" then
+    return " <CR> toggle details   u apply   q close"
+  end
+  if phase == "applying" then
+    return " <CR> toggle details   q close   updating..."
+  end
+  if phase == "done" then
+    return " <CR> toggle details   q close"
+  end
+  if phase == "error" then
+    return " <CR> toggle details   q close"
+  end
+  return " <CR> toggle details   q close   loading..."
+end
+
+---@param line string
+---@return boolean
+local function is_row_line(line)
+  return vim.startswith(line, " ▸ ") or vim.startswith(line, " ▾ ")
+end
+
+---@param buf integer
+---@param line integer
+---@param start_col integer
+---@param end_col integer
+---@param hl string
+local function highlight_range(buf, line, start_col, end_col, hl)
+  vim.api.nvim_buf_set_extmark(buf, ns, line - 1, start_col, {
+    end_row = line - 1,
+    end_col = end_col,
+    hl_group = hl,
+  })
+end
+
+---@param buf integer
+---@param line integer
+---@param text string
+---@param prefix string
+---@param label_hl string
+---@param value_hl string
+local function highlight_labeled_detail(buf, line, text, prefix, label_hl, value_hl)
+  if not vim.startswith(text, prefix) then
+    return
+  end
+  local start_col = 4
+  local label_end = start_col + #prefix
+  highlight_range(buf, line, start_col, label_end, label_hl)
+  highlight_range(buf, line, label_end, #text, value_hl)
+end
+
+---@param buf integer
+---@param line integer
+local function highlight_action_line(buf, line)
+  local text = vim.api.nvim_buf_get_lines(buf, line - 1, line, false)[1]
+  if text == nil then
+    return
+  end
+
+  local spans = {
+    { "<CR>", "OneBeerPackReviewActionKey" },
+    { "toggle details", "OneBeerPackReviewActionText" },
+    { "u", "OneBeerPackReviewActionKey" },
+    { "apply", "OneBeerPackReviewActionText" },
+    { "q", "OneBeerPackReviewActionKey" },
+    { "close", "OneBeerPackReviewActionText" },
+    { "loading...", "OneBeerPackReviewActionText" },
+    { "updating...", "OneBeerPackReviewActionText" },
+  }
+
+  local search_from = 1
+  for _, span in ipairs(spans) do
+    local start_at = text:find(span[1], search_from, true)
+    if start_at ~= nil then
+      local start_col = start_at - 1
+      local end_col = start_col + #span[1]
+      highlight_range(buf, line, start_col, end_col, span[2])
+      search_from = start_at + #span[1]
+    end
+  end
+end
 
 ---@param opts table<string, any>|nil
 ---@return table<string, any>, table<string, any>
@@ -145,6 +293,7 @@ local function render(ctx)
   prune_expanded(ctx)
 
   local state = ctx.state
+  local phase_line = 1
   local lines = {
     string.format(" %s", phase_label(state.phase)),
   }
@@ -166,12 +315,82 @@ local function render(ctx)
   end
 
   lines[#lines + 1] = ""
-  lines[#lines + 1] = " <CR> toggle details   u apply   q close"
+  lines[#lines + 1] = action_line(state.phase)
 
   vim.bo[ctx.buf].modifiable = true
   vim.api.nvim_buf_set_lines(ctx.buf, 0, -1, false, lines)
   vim.bo[ctx.buf].modifiable = false
   vim.bo[ctx.buf].modified = false
+  vim.api.nvim_buf_clear_namespace(ctx.buf, ns, 0, -1)
+
+  highlight_range(ctx.buf, phase_line, 1, #lines[phase_line], phase_highlight(state.phase))
+  for line_nr = 2, #lines - 2 do
+    local line = lines[line_nr]
+    if vim.trim(line) ~= "" then
+      highlight_range(ctx.buf, line_nr, 1, #line, "OneBeerPackReviewMessage")
+    end
+  end
+
+  for line_nr = 1, #lines do
+    local line = lines[line_nr]
+    if is_row_line(line) then
+      highlight_range(ctx.buf, line_nr, 1, 4, "OneBeerPackReviewRowToggle")
+      local name_start = 4
+      local status_start = line:find(" [", 1, true)
+      local summary_start = line:find(" - ", 1, true)
+      local row_status = line:match("%[(.-)%]")
+      local name_end = status_start and (status_start - 1) or (summary_start and (summary_start - 1) or #line)
+      highlight_range(ctx.buf, line_nr, name_start, name_end, row_name_highlight(row_status))
+      if status_start then
+        local status_end = line:find("]", status_start, true)
+        if status_end then
+          highlight_range(ctx.buf, line_nr, status_start - 1, status_end, status_highlight(row_status))
+        end
+      end
+      if summary_start then
+        highlight_range(ctx.buf, line_nr, summary_start - 1, #line, summary_highlight(row_status))
+      end
+    elseif line:match("^    ") then
+      local detail_value_hl = "OneBeerPackReviewDetailValue"
+      for prev = line_nr - 1, 1, -1 do
+        local prev_line = lines[prev]
+        if prev_line and is_row_line(prev_line) then
+          if prev_line:match("%[Same%]") then
+            detail_value_hl = "OneBeerPackReviewDetailMuted"
+          end
+          break
+        end
+      end
+      highlight_labeled_detail(ctx.buf, line_nr, line, "Path:", "OneBeerPackReviewDetailLabel", detail_value_hl)
+      highlight_labeled_detail(ctx.buf, line_nr, line, "Source:", "OneBeerPackReviewDetailLabel", detail_value_hl)
+      highlight_labeled_detail(
+        ctx.buf,
+        line_nr,
+        line,
+        "Revision before:",
+        "OneBeerPackReviewDetailLabel",
+        detail_value_hl
+      )
+      highlight_labeled_detail(
+        ctx.buf,
+        line_nr,
+        line,
+        "Revision after:",
+        "OneBeerPackReviewDetailLabel",
+        detail_value_hl
+      )
+      highlight_labeled_detail(ctx.buf, line_nr, line, "Revision:", "OneBeerPackReviewDetailLabel", detail_value_hl)
+      if line:match("^    [><] ") then
+        highlight_range(ctx.buf, line_nr, 4, #line, status_highlight("Update"))
+      elseif line:match("^    %(no details%)") then
+        highlight_range(ctx.buf, line_nr, 4, #line, "OneBeerPackReviewSummarySame")
+      elseif detail_value_hl == "OneBeerPackReviewDetailMuted" then
+        highlight_range(ctx.buf, line_nr, 4, #line, detail_value_hl)
+      end
+    end
+  end
+
+  highlight_action_line(ctx.buf, #lines)
 
   local title = string.format(" %s ", state.title or "Pack review")
   if vim.api.nvim_win_is_valid(ctx.win) then

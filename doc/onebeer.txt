@@ -615,6 +615,7 @@ Command		Meaning ~
 `LintToggleBuffer`	toggle linting for current buffer
 `TrimWhitespaceToggle`	toggle trailing-whitespace cleanup on save
 `LoaderResetCache`	reset Neovim Lua loader cache
+`Pack[!] sync`		re-scan plugin spec files, install newly declared plugins, remove plugins no longer declared, then review updates; `!` applies updates immediately and restart is recommended after add/remove changes
 `Pack[!] update [plugin ...]`	open the Pack review float; `<CR>` toggles details, `u` applies, `q` closes, and `!` applies immediately
 
 Common non-command keymaps worth keeping nearby:

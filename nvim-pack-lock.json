@@ -1,7 +1,7 @@
 {
   "plugins": {
     "LuaSnip": {
-      "rev": "5a1e39223db9a0498024a77b8441169d260c8c25",
+      "rev": "642b0c595e11608b4c18219e93b88d7637af27bc",
       "src": "https://github.com/L3MON4D3/LuaSnip",
       "version": "'master'"
     },
@@ -10,16 +10,16 @@
       "src": "https://github.com/giuxtaposition/blink-cmp-copilot"
     },
     "blink.cmp": {
-      "rev": "485c03400608cb6534bbf84da8c1c471fc4808c0",
+      "rev": "679a2ffad4bae720bb12e6bcdf57b0dd8b8a80f8",
       "src": "https://github.com/saghen/blink.cmp"
     },
     "blink.compat": {
-      "rev": "2ed6d9a28b07fa6f3bface818470605f8896408c",
+      "rev": "1454f14a8d855a578ceeba77c62538fa1459a67c",
       "src": "https://github.com/saghen/blink.compat",
       "version": "'main'"
     },
     "catppuccin": {
-      "rev": "a7788416689dbefea659d9e9415c87926b0ba5d8",
+      "rev": "60cf331ed7ecb19617c32bf61eb0da78c4c7bb05",
       "src": "https://github.com/catppuccin/nvim"
     },
     "conform.nvim": {
@@ -55,7 +55,7 @@
       "src": "https://github.com/elanmed/fzf-lua-frecency.nvim"
     },
     "gitsigns.nvim": {
-      "rev": "0f00d07c2c3106ba6abd594ac1c17f211141b7b5",
+      "rev": "e1b90b60fb7aa9c0ada8e983b460764b35a05e2e",
       "src": "https://github.com/lewis6991/gitsigns.nvim"
     },
     "lazydev.nvim": {
@@ -104,7 +104,7 @@
       "version": "'1.0'"
     },
     "neogit": {
-      "rev": "4681c1fdac1b730592ae195576e87406f7255750",
+      "rev": "5a7fca171e3ad07380745d573d791e95268b8f3f",
       "src": "https://github.com/NeogitOrg/neogit"
     },
     "neotest": {
@@ -160,7 +160,7 @@
       "src": "https://github.com/nvim-neotest/nvim-nio"
     },
     "nvim-treesitter": {
-      "rev": "c82bf96f0a773d85304feeb695e1e23b2207ac35",
+      "rev": "6878ae017d691a0df1c49d8a091c88a33e4c2d50",
       "src": "https://github.com/nvim-treesitter/nvim-treesitter"
     },
     "nvim-ts-autotag": {
@@ -216,7 +216,7 @@
       "src": "https://github.com/dstein64/vim-startuptime"
     },
     "waystone.nvim": {
-      "rev": "363ad19e44beb055da6ca50c01a021933d9cebfd",
+      "rev": "69b5d5eee735e47b65cb061120c8b95ce297d02b",
       "src": "https://github.com/matt-riley/waystone.nvim"
     }
   }
