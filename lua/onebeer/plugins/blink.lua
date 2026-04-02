@@ -4,6 +4,7 @@ local config = require("onebeer.config")
 return {
   "saghen/blink.cmp",
   event = { "BufReadPre", "BufNewFile" },
+  build = "cargo build --release",
   dependencies = {
     { "L3MON4D3/LuaSnip", branch = "master", build = "make install_jsregexp" },
     { "giuxtaposition/blink-cmp-copilot" },

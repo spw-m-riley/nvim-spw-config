@@ -1,9 +1,48 @@
 ---@type onebeer.PluginSpec
 local config = require("onebeer.config")
 
+local function guard_copilot_api()
+  local api = require("copilot.api")
+  if api._onebeer_guarded then
+    return
+  end
+
+  local request = api.request
+  local notify = api.notify
+
+  api.request = function(client, method, params, callback)
+    if not client then
+      local err = ("copilot client unavailable for %s"):format(method)
+      if callback then
+        vim.schedule(function()
+          callback(err, nil, { method = method })
+        end)
+        return false, nil
+      end
+      return err, nil, { method = method }
+    end
+
+    return request(client, method, params, callback)
+  end
+
+  api.notify = function(client, method, params)
+    if not client then
+      return false
+    end
+
+    return notify(client, method, params)
+  end
+
+  api._onebeer_guarded = true
+end
+
 ---@param client vim.lsp.Client
 ---@param bufnr integer
 local function enable_inline_completion(client, bufnr)
+  if not client then
+    return
+  end
+
   if client.name ~= "copilot" then
     return
   end
@@ -80,6 +119,7 @@ return {
       },
     })
 
+    guard_copilot_api()
     setup_copilot_lsp()
   end,
 }
