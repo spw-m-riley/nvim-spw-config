@@ -1,15 +1,14 @@
----@module "lazy"
----@type LazySpec
+---@type onebeer.PluginSpec
 local config = require("onebeer.config")
 
 return {
   "saghen/blink.cmp",
   event = { "BufReadPre", "BufNewFile" },
   dependencies = {
-    { "L3MON4D3/LuaSnip", version = "v2.*", build = "make install_jsregexp" },
+    { "L3MON4D3/LuaSnip", branch = "master", build = "make install_jsregexp" },
     { "giuxtaposition/blink-cmp-copilot" },
     { "rafamadriz/friendly-snippets" },
-    { "saghen/blink.compat", version = "*", opts = {} },
+    { "saghen/blink.compat", branch = "main", opts = {} },
   },
   version = "v0.*",
   ---@module 'blink.cmp'

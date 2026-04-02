@@ -1,7 +1,5 @@
----@module "lazy"
----@type LazySpec
+---@type onebeer.PluginSpec
 return {
   "dstein64/vim-startuptime",
   cmd = { "StartupTime" },
-  config = true,
 }

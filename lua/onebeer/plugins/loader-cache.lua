@@ -8,6 +8,5 @@ create_command("LoaderResetCache", function()
   end
 end, { desc = "Reset Lua module cache" })
 
----@module "lazy"
----@type LazySpec
+---@type onebeer.PluginSpec
 return {}

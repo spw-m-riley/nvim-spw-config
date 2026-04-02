@@ -1,5 +1,4 @@
----@module "lazy"
----@type LazySpec
+---@type onebeer.PluginSpec
 return {
   "rachartier/tiny-inline-diagnostic.nvim",
   event = "VeryLazy",

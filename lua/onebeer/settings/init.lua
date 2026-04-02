@@ -101,13 +101,24 @@ function M.defaults()
     vim.api.nvim_set_hl(0, "OneBeerWinbarModified", { link = "DiagnosticWarn" })
     vim.api.nvim_set_hl(0, "OneBeerWinbarReadonly", { link = "DiagnosticError" })
   end
+  local function set_pack_winbar_hl()
+    vim.api.nvim_set_hl(0, "OneBeerPackWinbarTitle", { link = "Title" })
+    vim.api.nvim_set_hl(0, "OneBeerPackWinbarIcon", { link = "Special" })
+    vim.api.nvim_set_hl(0, "OneBeerPackWinbarMuted", { link = "Comment" })
+    vim.api.nvim_set_hl(0, "OneBeerPackWinbarHint", { link = "Comment" })
+    vim.api.nvim_set_hl(0, "OneBeerPackWinbarUpdate", { link = "DiagnosticWarn" })
+    vim.api.nvim_set_hl(0, "OneBeerPackWinbarError", { link = "DiagnosticError" })
+    vim.api.nvim_set_hl(0, "OneBeerPackWinbarSame", { link = "DiagnosticHint" })
+  end
   set_inlay_hint_hl()
   set_winbar_hl()
+  set_pack_winbar_hl()
   create_autocmd("ColorScheme", {
     group = highlight_group,
     callback = function()
       set_inlay_hint_hl()
       set_winbar_hl()
+      set_pack_winbar_hl()
     end,
   })
 

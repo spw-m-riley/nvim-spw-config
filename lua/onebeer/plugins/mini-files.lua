@@ -1,8 +1,8 @@
----@module "lazy"
----@type LazySpec
+---@type onebeer.PluginSpec
 return {
-  "echasnovski/mini.files",
-  version = "*",
+  "echasnovski/mini.nvim",
+  name = "mini.files",
+  branch = "stable",
   event = "VeryLazy",
   opts = {},
   keys = {

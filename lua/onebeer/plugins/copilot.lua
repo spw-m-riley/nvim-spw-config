@@ -1,5 +1,4 @@
----@module "lazy"
----@type LazySpec
+---@type onebeer.PluginSpec
 local config = require("onebeer.config")
 
 ---@param client vim.lsp.Client

@@ -1,5 +1,4 @@
----@module "lazy"
----@type LazySpec
+---@type onebeer.PluginSpec
 return {
   "mbbill/undotree",
   cmd = "UndotreeToggle",

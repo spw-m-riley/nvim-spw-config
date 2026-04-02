@@ -1,8 +1,8 @@
----@module "lazy"
----@type LazySpec
+---@type onebeer.PluginSpec
 return {
-  "echasnovski/mini.clue",
-  version = "*",
+  "echasnovski/mini.nvim",
+  name = "mini.clue",
+  branch = "stable",
   event = "VeryLazy",
   config = function()
     local miniclue = require("mini.clue")

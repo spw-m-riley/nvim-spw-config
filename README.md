@@ -6,9 +6,11 @@ A personal Neovim configuration built around the idea that your editor should ge
 
 ## What is this?
 
-This is a full-featured Neovim setup built on [lazy.nvim](https://github.com/folke/lazy.nvim). It covers everything from LSP to AI assistance, debugging to git workflows, all with lazy-loading so startup stays snappy.
+This is a full-featured Neovim setup built on Neovim's native `vim.pack` plugin manager with a small repo-local loader for lazy-loading and plugin wiring.
 
 The namespace is `onebeer` and every module lives under `lua/onebeer/`. The entry point is `init.lua`, which boots the config in a deliberate sequence: utilities → settings → diagnostics → LSP → plugins → autocommands → custom commands → optional local overrides. Health surfaces load on demand through `:checkhealth onebeer` and `:OneBeerDoctor`.
+
+Plugin specs use the local `onebeer.PluginSpec` type. When a spec exposes `opts` without a custom `config`, `onebeer.pack` forwards those options to `require(main).setup(opts)`. If a plugin needs a non-obvious module name, set `main = "..."` on that spec instead of teaching the loader plugin-specific aliases.
 
 If you want a friendly in-editor reference, use `:h onebeer`. For the quick floating
 cheatsheet, tap `<leader>uh` or run `:OneBeerHelp`.
@@ -34,7 +36,9 @@ cheatsheet, tap `<leader>uh` or run `:OneBeerHelp`.
 │   └── zls.lua
 └── lua/onebeer/
     ├── config.lua             # Feature flags (Copilot on/off per directory)
-    ├── lazy.lua               # Plugin manager bootstrap
+    ├── pack.lua               # vim.pack loader / plugin bootstrap
+    ├── pack_modules.lua       # plugin module discovery + temporary exclusions
+    ├── plugin_spec.lua        # shared plugin-spec annotations
     ├── health.lua             # Health checks + dependency auto-installer
     ├── state.lua              # Shared runtime state
     ├── ui.lua                 # Float styling helpers
@@ -44,13 +48,15 @@ cheatsheet, tap `<leader>uh` or run `:OneBeerHelp`.
     ├── settings/              # Editor options, theme, diagnostics, filetypes
     ├── tools/                 # Custom commands (JSON → Go/TypeScript converters)
     ├── snippets/              # LuaSnip snippets for Lua, Go, Astro
-    └── plugins/               # One file per plugin, all LazySpecs
+    └── plugins/               # One file per plugin, all plugin spec tables
         └── lsp/               # LSP-specific plugin configs
 ```
 
 ### Key conventions
 
-- Every plugin lives in its own file under `plugins/` and returns a `LazySpec` table.
+- Every plugin lives in its own file under `plugins/` and returns a plugin spec table consumed by `onebeer.pack`.
+- `onebeer.pack` stays intentionally narrow: eager loading, `event`, `ft`, `cmd`, `keys`, dependencies, build hooks, and synthetic `VeryLazy`.
+- In plugin specs, `opts` are the `.setup(...)` payload; `main` or `config` decides how that setup path is reached.
 - All `require` calls go through `utils.safe_require` (a `pcall` wrapper) so a broken plugin never crashes the whole config.
 - Shared helpers (`onebeer.utils.map`, `onebeer.autocmds.helpers`) keep boilerplate out of plugin files.
 - Format-on-save and lint-on-save each have global and buffer-local toggles (`vim.g.disable_autoformat`, `vim.b.disable_lint`, etc.) — you can flip them without reloading anything.
@@ -107,7 +113,7 @@ Linting runs through [nvim-lint](https://github.com/mfussenegger/nvim-lint) with
 ### UI
 
 - **[Catppuccin Mocha](https://github.com/catppuccin/nvim)** — the theme. Transparent background, custom highlight overrides, and colours extracted at runtime for the statusline.
-- **[snacks.nvim](https://github.com/folke/snacks.nvim)** — dashboard, notifications, indent guides, statuscolumn, smooth scrolling, and scope visualisation in one package.
+- **[snacks.nvim](https://github.com/folke/snacks.nvim)** — dashboard, notifications, indent guides, statuscolumn, smooth scrolling, and scope visualisation in one package. The startup dashboard uses a pack-aware summary instead of Snacks' built-in `lazy.stats` widget.
 - **[lualine.nvim](https://github.com/nvim-lualine/lualine.nvim)** — statusline with a custom "bubbles" theme, Vi mode colours, active LSP clients, git diff stats, and a branch indicator.
 - **[tiny-inline-diagnostic.nvim](https://github.com/rachartier/tiny-inline-diagnostic.nvim)** — inline diagnostics that stay out of your way.
 - **[precognition.nvim](https://github.com/tris203/precognition.nvim)** — shows motion targets (`w`, `b`, `e`, `$`, `G`, `gg`, `{`, `}`) as hints so you always know where you're going. > Great for building muscle memory.
@@ -166,7 +172,7 @@ Linting runs through [nvim-lint](https://github.com/mfussenegger/nvim-lint) with
 - **[undotree](https://github.com/mbbill/undotree)** — visual undo history. Never lose a change.
 - **[persistence.nvim](https://github.com/folke/persistence.nvim)** — automatically saves and restores sessions per working directory.
 - **[multicursor.nvim](https://github.com/jake-stewart/multicursor.nvim)** — multiple cursors when you really need them.
-- **[slides.nvim](https://github.com/sphamba/smear-cursor.nvim)** — build and present code slides without leaving Neovim. Handy for demos and walkthroughs.
+- **[slides.nvim](https://github.com/matt-riley/slides.nvim)** — build and present code slides without leaving Neovim. Handy for demos and walkthroughs. _Temporarily excluded from the current `vim.pack` config while its repo metadata is cleaned up._
 
 ---
 
@@ -179,6 +185,7 @@ Linting runs through [nvim-lint](https://github.com/mfussenegger/nvim-lint) with
 | `:TrimWhitespaceToggle` | Toggle automatic trailing whitespace removal on save |
 | `:InspectLog` | Open the LSP log file |
 | `:LoaderResetCache` | Clear the Lua module loader cache |
+| `:Pack[!] update [plugin ...]` | Open the Pack review float for all plugins or the named plugins; `<CR>` toggles details, `u` applies, `q` closes, and `!` still applies immediately |
 
 There are also two JSON conversion tools:
 
@@ -191,7 +198,7 @@ There are also two JSON conversion tools:
 
 ### Requirements
 
-- Neovim >= 0.11.0
+- Neovim >= 0.12.0
 - `git`, `ripgrep` (`rg`), `fzf`, `gh` ([GitHub CLI](https://cli.github.com/))
 - A [Nerd Font](https://www.nerdfonts.com/) — the config is set up with MonoLisa Nerd Font but any will work
 
@@ -208,7 +215,12 @@ Clone this repo into your Neovim config directory:
 git clone <your-repo-url> ~/.config/nvim
 ```
 
-Then open Neovim. Lazy.nvim will bootstrap itself and install all plugins on first launch. Mason will install LSP servers, and the health check will guide you through any missing external tools.
+Then open Neovim. `vim.pack` will install and register plugins on first launch, Mason will install LSP servers, and the health check will guide you through any missing external tools.
+
+Two migration-era caveats are still intentional today:
+
+- `slides.nvim` stays out of `onebeer.pack` until its upstream repo metadata stops tripping `vim.pack` installs.
+- UI-only startup behavior such as the Snacks dashboard and the Catppuccin colorscheme should be validated in a real TTY session when you change them; `nvim --headless` is useful for health checks but is not a full proxy for attached-UI startup.
 
 ### Health check
 
@@ -216,7 +228,7 @@ Run `:checkhealth onebeer` to see the status of every external dependency. It re
 
 Server, client, and parser state stay in their own providers: `:checkhealth vim.lsp`, `:checkhealth mason`, and `:checkhealth ts-install`.
 
-Verified extra `:checkhealth` providers in this environment are `lazy`, `mason`, `nvim-treesitter`, `sidekick`, `snacks`, `ts-install`, and `fzf-lua-frecency`. `:checkhealth copilot` is intentionally not listed because it currently returns `No healthcheck found for "copilot" plugin`.
+Verified extra `:checkhealth` providers in this environment are `mason`, `nvim-treesitter`, `sidekick`, `snacks`, `ts-install`, and `fzf-lua-frecency`. `:checkhealth copilot` is intentionally not listed because it currently returns `No healthcheck found for "copilot" plugin`.
 
 If you plan to use `octo.nvim`, also make sure `gh auth status` succeeds. Features that touch GitHub Projects v2 may additionally require refreshing your token with the `read:project` scope.
 
@@ -234,10 +246,9 @@ When working on the config itself, use this validation matrix:
 |---|---|---|
 | Core | `selene .` | Lua lint across the repo |
 | Core | `stylua --check .` | formatting drift |
-| Core | `nvim --headless "+Lazy! check" +qa` | plugin manager / lockfile state |
+| Core | `nvim --headless "+lua print(vim.inspect(vim.pack.get(nil, { info = false })))" +qa` | vim.pack plugin state / lockfile view |
 | Core | `nvim --headless "+checkhealth onebeer" +qa` | repo-owned dependency and language-tooling readiness |
 | Core | `nvim --headless "+checkhealth vim.lsp" +qa` | Neovim LSP client state |
-| Verified add-on | `nvim --headless "+checkhealth lazy" +qa` | `lazy.nvim` + luarocks environment |
 | Verified add-on | `nvim --headless "+checkhealth mason" +qa` | Mason registry and external runtime availability |
 | Verified add-on | `nvim --headless "+checkhealth nvim-treesitter" +qa` | parser runtime/tooling state |
 | Verified add-on | `nvim --headless "+checkhealth sidekick" +qa` | Copilot LSP + optional AI CLI surface |
@@ -245,7 +256,9 @@ When working on the config itself, use this validation matrix:
 | Verified add-on | `nvim --headless "+checkhealth ts-install" +qa` | Treesitter install/query state |
 | Verified add-on | `nvim --headless "+checkhealth fzf-lua-frecency" +qa` | frecency extension wiring |
 
-Current validation on this machine still expects explicit warnings from `lazy` (Lua 5.1 / luarocks), `mason` (optional Composer/PHP/Java/Julia runtimes), `sidekick` (missing optional AI CLIs), and `snacks` (headless/renderer-specific features). If `ts-install` reports local `ecma`, `html_tags`, or `jsx` query issues under `~/.local/share/nvim/ts-install` while `nvim-treesitter` health is otherwise clean, treat that as local parser-cache drift and repair the local `ts-install` cache rather than editing the repo parser list.
+Current validation on this machine still expects explicit warnings from `mason` (optional Composer/PHP/Java/Julia runtimes), `sidekick` (missing optional AI CLIs), and `snacks` (headless/renderer-specific features). If `ts-install` reports local `ecma`, `html_tags`, or `jsx` query issues under `~/.local/share/nvim/ts-install` while `nvim-treesitter` health is otherwise clean, treat that as local parser-cache drift and repair the local `ts-install` cache rather than editing the repo parser list.
+
+For UI-specific startup work, follow the headless matrix with a real TTY launch (`nvim` in a normal terminal) so you can confirm attached-UI behavior such as the dashboard and colorscheme load path.
 
 Use `stylua .` when you want to apply formatting instead of only checking it.
 

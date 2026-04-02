@@ -1,8 +1,8 @@
----@module "lazy"
----@type LazySpec
+---@type onebeer.PluginSpec
 return {
-  "echasnovski/mini.pairs",
-  version = "*",
+  "echasnovski/mini.nvim",
+  name = "mini.pairs",
+  branch = "stable",
   event = "InsertEnter",
   opts = {},
 }

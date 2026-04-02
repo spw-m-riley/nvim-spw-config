@@ -121,7 +121,11 @@ end
 ---Aggregate health/debug outputs and show them in a floating picker or window.
 ---@return nil
 local function doctor()
-  local commands = { "checkhealth", "Lazy! check", "LspInfo" }
+  local commands = {
+    "checkhealth",
+    "lua print(vim.inspect(vim.pack.get(nil, { info = false })))",
+    "LspInfo",
+  }
   local collected = {}
   for _, cmd in ipairs(commands) do
     local lines = capture(cmd)
@@ -175,6 +179,6 @@ end
 create_command("InspectTree", inspect_tree, { desc = "Inspect Treesitter tree for current buffer" })
 create_command("InspectSyntax", inspect_syntax, { desc = "Inspect highlight groups at cursor" })
 create_command("OneBeerHelp", help, { desc = "Show OneBeer keymap cheatsheet" })
-create_command("OneBeerDoctor", doctor, { desc = "Run core diagnostics (checkhealth/Lazy/LspInfo)" })
+create_command("OneBeerDoctor", doctor, { desc = "Run core diagnostics (checkhealth/vim.pack/LspInfo)" })
 
 return {}

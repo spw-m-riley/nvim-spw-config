@@ -1,7 +1,6 @@
 local ui = require("onebeer.ui")
 
----@module "lazy"
----@type LazySpec
+---@type onebeer.PluginSpec
 return {
   "ibhagwan/fzf-lua",
   dependencies = {

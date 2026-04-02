@@ -27,9 +27,10 @@ CONTENTS                                    *onebeer* *onebeer-contents*
 ==============================================================================
 OVERVIEW                                    *onebeer-overview*
 
-OneBeer is a full-featured Neovim setup built on |lazy.nvim|. Most config code
-lives under the `onebeer` namespace in `lua/onebeer/`, while per-server LSP
-settings live in `lsp/*.lua`.
+OneBeer is a full-featured Neovim setup built on Neovim's native `vim.pack`
+plugin manager plus a small repo-local loader. Most config code lives under the
+`onebeer` namespace in `lua/onebeer/`, while per-server LSP settings live in
+`lsp/*.lua`.
 
 The config is intentionally opinionated so it stays easier to extend without
 guessing where things belong:
@@ -63,7 +64,7 @@ config up in a deliberate order so each layer arrives with what it expects:
 3. diagnostics defaults
 4. LSP defaults
 5. `onebeer.config`
-6. `onebeer.lazy`
+6. `onebeer.pack`
 7. `onebeer.autocmds`
 8. `onebeer.tools.commands`
 9. optional `onebeer.local`
@@ -85,6 +86,10 @@ That load order also doubles as an ownership map:
 A few maintainer conventions help the repo stay calm over time:
 
 - Put new plugins in their own file under `lua/onebeer/plugins/`.
+- Treat `opts` as the payload for a plugin's `.setup(...)`; use `main` or
+  `config` in the plugin spec to define how that setup path is reached.
+- Keep plugin-specific module names in the plugin spec instead of central
+  loader aliases.
 - Use `onebeer.utils.safe_require()` instead of unchecked `require()` calls
   when a missing dependency should degrade gracefully.
 - Use `onebeer.utils.map()` or the autocmd helpers instead of re-creating the
@@ -97,7 +102,7 @@ INSTALLATION AND FIRST RUN                  *onebeer-install*
 
 Core requirements:
 
-- Neovim 0.11.0 or newer
+- Neovim 0.12.0 or newer
 - `git`, `rg`, `fzf`, `gh`
 - a Nerd Font
 
@@ -108,9 +113,11 @@ Recommended tools for a smoother first run:
 
 First-run behavior you can expect:
 
-- `lazy.nvim` bootstraps itself if not already installed.
+- `vim.pack` installs and registers the pinned plugin set on first launch.
 - Mason installs the curated language-server set.
 - `ts-install.nvim` auto-installs the configured Treesitter parsers.
+- `slides.nvim` stays intentionally excluded from the current `vim.pack`
+  module list until its upstream repo metadata is fixed.
 - |:checkhealth| `onebeer` reports exact versions for core tools, flags
   language-surface tooling explicitly, and can offer guided installs for
   supported tools when you run it interactively.
@@ -156,11 +163,15 @@ Theme and chrome:
 - Blink/Copilot ghost text gets custom highlight groups.
 - Lualine shows mode, filename, branch, diff, and attached LSP clients.
 - the winbar shows file icon, path, modified marker, and readonly marker.
+- Catppuccin applies from its own plugin spec instead of a loader-level
+  colorscheme special case.
 
 Dashboard and UI helpers that round things out:
 
 - `snacks.nvim` owns the startup dashboard, notifier, scope highlighting,
   reference jumping, statuscolumn, and smooth-scroll controls.
+- The startup dashboard uses a small pack-aware summary instead of the upstream
+  `lazy.stats` startup widget.
 - `mini.clue` shows a rounded key-hint popup for leader, `g`, `z`, marks,
   registers, and window commands.
 - `tiny-inline-diagnostic.nvim` is enabled by default and replaces native
@@ -550,7 +561,8 @@ Key		Meaning ~
 Other utilities worth remembering:
 
 - `StartupTime` is available for startup profiling.
-- `slides.nvim` is installed for code-slide workflows.
+- `slides.nvim` is intentionally excluded from the current `vim.pack` setup
+  while its repo metadata is cleaned up.
 - `markview.nvim` activates for Markdown buffers.
 - `wakatime` support exists in the repo but is disabled.
 
@@ -584,6 +596,7 @@ COMMANDS AND TOGGLES                        *onebeer-keymaps*
 *LintToggleBuffer*
 *TrimWhitespaceToggle*
 *LoaderResetCache*
+*Pack*
 
 Native help stays canonical. |OneBeerHelp| is the short floating overview
 when you just need a quick refresher.
@@ -592,7 +605,7 @@ Built-in commands:
 
 Command		Meaning ~
 `OneBeerHelp`		open the quick floating cheatsheet
-`OneBeerDoctor`	run `checkhealth`, `Lazy! check`, and `LspInfo`
+`OneBeerDoctor`	run `checkhealth`, vim.pack state, and `LspInfo`
 `InspectTree`		open Treesitter inspector (or fallback playground inspector)
 `InspectSyntax`	run `:Inspect` for highlight groups at cursor
 `InspectLog`		open the current LSP log file
@@ -602,6 +615,7 @@ Command		Meaning ~
 `LintToggleBuffer`	toggle linting for current buffer
 `TrimWhitespaceToggle`	toggle trailing-whitespace cleanup on save
 `LoaderResetCache`	reset Neovim Lua loader cache
+`Pack[!] update [plugin ...]`	open the Pack review float; `<CR>` toggles details, `u` applies, `q` closes, and `!` applies immediately
 
 Common non-command keymaps worth keeping nearby:
 
@@ -663,7 +677,6 @@ Adjacent providers worth using when you touch those surfaces:
 
 Verified plugin-specific health commands in this environment:
 
-- `:checkhealth lazy`
 - `:checkhealth mason`
 - `:checkhealth nvim-treesitter`
 - `:checkhealth sidekick`
@@ -688,10 +701,9 @@ Recommended repo validation commands when you are changing the config:
 >
 selene .
 stylua --check .
-nvim --headless "+Lazy! check" +qa
+nvim --headless "+lua print(vim.inspect(vim.pack.get(nil, { info = false })))" +qa
 nvim --headless "+checkhealth onebeer" +qa
 nvim --headless "+checkhealth vim.lsp" +qa
-nvim --headless "+checkhealth lazy" +qa
 nvim --headless "+checkhealth mason" +qa
 nvim --headless "+checkhealth nvim-treesitter" +qa
 nvim --headless "+checkhealth sidekick" +qa
@@ -704,7 +716,6 @@ nvim --headless "+helptags doc" +qa
 Known validated warnings on this machine that should stay explicit instead of
 being papered over:
 
-- `lazy`: Lua 5.1 / luarocks warning
 - `mason`: optional Composer, PHP, Java, and Julia runtime warnings
 - `sidekick`: missing optional AI CLI warnings
 - `snacks`: headless or renderer-specific optional feature warnings
@@ -714,6 +725,10 @@ query issues under `~/.local/share/nvim/ts-install` while
 `:checkhealth nvim-treesitter` is otherwise clean, treat that as local parser
 cache drift and repair the local `ts-install` cache rather than editing the
 repo parser list.
+
+When you change UI-only startup behavior such as the dashboard or colorscheme,
+follow the headless validation pass with a real TTY `nvim` launch; attached-UI
+startup state is not fully represented by `nvim --headless`.
 
 Troubleshooting checklist to work through in order:
 
@@ -771,7 +786,7 @@ PLUGIN INDEX                                  *onebeer-plugin-index*
 
 Core support
 - `common.lua`             plenary + devicons shared dependencies
-- `lazy.lua`               plugin manager bootstrap and runtime pruning
+- `pack.lua`               vim.pack bootstrap and runtime pruning
 - `startup.lua`            `:StartupTime` profiling helper
 
 UI and presentation
@@ -780,7 +795,7 @@ UI and presentation
 - `snacks.lua`             dashboard, notifier, scope, statuscolumn, words
 - `tiny-inline-diagnostic.lua`   inline diagnostics surface
 - `mini-clue.lua`          leader / g / z key hint popup
-- `slides.lua`             code slide support
+- `slides.lua`             code slide support (currently excluded from vim.pack)
 - `markview.lua`           Markdown enhancement
 - `undotree.lua`           undo history UI
 - `precognition.lua`       motion hints
@@ -788,7 +803,7 @@ UI and presentation
 Search, files, navigation
 - `fzf.lua`                search and picker workflows
 - `mini-files.lua`         floating file explorer
-- `grapple.lua`            git-scoped hot-file navigation
+- `waystone.lua`           git-scoped hot-file navigation
 - `flash.lua`              jump navigation
 
 Git and GitHub
@@ -800,7 +815,6 @@ Code intelligence and editing
 - `blink.lua`              completion engine
 - `copilot.lua`            Copilot panel and backend
 - `sidekick.lua`           Copilot CLI prompt workflows
-- `ssr.lua`                structural search and replace
 - `lazydev.lua`            Lua development library injection
 - `conform.lua`            format-on-save orchestration
 - `lint.lua`               lint orchestration

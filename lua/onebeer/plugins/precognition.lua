@@ -1,5 +1,4 @@
----@module "lazy"
----@type LazySpec
+---@type onebeer.PluginSpec
 return {
   "tris203/precognition.nvim",
   cmd = "Precognition",

@@ -1,8 +1,8 @@
----@module "lazy"
----@type LazySpec
+---@type onebeer.PluginSpec
 return {
-  "echasnovski/mini.surround",
-  version = "*",
+  "echasnovski/mini.nvim",
+  name = "mini.surround",
+  branch = "stable",
   event = { "BufReadPost", "BufNewFile" },
   opts = {
     mappings = {

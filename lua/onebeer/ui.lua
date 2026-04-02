@@ -87,6 +87,30 @@ local function escape_statusline(text)
   return text:gsub("%%", "%%%%")
 end
 
+---@param count integer
+---@param singular string
+---@param plural string
+---@return string
+local function pluralize(count, singular, plural)
+  return count == 1 and singular or plural
+end
+
+---@param bufnr integer
+---@return { Error: integer, Update: integer, Same: integer }
+local function pack_counts(bufnr)
+  local counts = { Error = 0, Update = 0, Same = 0 }
+  local current_group = nil
+  for _, line in ipairs(vim.api.nvim_buf_get_lines(bufnr, 0, -1, false)) do
+    local next_group = line:match("^# (%S+)")
+    if next_group then
+      current_group = next_group
+    elseif line:match("^## ") and current_group and counts[current_group] ~= nil then
+      counts[current_group] = counts[current_group] + 1
+    end
+  end
+  return counts
+end
+
 ---Render a styled native winbar with icon + path + state markers.
 ---@return string
 M.winbar = function()
@@ -127,6 +151,52 @@ M.winbar = function()
     readonly,
     " %#WinBar#",
   })
+end
+
+---Render a focused winbar for vim.pack confirmation buffers.
+---@return string
+M.pack_winbar = function()
+  local counts = pack_counts(vim.api.nvim_get_current_buf())
+  local segments = {
+    "%#OneBeerPackWinbarIcon# 󰚰 ",
+    "%#OneBeerPackWinbarTitle#vim.pack review",
+  }
+
+  if counts.Update > 0 then
+    segments[#segments + 1] = "%#OneBeerPackWinbarMuted# • "
+    segments[#segments + 1] = table.concat({
+      "%#OneBeerPackWinbarUpdate#",
+      tostring(counts.Update),
+      " ",
+      pluralize(counts.Update, "update", "updates"),
+    })
+  end
+
+  if counts.Error > 0 then
+    segments[#segments + 1] = "%#OneBeerPackWinbarMuted# • "
+    segments[#segments + 1] = table.concat({
+      "%#OneBeerPackWinbarError#",
+      tostring(counts.Error),
+      " ",
+      pluralize(counts.Error, "error", "errors"),
+    })
+  end
+
+  if counts.Same > 0 then
+    segments[#segments + 1] = "%#OneBeerPackWinbarMuted# • "
+    segments[#segments + 1] = table.concat({
+      "%#OneBeerPackWinbarSame#",
+      tostring(counts.Same),
+      " up-to-date",
+    })
+  end
+
+  segments[#segments + 1] = "%="
+  segments[#segments + 1] = "%#OneBeerPackWinbarMuted#:write apply (stock fallback)"
+  segments[#segments + 1] = "%#OneBeerPackWinbarHint# • q close • [[ ]] jump • gra actions • K diff"
+  segments[#segments + 1] = "%#WinBar#"
+
+  return table.concat(segments)
 end
 
 return M

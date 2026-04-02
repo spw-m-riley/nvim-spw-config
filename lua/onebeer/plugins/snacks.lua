@@ -2,8 +2,32 @@ local headers = require("onebeer.plugins.starter.headers")
 local ui = require("onebeer.ui")
 local STATUSCOL_EXPR = "%!v:lua.require'snacks.statuscolumn'.get()"
 
----@module "lazy"
----@type LazySpec
+-- Snacks' built-in `startup` section still requires lazy.stats.
+---@return snacks.dashboard.Section?
+local function pack_dashboard_summary()
+  local ok, packages = pcall(vim.pack.get)
+  if not ok then
+    return nil
+  end
+
+  local active = 0
+  for _, package in ipairs(packages) do
+    if package.active then
+      active = active + 1
+    end
+  end
+
+  return {
+    align = "center",
+    text = {
+      { "⚡ vim.pack managing ", hl = "footer" },
+      { ("%d/%d"):format(active, #packages), hl = "special" },
+      { " plugins", hl = "footer" },
+    },
+  }
+end
+
+---@type onebeer.PluginSpec
 return {
   "folke/snacks.nvim",
   priority = 1000,
@@ -55,7 +79,7 @@ return {
           indent = 2,
           padding = 1,
         },
-        { section = "startup" },
+        pack_dashboard_summary,
       },
     },
     quickfile = {
@@ -220,6 +244,8 @@ return {
       desc = "[U]I toggle smooth [S]croll",
     },
   },
+  ---@param _ onebeer.PluginSpec
+  ---@param opts table
   config = function(_, opts)
     vim.g.onebeer_statuscolumn_expr = STATUSCOL_EXPR
     if vim.o.statuscolumn == "" then
@@ -227,6 +253,20 @@ return {
     end
     vim.g.onebeer_statuscolumn_cached = vim.o.statuscolumn
     vim.g.onebeer_statuscolumn_manual_off = false
-    require("snacks").setup(opts)
+    local snacks = require("snacks")
+    snacks.setup(opts)
+
+    local dashboard_enabled = opts.dashboard and opts.dashboard.enabled ~= false
+    if dashboard_enabled then
+      local dashboard = require("snacks.dashboard")
+      if not dashboard.status.did_setup then
+        -- The initial dashboard setup can miss startup under onebeer.pack.
+        vim.schedule(function()
+          if not dashboard.status.did_setup then
+            dashboard.setup()
+          end
+        end)
+      end
+    end
   end,
 }

@@ -1,5 +1,4 @@
----@module "lazy"
----@type LazySpec
+---@type onebeer.PluginSpec
 local lsp_settings = require("onebeer.settings.lsp")
 
 local actions_server_cmd_candidates = {
@@ -157,7 +156,9 @@ return {
     },
     {
       "antosha417/nvim-lsp-file-operations",
-      config = true,
+      config = function()
+        require("lsp-file-operations").setup()
+      end,
     },
     "neovim/nvim-lspconfig",
   },

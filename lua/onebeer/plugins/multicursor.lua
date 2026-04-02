@@ -1,5 +1,4 @@
----@module "lazy"
----@type LazySpec
+---@type onebeer.PluginSpec
 return {
   "jake-stewart/multicursor.nvim",
   branch = "1.0",

@@ -4,8 +4,7 @@ local autocmds = require("onebeer.autocmds.helpers")
 local create_command = autocmds.create_command
 local ft = require("onebeer.settings.filetypes")
 
----@module "lazy"
----@type LazySpec
+---@type onebeer.PluginSpec
 return {
   "stevearc/conform.nvim",
   event = { "BufWritePre" },

@@ -1,5 +1,4 @@
----@module "lazy"
----@type LazySpec
+---@type onebeer.PluginSpec
 return {
   "matt-riley/waystone.nvim",
   event = { "BufReadPre", "BufNewFile" },

@@ -1,5 +1,4 @@
----@module "lazy"
----@type LazySpec
+---@type onebeer.PluginSpec
 return {
   "nvim-lualine/lualine.nvim",
   event = { "BufReadPre", "BufNewFile" },

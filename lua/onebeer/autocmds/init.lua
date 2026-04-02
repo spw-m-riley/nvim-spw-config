@@ -48,6 +48,30 @@ create_autocmd("FileType", {
   end,
 })
 
+create_autocmd("FileType", {
+  pattern = { "nvim-pack" },
+  group = filetypeGrp,
+  callback = function(ev)
+    vim.bo[ev.buf].buflisted = false
+    vim.wo[0].colorcolumn = ""
+    vim.wo[0].cursorline = true
+    vim.wo[0].foldcolumn = "0"
+    vim.wo[0].list = false
+    vim.wo[0].number = false
+    vim.wo[0].relativenumber = false
+    vim.wo[0].signcolumn = "no"
+    vim.wo[0].spell = false
+    vim.wo[0].statuscolumn = ""
+    vim.wo[0].winbar = "%{%v:lua.require'onebeer.ui'.pack_winbar()%}"
+
+    vim.keymap.set("n", "q", "<cmd>quit<cr>", {
+      buffer = ev.buf,
+      desc = "Close vim.pack review",
+      silent = true,
+    })
+  end,
+})
+
 -- Commands
 -- UI
 create_autocmd("TextYankPost", {

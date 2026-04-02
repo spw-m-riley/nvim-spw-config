@@ -1,2 +1,2 @@
 std = "lua51+vim+onebeer"
-exclude = ["lua/onebeer/plugins/*.lua", "lua/onebeer/plugins/**/*.lua"]
+exclude = ["lua/onebeer/plugins/*.lua", "lua/onebeer/plugins/**/*.lua", ".worktrees/**"]

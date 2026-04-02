@@ -24,7 +24,17 @@ local ok_config, config = safe_require("onebeer.config")
 if ok_config then
   vim.g.onebeer = config
 end
-safe_require("onebeer.lazy")
+safe_require("onebeer.pack")
+
+local ok_snacks, snacks = pcall(require, "snacks")
+if ok_snacks and snacks.did_setup == false then
+  -- onebeer.pack currently leaves snacks unconfigured during startup.
+  local ok_snacks_spec, snacks_spec = safe_require("onebeer.plugins.snacks")
+  if ok_snacks_spec and type(snacks_spec.config) == "function" then
+    snacks_spec.config(snacks_spec, snacks_spec.opts)
+  end
+end
+
 safe_require("onebeer.autocmds")
 safe_require("onebeer.tools.commands")
 
