@@ -8,6 +8,7 @@ function M.defaults()
   -- vim.g.maplocalleader = " "
 
   local map = require("onebeer.utils").map
+  require("onebeer.undotree").setup()
   -- Turn off hlsearch
   map("n", "<leader>,", ":nohl<cr>", { desc = "HLS off" })
   map("n", "<leader>uh", "<cmd>OneBeerHelp<cr>", { desc = "[U]I [H]elp overview" })

@@ -170,7 +170,7 @@ Linting runs through [nvim-lint](https://github.com/mfussenegger/nvim-lint) with
 ### Utilities
 
 - **[trouble.nvim](https://github.com/folke/trouble.nvim)** — browse diagnostics, references, and quickfix lists in a dedicated panel.
-- **Native `:Undotree`** — visual undo history via Neovim's bundled `nvim.undotree` package. Never lose a change.
+- **Bundled `:Undotree` / `<leader>uu`** — visual undo history via Neovim's bundled `nvim.undotree` package with a single-panel toggle wrapper.
 - **[persistence.nvim](https://github.com/folke/persistence.nvim)** — automatically saves and restores sessions per working directory.
 - **[multicursor.nvim](https://github.com/jake-stewart/multicursor.nvim)** — multiple cursors when you really need them.
 - **[slides.nvim](https://github.com/matt-riley/slides.nvim)** — build and present code slides without leaving Neovim. Handy for demos and walkthroughs. _Temporarily excluded from the current `vim.pack` config while its repo metadata is cleaned up._
