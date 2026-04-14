@@ -802,7 +802,7 @@ UI and presentation
 - `mini-clue.lua`          leader / g / z key hint popup
 - `slides.lua`             code slide support (currently excluded from vim.pack)
 - `markview.lua`           Markdown enhancement
-- `undotree.lua`           undo history UI
+- `onebeer/undotree.lua`   native undo history UI helper
 - `precognition.lua`       motion hints
 
 Search, files, navigation
