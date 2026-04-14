@@ -93,7 +93,7 @@ local function get_repo_info(owner, repo)
     return nil
   end
 
-  local id, owner_type = result:match("^(%d+)\\t(.+)$")
+  local id, owner_type = result:match("^(%d+)\t(.+)$")
   if id then
     return {
       id = tonumber(id),
