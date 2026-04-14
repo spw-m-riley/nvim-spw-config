@@ -2,7 +2,6 @@ local autocmds = require("onebeer.autocmds.helpers")
 local create_group = autocmds.create_group
 local create_autocmd = autocmds.create_autocmd
 local create_command = autocmds.create_command
-local state = require("onebeer.state")
 local utils = require("onebeer.utils")
 
 ---Helper to check LSP capability and set keymap
@@ -57,14 +56,10 @@ create_autocmd("TextYankPost", {
   end,
 })
 
--- Initialize LSP client cache for statusline
-state.lsp_client_cache = {}
 
 create_autocmd({ "LspAttach" }, {
   group = lspGrp,
   callback = function(ev)
-    -- Cache LSP clients for statusline performance
-    state.lsp_client_cache[ev.buf] = vim.lsp.get_clients({ bufnr = ev.buf })
 
     local bufopts = function(newOpts)
       if newOpts == nil then
@@ -192,12 +187,6 @@ create_autocmd({ "LspAttach" }, {
   end,
 })
 
-create_autocmd("LspDetach", {
-  group = lspGrp,
-  callback = function(ev)
-    state.lsp_client_cache[ev.buf] = nil
-  end,
-})
 
 vim.diagnostic.config({
   float = {

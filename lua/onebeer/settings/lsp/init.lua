@@ -36,37 +36,6 @@ end
 
 M.disable_formatting = disable_formatting
 
-local original_progress = lsp.handlers["$/progress"]
-lsp.handlers["$/progress"] = function(err, result, ctx, config)
-  if original_progress then
-    original_progress(err, result, ctx, config)
-  end
-  if err or not result or not ctx then
-    return
-  end
-  local client = vim.lsp.get_client_by_id(ctx.client_id)
-  if not client then
-    return
-  end
-  local value = result.value
-  if not value or type(value) ~= "table" then
-    return
-  end
-  local kind = value.kind or "report"
-
-  -- LSP can emit very frequent progress updates; only notify once when it finishes.
-  if kind ~= "end" then
-    return
-  end
-
-  local message = value.message or value.title or kind
-  vim.notify(message, vim.log.levels.INFO, {
-    title = ("LSP • %s"):format(client.name),
-    icon = "",
-    id = ("lsp-progress-%s"):format(result.token or client.name),
-  })
-end
-
 local semantic_tokens = vim.lsp.semantic_tokens
 if semantic_tokens and semantic_tokens.enable then
   local semantic_group = create_group("OneBeerSemanticTokens")
