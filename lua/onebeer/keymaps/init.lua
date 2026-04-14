@@ -48,7 +48,7 @@ function M.defaults()
     end
     local fold_end = vim.fn.foldclosedend(line)
     local lines = vim.api.nvim_buf_get_lines(0, fold_start - 1, fold_end, false)
-    vim.lsp.util.open_floating_preview(lines, vim.bo.filetype, { border = "rounded" })
+    vim.lsp.util.open_floating_preview(lines, vim.bo.filetype, {})
   end, { desc = "Peek fold" })
 
   -- View messages

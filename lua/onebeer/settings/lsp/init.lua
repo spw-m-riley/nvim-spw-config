@@ -67,15 +67,6 @@ lsp.handlers["$/progress"] = function(err, result, ctx, config)
   })
 end
 
----Wrap LSP floating preview to always use rounded borders
-vim.lsp.util.open_floating_preview = (function(orig)
-  return function(contents, syntax, opts, ...)
-    opts = opts or {}
-    opts.border = opts.border or "rounded"
-    return orig(contents, syntax, opts, ...)
-  end
-end)(vim.lsp.util.open_floating_preview)
-
 local semantic_tokens = vim.lsp.semantic_tokens
 if semantic_tokens and semantic_tokens.enable then
   local semantic_group = create_group("OneBeerSemanticTokens")
