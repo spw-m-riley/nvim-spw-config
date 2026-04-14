@@ -50,8 +50,10 @@ cheatsheet, tap `<leader>uh` or run `:OneBeerHelp`.
 
 ### Key conventions
 
-- Every plugin lives in its own file under `plugins/` and returns a `LazySpec` table.
-- All `require` calls go through `utils.safe_require` (a `pcall` wrapper) so a broken plugin never crashes the whole config.
+- Every plugin lives in its own file under `plugins/` and returns a plugin spec table consumed by `onebeer.pack`.
+- `onebeer.pack` stays intentionally narrow: eager loading, `event`, `ft`, `cmd`, `keys`, dependencies, build hooks, and synthetic `VeryLazy`.
+- In plugin specs, `opts` are the `.setup(...)` payload; `main` or `config` decides how that setup path is reached.
+- Startup-critical optional loads prefer `utils.safe_require` (a `pcall` wrapper) so missing modules degrade cleanly, while `onebeer.pack` still uses direct `require(main).setup(opts)` for normal plugin setup.
 - Shared helpers (`onebeer.utils.map`, `onebeer.autocmds.helpers`) keep boilerplate out of plugin files.
 - Format-on-save and lint-on-save each have global and buffer-local toggles (`vim.g.disable_autoformat`, `vim.b.disable_lint`, etc.) — you can flip them without reloading anything.
 - A `lua/onebeer/local.lua` file, if it exists, is loaded last. Put machine-specific overrides there and keep them out of git.
@@ -145,8 +147,8 @@ Linting runs through [nvim-lint](https://github.com/mfussenegger/nvim-lint) with
 
 ### AI
 
-- **[copilot.lua](https://github.com/zbirenbaum/copilot.lua)** + `copilot-lsp` — GitHub Copilot panel support plus native inline completion through Neovim's LSP inline-completion API. Automatically disabled in directories listed in `config.lua`'s `nopilot_dirs`.
-- **Sidekick** — Copilot CLI wrapper kept command/key driven so it stays out of the startup path until you ask for it:
+- **[copilot.lua](https://github.com/zbirenbaum/copilot.lua)** + `copilot-lsp` — GitHub Copilot panel support plus native inline completion through Neovim's LSP inline-completion API. `onebeer.config` disables Copilot and Sidekick automatically when the current working directory is equal to or nested under `nopilot_dir` / `NOPILOT_DIR`.
+- **Sidekick** — Copilot CLI wrapper kept command/key driven so it stays out of the startup path until you ask for it. The prompt picker includes:
 
   | Prompt | What it does |
   |---|---|
@@ -175,6 +177,10 @@ Linting runs through [nvim-lint](https://github.com/mfussenegger/nvim-lint) with
 
 | Command | What it does |
 |---|---|
+| `:OneBeerHelp` | Open the quick floating cheatsheet |
+| `:OneBeerDoctor` | Run `checkhealth`, inspect `vim.pack` state, and show `LspInfo` output |
+| `:InspectTree` | Open the Treesitter inspector, with a playground fallback when available |
+| `:InspectSyntax` | Inspect highlight groups under the cursor |
 | `:FormatToggle` / `:FormatToggleBuffer` | Toggle format-on-save globally or for the current buffer |
 | `:LintToggle` / `:LintToggleBuffer` | Toggle linting globally or for the current buffer |
 | `:TrimWhitespaceToggle` | Toggle automatic trailing whitespace removal on save |
