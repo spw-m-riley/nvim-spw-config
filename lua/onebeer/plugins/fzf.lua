@@ -3,11 +3,11 @@ local ui = require("onebeer.ui")
 ---@type onebeer.PluginSpec
 return {
   "ibhagwan/fzf-lua",
+  lazy = false,
   dependencies = {
     "nvim-tree/nvim-web-devicons",
     "elanmed/fzf-lua-frecency.nvim",
   },
-  cmd = { "FzfLua" },
   opts = {
     { "skim" },
     file_icons = true,
