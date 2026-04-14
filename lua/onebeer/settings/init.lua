@@ -54,6 +54,8 @@ function M.defaults()
   opt.relativenumber = true
   opt.scrolloff = 8
   opt.smoothscroll = true
+  opt.winborder = "rounded"
+  opt.pumborder = "rounded"
   opt.sessionoptions = "buffers,curdir,tabpages,winsize,help,globals,skiprtp,folds"
   opt.shiftwidth = 2
   opt.showmatch = true

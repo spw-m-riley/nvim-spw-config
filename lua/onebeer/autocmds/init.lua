@@ -295,7 +295,7 @@ create_autocmd("User", {
 })
 
 local writeAudit = create_group("OneBeerWriteAudit")
-local uv = vim.uv or vim.loop
+local uv = vim.uv
 create_autocmd("BufWritePre", {
   group = writeAudit,
   callback = function(ev)
