@@ -44,7 +44,10 @@ local function close_open_windows()
 end
 
 function M.toggle()
-  if close_open_windows() then
+  local current_buf = vim.api.nvim_get_current_buf()
+  local current_is_undotree = vim.bo[current_buf].filetype == "nvim-undotree"
+
+  if close_open_windows() and current_is_undotree then
     return
   end
 
