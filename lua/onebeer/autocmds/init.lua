@@ -23,9 +23,23 @@ end
 
 ---Reload a Blink completion provider when its client connects.
 ---@param provider string
+---@return boolean
+local function blink_provider_exists(provider)
+  local ok, blink_config = pcall(require, "blink.cmp.config")
+  if not ok or type(blink_config) ~= "table" then
+    return false
+  end
+
+  local sources = blink_config.sources
+  local providers = sources and sources.providers
+  return type(providers) == "table" and providers[provider] ~= nil
+end
+
+---Reload a Blink completion provider when its client connects.
+---@param provider string
 local function reload_blink_provider(provider)
   local ok, blink = pcall(require, "blink.cmp")
-  if not ok or type(blink.reload) ~= "function" then
+  if not ok or type(blink.reload) ~= "function" or not blink_provider_exists(provider) then
     return
   end
   blink.reload(provider)
