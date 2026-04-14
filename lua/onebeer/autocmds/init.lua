@@ -56,11 +56,9 @@ create_autocmd("TextYankPost", {
   end,
 })
 
-
 create_autocmd({ "LspAttach" }, {
   group = lspGrp,
   callback = function(ev)
-
     local bufopts = function(newOpts)
       if newOpts == nil then
         newOpts = {}
@@ -129,13 +127,7 @@ create_autocmd({ "LspAttach" }, {
     -- Enable codelens
     if client and client.server_capabilities.codeLensProvider then
       vim.lsp.codelens.enable(true, { bufnr = ev.buf })
-      create_autocmd({ "BufEnter", "CursorHold", "InsertLeave" }, {
-        buffer = ev.buf,
-        group = create_group("LspCodelens_" .. ev.buf),
-        callback = function()
-          vim.lsp.codelens.refresh({ bufnr = ev.buf })
-        end,
-      })
+      vim.lsp.codelens.refresh({ bufnr = ev.buf })
     end
 
     ---Toggle inlay hints for the attached buffer.
@@ -184,24 +176,6 @@ create_autocmd({ "LspAttach" }, {
     utils.map("n", "K", vim.lsp.buf.hover, bufopts({ desc = "Details" }))
     utils.map("n", "<leader>cti", toggle_inlay_hints, bufopts({ desc = "[C]ode [T]oggle [I]nlay hints" }))
     utils.map("n", "<leader>cl", vim.lsp.codelens.run, bufopts({ desc = "[C]ode [L]ens run" }))
-  end,
-})
-
-
-vim.diagnostic.config({
-  float = {
-    border = "rounded",
-  },
-})
-
-local diag_group = create_group("OneBeerDiagnostics")
-create_autocmd("CursorHold", {
-  group = diag_group,
-  callback = function()
-    if vim.g.onebeer_inline_diagnostics_enabled ~= false then
-      return
-    end
-    vim.diagnostic.open_float(nil, { focus = false, scope = "cursor" })
   end,
 })
 

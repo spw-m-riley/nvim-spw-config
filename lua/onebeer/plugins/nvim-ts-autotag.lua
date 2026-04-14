@@ -2,7 +2,7 @@
 ---@type LazySpec
 return {
   "windwp/nvim-ts-autotag",
-  event = { "BufReadPre", "BufNewFile" },
+  ft = { "astro", "html", "javascriptreact", "svelte", "tsx", "typescriptreact", "vue", "xml" },
   opts = {
     opts = {
       enable_close = true, -- Auto close tags

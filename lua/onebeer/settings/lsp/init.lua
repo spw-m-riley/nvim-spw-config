@@ -6,6 +6,11 @@ local lsp = vim.lsp
 local M = {}
 
 local base_capabilities = {
+  workspace = {
+    didChangeWatchedFiles = {
+      dynamicRegistration = false,
+    },
+  },
   textDocument = {
     completion = {
       completionItem = {
@@ -36,7 +41,7 @@ end
 
 M.disable_formatting = disable_formatting
 
-local semantic_tokens = vim.lsp.semantic_tokens
+local semantic_tokens = lsp.semantic_tokens
 if semantic_tokens and semantic_tokens.enable then
   local semantic_group = create_group("OneBeerSemanticTokens")
 

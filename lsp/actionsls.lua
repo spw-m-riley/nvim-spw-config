@@ -37,16 +37,21 @@ local actions_server_cmd_candidates = {
   "actions-language-server",
 }
 
+---@param command string[]
 ---@return string|nil
-local function get_github_token()
-  local handle = io.popen("gh auth token 2>/dev/null")
-  if not handle then
+local function run_system_command(command)
+  local result = vim.system(command, { text = true }):wait()
+  if result.code ~= 0 then
     return nil
   end
 
-  local token = handle:read("*a"):gsub("%s+", "")
-  handle:close()
-  return token ~= "" and token or nil
+  local stdout = vim.trim(result.stdout or "")
+  return stdout ~= "" and stdout or nil
+end
+
+---@return string|nil
+local function get_github_token()
+  return run_system_command({ "gh", "auth", "token" })
 end
 
 ---@param url string|nil
@@ -74,15 +79,19 @@ end
 ---@param repo string
 ---@return ActionsRepoInfo|nil
 local function get_repo_info(owner, repo)
-  local cmd =
-    string.format("gh repo view %s/%s --json id,owner --template '{{.id}}\\t{{.owner.type}}' 2>/dev/null", owner, repo)
-  local handle = io.popen(cmd)
-  if not handle then
+  local result = run_system_command({
+    "gh",
+    "repo",
+    "view",
+    ("%s/%s"):format(owner, repo),
+    "--json",
+    "id,owner",
+    "--template",
+    "{{.id}}\t{{.owner.type}}",
+  })
+  if not result then
     return nil
   end
-
-  local result = handle:read("*a"):gsub("%s+$", "")
-  handle:close()
 
   local id, owner_type = result:match("^(%d+)\\t(.+)$")
   if id then
@@ -102,14 +111,8 @@ local function get_repos_config(root_dir)
     return nil
   end
 
-  local handle = io.popen(string.format("git -C %q remote get-url origin 2>/dev/null", root_dir))
-  if not handle then
-    return nil
-  end
-
-  local remote_url = handle:read("*a"):gsub("%s+", "")
-  handle:close()
-  if remote_url == "" then
+  local remote_url = run_system_command({ "git", "-C", root_dir, "remote", "get-url", "origin" })
+  if not remote_url then
     return nil
   end
 
@@ -204,9 +207,9 @@ return {
       return
     end
 
-    local git_dir = vim.fs.find(".git", { path = parent, upward = true })[1]
-    if git_dir then
-      on_dir(vim.fs.dirname(git_dir))
+    local root = vim.fs.root(parent, { ".git" })
+    if root then
+      on_dir(root)
       return
     end
 

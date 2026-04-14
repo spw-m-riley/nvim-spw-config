@@ -40,6 +40,14 @@ function M.defaults()
 
   map("n", "[d", vim.diagnostic.goto_prev, { desc = "Prev diagnostic" })
   map("n", "]d", vim.diagnostic.goto_next, { desc = "Next diagnostic" })
+  map("n", "<leader>cd", function()
+    local cfg = vim.diagnostic.config()
+    local enabled = cfg.virtual_lines ~= false
+    vim.diagnostic.config({
+      virtual_lines = enabled and false or { current_line = true },
+      virtual_text = enabled and { prefix = "", spacing = 2, source = "if_many" } or false,
+    })
+  end, { desc = "[C]ode [D]iagnostics toggle" })
   map("n", "zp", function()
     local line = vim.fn.line(".")
     local fold_start = vim.fn.foldclosed(line)
