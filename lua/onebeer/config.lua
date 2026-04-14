@@ -1,4 +1,4 @@
-local uv = vim.uv or vim.loop
+local uv = vim.uv
 
 ---@class OneBeerConfigDefaults
 ---@field nopilot_dir string

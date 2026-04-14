@@ -5,10 +5,6 @@
       "src": "https://github.com/L3MON4D3/LuaSnip",
       "version": "'master'"
     },
-    "blink-cmp-copilot": {
-      "rev": "439cff78780c033aa23cf061d7315314b347e3c1",
-      "src": "https://github.com/giuxtaposition/blink-cmp-copilot"
-    },
     "blink.cmp": {
       "rev": "456d38d1cd3743926f329204c2340f3e7840aad6",
       "src": "https://github.com/saghen/blink.cmp"
@@ -61,10 +57,6 @@
     "lazydev.nvim": {
       "rev": "ff2cbcba459b637ec3fd165a2be59b7bbaeedf0d",
       "src": "https://github.com/folke/lazydev.nvim"
-    },
-    "lualine.nvim": {
-      "rev": "a905eeebc4e63fdc48b5135d3bf8aea5618fb21c",
-      "src": "https://github.com/nvim-lualine/lualine.nvim"
     },
     "markview.nvim": {
       "rev": "1861f959599ae03cfd59f56222a542035b0cd947",
@@ -194,10 +186,6 @@
     "snacks.nvim": {
       "rev": "ad9ede6a9cddf16cedbd31b8932d6dcdee9b716e",
       "src": "https://github.com/folke/snacks.nvim"
-    },
-    "tiny-inline-diagnostic.nvim": {
-      "rev": "57a0eb84b2008c76e77930639890d9874195b1e1",
-      "src": "https://github.com/rachartier/tiny-inline-diagnostic.nvim"
     },
     "trouble.nvim": {
       "rev": "bd67efe408d4816e25e8491cc5ad4088e708a69a",

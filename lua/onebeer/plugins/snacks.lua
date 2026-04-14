@@ -108,7 +108,7 @@ return {
       margin = { top = 0, right = 1, bottom = 0 },
     },
     scroll = {
-      enabled = true,
+      enabled = false,
     },
     statuscolumn = {
       enabled = true,
@@ -207,7 +207,10 @@ return {
         local config = vim.diagnostic.config()
         local vt = config.virtual_text
         local enabled = vt ~= false
-        vim.diagnostic.config({ virtual_text = enabled and false or { spacing = 2 } })
+        vim.diagnostic.config({
+          virtual_text = enabled and false or { prefix = "", spacing = 2, source = "if_many" },
+          virtual_lines = enabled and { current_line = true } or false,
+        })
         vim.notify(("Diagnostic virtual text %s"):format(enabled and "disabled" or "enabled"))
       end,
       desc = "[U]I toggle [V]irtual text",

@@ -5,7 +5,7 @@
 vim.loader.enable()
 require("onebeer.utils")
 
-local uv = vim.uv or vim.loop
+local uv = vim.uv
 local safe_require = require("onebeer.utils").safe_require
 
 -- Load settings

@@ -160,8 +160,9 @@ Theme and chrome:
 
 - Catppuccin Mocha is the default colorscheme.
 - background transparency is enabled in the theme config.
-- Blink/Copilot ghost text gets custom highlight groups.
-- Lualine shows mode, filename, branch, diff, and attached LSP clients.
+- global float and popup borders default to `rounded`.
+- a native statusline shows diagnostics, LSP progress, attached clients, and
+  file position.
 - the winbar shows file icon, path, modified marker, and readonly marker.
 - Catppuccin applies from its own plugin spec instead of a loader-level
   colorscheme special case.
@@ -169,32 +170,33 @@ Theme and chrome:
 Dashboard and UI helpers that round things out:
 
 - `snacks.nvim` owns the startup dashboard, notifier, scope highlighting,
-  reference jumping, statuscolumn, and smooth-scroll controls.
+  reference jumping, statuscolumn, and on-demand smooth-scroll controls.
 - The startup dashboard uses a small pack-aware summary instead of the upstream
   `lazy.stats` startup widget.
 - `mini.clue` shows a rounded key-hint popup for leader, `g`, `z`, marks,
   registers, and window commands.
-- `tiny-inline-diagnostic.nvim` is enabled by default and replaces native
-  virtual text until toggled off.
+- native diagnostics default to current-line virtual lines instead of a separate
+  inline-diagnostic plugin.
 
 Useful UI entrypoints to keep handy:
 
 Key		Meaning ~
 `<leader>sd`	open Snacks dashboard
 `<leader>un`	show notification history
-`<leader>uv`	toggle native diagnostics virtual text
+`<leader>uv`	toggle native virtual text / current-line virtual lines
 `<leader>uw`	toggle Snacks words/reference overlay
 `<leader>us`	toggle statuscolumn visibility
 `<leader>uS`	toggle Snacks smooth scroll
-`<leader>cd`	toggle inline diagnostics
+`<leader>cd`	toggle current-line virtual lines / native virtual text
 `<leader>uu`	toggle Undotree
 `<leader>p`	toggle Precognition hints
 
 A few behavior notes:
 
-- Inline diagnostics start enabled and native virtual text starts disabled.
-- When inline diagnostics are disabled, `CursorHold` falls back to a floating
-  diagnostic window at the cursor.
+- Current-line virtual lines start enabled and native virtual text starts
+  disabled.
+- Diagnostic toggles stay mutually exclusive so you only get one inline
+  diagnostic surface at a time.
 - Insert mode temporarily hides the statuscolumn unless it has been manually
   disabled by the user toggle.
 
@@ -215,12 +217,12 @@ Custom filetypes recognized by the config:
 
 Global LSP behavior you can count on:
 
-- rounded borders are forced for LSP floating previews
+- rounded borders come from the global float defaults
 - semantic tokens are enabled on attach when the server supports them
 - inlay hints are enabled on attach when supported and can be toggled later
-- codelens is enabled and refreshed on enter/hold/insert-leave when supported
+- codelens is enabled and refreshed once on attach when supported
 - document highlights are enabled when the server supports them
-- only terminal `$/progress` events produce notifications
+- LSP progress is surfaced in the native statusline via `vim.ui.progress_status()`
 
 Common LSP mappings (buffer-local when supported):
 
@@ -243,7 +245,7 @@ Diagnostics defaults:
 - underline enabled
 - severity sorting enabled
 - sign icons pulled from `onebeer.settings.icons`
-- inline diagnostics preferred over native virtual text by default
+- current-line virtual lines preferred over native virtual text by default
 
 Shared language-server enablement policy:
 
@@ -482,12 +484,16 @@ Completion behavior:
 
 - `blink.cmp` is the active completion engine.
 - LSP capabilities are extended through Blink.
-- Copilot is added as a completion source when enabled.
+- Copilot suggestions use native inline completion instead of a Blink menu
+  source.
 - Lua buffers get `lazydev` support for Neovim/Lua development.
 - documentation popups auto-show with rounded borders.
 - completion is disabled in `minifiles` buffers.
 - `<Tab>` first tries snippet jump, then Sidekick inline apply/jump, then
   inline completion, then falls back normally.
+
+Sidekick is command- and key-driven, so `:Sidekick` or any `<leader>a*`
+mapping will lazy-load it on first use instead of on every buffer open.
 
 Snippet behavior:
 
@@ -792,9 +798,7 @@ Core support
 
 UI and presentation
 - `catppuccin.lua`         theme and highlight integration
-- `lualine.lua`            statusline with LSP + git state
 - `snacks.lua`             dashboard, notifier, scope, statuscolumn, words
-- `tiny-inline-diagnostic.lua`   inline diagnostics surface
 - `mini-clue.lua`          leader / g / z key hint popup
 - `slides.lua`             code slide support (currently excluded from vim.pack)
 - `markview.lua`           Markdown enhancement

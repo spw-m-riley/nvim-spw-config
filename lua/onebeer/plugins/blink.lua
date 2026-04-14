@@ -7,7 +7,6 @@ return {
   build = "cargo build --release",
   dependencies = {
     { "L3MON4D3/LuaSnip", branch = "master", build = "make install_jsregexp" },
-    { "giuxtaposition/blink-cmp-copilot" },
     { "rafamadriz/friendly-snippets" },
     { "saghen/blink.compat", branch = "main", opts = {} },
   },
@@ -90,15 +89,9 @@ return {
       },
       sources = {
         providers = {
-          copilot = {
-            name = "copilot",
-            module = "onebeer.blink.copilot",
-            enabled = config.copilot,
-            score_offset = 60,
-          },
           lazydev = { name = "LazyDev", module = "lazydev.integrations.blink", score_offset = 100 },
         },
-        default = { "lsp", "copilot", "path", "snippets", "buffer", "lazydev" },
+        default = { "lsp", "path", "snippets", "buffer", "lazydev" },
       },
       snippets = {
         preset = "luasnip",

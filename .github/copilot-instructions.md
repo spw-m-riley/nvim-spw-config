@@ -43,7 +43,7 @@ This repo does not define its own Lua unit test suite. Testing is configured thr
   - Server-specific configs in top-level `lsp/*.lua`
   - Server install policy in `lua/onebeer/plugins/lsp/mason.lua`
 - Runtime workflow behavior is centralized in `lua/onebeer/autocmds/init.lua` (LSP attach maps, diagnostics UX, whitespace trimming, write-latency notifications, workflow linting for `.github/workflows/*`).
-- Shared runtime state lives in `lua/onebeer/state.lua` (for example, cached LSP clients consumed by `lua/onebeer/plugins/lualine.lua`).
+- Shared UI helpers live in `lua/onebeer/ui.lua`, with the native statusline renderer under `lua/onebeer/ui/statusline.lua`.
 
 ## Key conventions for changes
 

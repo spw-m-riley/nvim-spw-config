@@ -83,7 +83,7 @@ end
 
 ---@param text string
 ---@return string
-local function escape_statusline(text)
+function M.escape_statusline(text)
   return text:gsub("%%", "%%%%")
 end
 
@@ -146,7 +146,7 @@ M.winbar = function()
     "# ",
     icon,
     "%#OneBeerWinbarPath#",
-    escape_statusline(path),
+    M.escape_statusline(path),
     modified,
     readonly,
     " %#WinBar#",

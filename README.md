@@ -40,8 +40,8 @@ cheatsheet, tap `<leader>uh` or run `:OneBeerHelp`.
     ├── pack_modules.lua       # plugin module discovery + temporary exclusions
     ├── plugin_spec.lua        # shared plugin-spec annotations
     ├── health.lua             # Health checks + dependency auto-installer
-    ├── state.lua              # Shared runtime state
-    ├── ui.lua                 # Float styling helpers
+    ├── ui.lua                 # Shared UI helpers
+    ├── ui/                    # Native statusline renderer
     ├── utils.lua              # Safe require, keymap helpers
     ├── keymaps/               # Core keybindings
     ├── autocmds/              # Autocommands grouped by concern
@@ -113,9 +113,10 @@ Linting runs through [nvim-lint](https://github.com/mfussenegger/nvim-lint) with
 ### UI
 
 - **[Catppuccin Mocha](https://github.com/catppuccin/nvim)** — the theme. Transparent background, custom highlight overrides, and colours extracted at runtime for the statusline.
-- **[snacks.nvim](https://github.com/folke/snacks.nvim)** — dashboard, notifications, indent guides, statuscolumn, smooth scrolling, and scope visualisation in one package. The startup dashboard uses a pack-aware summary instead of Snacks' built-in `lazy.stats` widget.
-- **[lualine.nvim](https://github.com/nvim-lualine/lualine.nvim)** — statusline with a custom "bubbles" theme, Vi mode colours, active LSP clients, git diff stats, and a branch indicator.
-- **[tiny-inline-diagnostic.nvim](https://github.com/rachartier/tiny-inline-diagnostic.nvim)** — inline diagnostics that stay out of your way.
+- **[snacks.nvim](https://github.com/folke/snacks.nvim)** — dashboard, notifications, indent guides, statuscolumn, and scope visualisation in one package. Smooth scrolling is available on demand instead of owning startup by default.
+- The startup dashboard uses a pack-aware summary instead of Snacks' built-in `lazy.stats` widget.
+- **Native statusline** — rendered by `lua/onebeer/ui/statusline.lua` with diagnostics, LSP progress, attached client names, and cursor position via core Neovim APIs.
+- **Native diagnostics** — current-line virtual lines are the default inline surface, with quick toggles for native virtual text when you want a denser view.
 - **[precognition.nvim](https://github.com/tris203/precognition.nvim)** — shows motion targets (`w`, `b`, `e`, `$`, `G`, `gg`, `{`, `}`) as hints so you always know where you're going. > Great for building muscle memory.
 - **[mini.clue](https://github.com/echasnovski/mini.clue)** — keymap hint popup on leader / `g` / `z` with 50+ custom descriptions.
 
@@ -128,7 +129,7 @@ Linting runs through [nvim-lint](https://github.com/mfussenegger/nvim-lint) with
 
 ### Completion & snippets
 
-- **[blink.cmp](https://github.com/Saghen/blink.cmp)** — completion engine wired up to LSP, Copilot ghost text, LuaSnip, and lazydev (Neovim API completions in lua files).
+- **[blink.cmp](https://github.com/Saghen/blink.cmp)** — completion engine wired up to LSP, LuaSnip, and lazydev (Neovim API completions in lua files).
 - **[LuaSnip](https://github.com/L3MON4D3/LuaSnip)** — snippets for Go, Lua, and Astro. Includes custom utilities that pull import paths, class names, and function signatures from the current buffer.
 
 ### Git
@@ -151,8 +152,8 @@ Linting runs through [nvim-lint](https://github.com/mfussenegger/nvim-lint) with
 
 ### AI
 
-- **[copilot.lua](https://github.com/zbirenbaum/copilot.lua)** — GitHub Copilot completions, integrated as a blink source for ghost text. `onebeer.config` disables Copilot and Sidekick automatically when the current working directory is equal to or nested under `nopilot_dir` / `NOPILOT_DIR`.
-- **Sidekick** — Copilot CLI wrapper with a curated set of prompts accessible from a picker:
+- **[copilot.lua](https://github.com/zbirenbaum/copilot.lua)** + `copilot-lsp` — GitHub Copilot panel support plus native inline completion through Neovim's LSP inline-completion API. `onebeer.config` disables Copilot and Sidekick automatically when the current working directory is equal to or nested under `nopilot_dir` / `NOPILOT_DIR`.
+- **Sidekick** — Copilot CLI wrapper kept command/key driven so it stays out of the startup path until you ask for it. The prompt picker includes:
 
   | Prompt | What it does |
   |---|---|
@@ -253,6 +254,7 @@ When working on the config itself, use this validation matrix:
 | Core | `stylua --check .` | formatting drift |
 | Core | `nvim --headless "+lua print(vim.inspect(vim.pack.get(nil, { info = false })))" +qa` | vim.pack plugin state / lockfile view |
 | Core | `nvim --headless "+checkhealth onebeer" +qa` | repo-owned dependency and language-tooling readiness |
+| Interactive | `nvim` (real TTY) | dashboard, native statusline, and inline-completion / command-driven AI behavior |
 | Core | `nvim --headless "+checkhealth vim.lsp" +qa` | Neovim LSP client state |
 | Verified add-on | `nvim --headless "+checkhealth mason" +qa` | Mason registry and external runtime availability |
 | Verified add-on | `nvim --headless "+checkhealth nvim-treesitter" +qa` | parser runtime/tooling state |

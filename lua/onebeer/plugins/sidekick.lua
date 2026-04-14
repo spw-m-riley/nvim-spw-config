@@ -6,7 +6,6 @@ return {
   enabled = function()
     return config.copilot
   end,
-  event = { "BufReadPre", "BufNewFile" },
   cmd = "Sidekick",
   opts = {
     cli = {

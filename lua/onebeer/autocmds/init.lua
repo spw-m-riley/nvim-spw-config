@@ -2,7 +2,6 @@ local autocmds = require("onebeer.autocmds.helpers")
 local create_group = autocmds.create_group
 local create_autocmd = autocmds.create_autocmd
 local create_command = autocmds.create_command
-local state = require("onebeer.state")
 local utils = require("onebeer.utils")
 
 ---Helper to check LSP capability and set keymap
@@ -81,15 +80,9 @@ create_autocmd("TextYankPost", {
   end,
 })
 
--- Initialize LSP client cache for statusline
-state.lsp_client_cache = {}
-
 create_autocmd({ "LspAttach" }, {
   group = lspGrp,
   callback = function(ev)
-    -- Cache LSP clients for statusline performance
-    state.lsp_client_cache[ev.buf] = vim.lsp.get_clients({ bufnr = ev.buf })
-
     local bufopts = function(newOpts)
       if newOpts == nil then
         newOpts = {}
@@ -158,13 +151,7 @@ create_autocmd({ "LspAttach" }, {
     -- Enable codelens
     if client and client.server_capabilities.codeLensProvider then
       vim.lsp.codelens.enable(true, { bufnr = ev.buf })
-      create_autocmd({ "BufEnter", "CursorHold", "InsertLeave" }, {
-        buffer = ev.buf,
-        group = create_group("LspCodelens_" .. ev.buf),
-        callback = function()
-          vim.lsp.codelens.refresh({ bufnr = ev.buf })
-        end,
-      })
+      vim.lsp.codelens.refresh({ bufnr = ev.buf })
     end
 
     ---Toggle inlay hints for the attached buffer.
@@ -213,30 +200,6 @@ create_autocmd({ "LspAttach" }, {
     utils.map("n", "K", vim.lsp.buf.hover, bufopts({ desc = "Details" }))
     utils.map("n", "<leader>cti", toggle_inlay_hints, bufopts({ desc = "[C]ode [T]oggle [I]nlay hints" }))
     utils.map("n", "<leader>cl", vim.lsp.codelens.run, bufopts({ desc = "[C]ode [L]ens run" }))
-  end,
-})
-
-create_autocmd("LspDetach", {
-  group = lspGrp,
-  callback = function(ev)
-    state.lsp_client_cache[ev.buf] = nil
-  end,
-})
-
-vim.diagnostic.config({
-  float = {
-    border = "rounded",
-  },
-})
-
-local diag_group = create_group("OneBeerDiagnostics")
-create_autocmd("CursorHold", {
-  group = diag_group,
-  callback = function()
-    if vim.g.onebeer_inline_diagnostics_enabled ~= false then
-      return
-    end
-    vim.diagnostic.open_float(nil, { focus = false, scope = "cursor" })
   end,
 })
 
@@ -319,7 +282,7 @@ create_autocmd("User", {
 })
 
 local writeAudit = create_group("OneBeerWriteAudit")
-local uv = vim.uv or vim.loop
+local uv = vim.uv
 create_autocmd("BufWritePre", {
   group = writeAudit,
   callback = function(ev)
