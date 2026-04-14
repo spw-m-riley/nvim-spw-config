@@ -2,7 +2,7 @@
 ---@type LazySpec
 return {
   "lewis6991/ts-install.nvim",
-  lazy = false,
+  event = "VeryLazy",
   dependencies = {
     "nvim-treesitter/nvim-treesitter",
   },

@@ -65,6 +65,7 @@ function M.defaults()
   opt.splitbelow = true
   opt.splitright = true
   opt.splitkeep = "screen"
+  opt.statusline = "%!v:lua.require'onebeer.ui.statusline'.render()"
   opt.tabstop = 2
   opt.termguicolors = true
   opt.title = true

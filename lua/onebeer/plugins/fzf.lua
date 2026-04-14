@@ -8,7 +8,7 @@ return {
     "nvim-tree/nvim-web-devicons",
     "elanmed/fzf-lua-frecency.nvim",
   },
-  lazy = false,
+  cmd = { "FzfLua" },
   opts = {
     { "skim" },
     file_icons = true,
