@@ -7,7 +7,6 @@ return {
   event = { "BufReadPre", "BufNewFile" },
   dependencies = {
     { "L3MON4D3/LuaSnip", version = "v2.*", build = "make install_jsregexp" },
-    { "giuxtaposition/blink-cmp-copilot" },
     { "rafamadriz/friendly-snippets" },
     { "saghen/blink.compat", version = "*", opts = {} },
   },
@@ -90,15 +89,9 @@ return {
       },
       sources = {
         providers = {
-          copilot = {
-            name = "copilot",
-            module = "blink-cmp-copilot",
-            enabled = config.copilot,
-            score_offset = 60,
-          },
           lazydev = { name = "LazyDev", module = "lazydev.integrations.blink", score_offset = 100 },
         },
-        default = { "lsp", "copilot", "path", "snippets", "buffer", "lazydev" },
+        default = { "lsp", "path", "snippets", "buffer", "lazydev" },
       },
       snippets = {
         preset = "luasnip",
