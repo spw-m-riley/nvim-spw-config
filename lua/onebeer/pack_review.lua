@@ -664,7 +664,9 @@ function M.discover(opts, callback)
       append_discovery_chunk(progress_state, "stderr_chunks", data)
     end,
   }, function(result)
-    callback(decode_discovery_result(finalize_discovery_result(progress_state, result, opts and opts.on_progress or nil)))
+    callback(
+      decode_discovery_result(finalize_discovery_result(progress_state, result, opts and opts.on_progress or nil))
+    )
   end)
 end
 
@@ -864,8 +866,7 @@ function M.open_update(names)
                   progress = {
                     phase_label = error_count > 0 and "Apply finished with errors" or "Apply complete",
                     percent = 100,
-                    current = error_count > 0
-                        and ("%d applied, %d failed"):format(applied_count, error_count)
+                    current = error_count > 0 and ("%d applied, %d failed"):format(applied_count, error_count)
                       or ("%d %s applied"):format(#pending, pluralize(#pending, "plugin", "plugins")),
                   },
                   rows = final_rows,
