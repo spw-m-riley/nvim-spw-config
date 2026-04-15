@@ -292,6 +292,78 @@ local function append_discovery_chunk(progress_state, stream, chunk)
   chunks[#chunks + 1] = chunk
 end
 
+local apply_progress_source = "vim.pack"
+local normalize_apply_progress_event
+
+---@param event table
+---@return table<string, any>|nil
+local function discovery_progress_event(event)
+  local progress_event = normalize_apply_progress_event(event)
+  if progress_event == nil then
+    return nil
+  end
+
+  local message = progress_event.text
+  if message == nil and progress_event.active_row_id ~= nil then
+    message = ("Checking %s"):format(progress_event.active_row_id)
+  end
+  if message == nil then
+    return nil
+  end
+
+  return {
+    stage = "check-progress",
+    status = progress_event.status,
+    message = message,
+    percent = progress_event.percent,
+    plugin = progress_event.active_row_id,
+  }
+end
+
+---@return fun()
+local function start_discovery_progress_stream()
+  local group = vim.api.nvim_create_augroup(("onebeer.pack_review.discovery.%d"):format(vim.uv.hrtime()), {
+    clear = true,
+  })
+  local stopped = false
+  local last_message
+  local last_percent
+  local last_status
+
+  local function stop()
+    if stopped then
+      return
+    end
+    stopped = true
+    pcall(vim.api.nvim_del_augroup_by_id, group)
+  end
+
+  vim.api.nvim_create_autocmd("Progress", {
+    group = group,
+    pattern = apply_progress_source,
+    callback = function(event)
+      if stopped then
+        return
+      end
+
+      local progress = discovery_progress_event(event)
+      if progress == nil then
+        return
+      end
+      if progress.message == last_message and progress.percent == last_percent and progress.status == last_status then
+        return
+      end
+
+      last_message = progress.message
+      last_percent = progress.percent
+      last_status = progress.status
+      emit_progress(progress)
+    end,
+  })
+
+  return stop
+end
+
 ---@param progress_state table<string, any>
 ---@param result vim.SystemCompleted
 ---@param on_progress fun(event: table)|nil
@@ -347,8 +419,6 @@ local function decode_discovery_result(result)
 end
 
 -- Apply-progress subscription seam (future apply lane owns lifecycle wiring).
-local apply_progress_source = "vim.pack"
-
 ---@param text any
 ---@return string|nil
 local function normalize_apply_progress_text(text)
@@ -383,7 +453,7 @@ end
 
 ---@param event table
 ---@return { percent?: integer, text?: string, active_row_id?: string, status: "running"|"success"|"failed" }|nil
-local function normalize_apply_progress_event(event)
+normalize_apply_progress_event = function(event)
   local data = type(event) == "table" and (event.data or event) or {}
   if data.source ~= nil and data.source ~= apply_progress_source then
     return nil
@@ -686,7 +756,9 @@ function M.headless_collect()
     stage = "request-review",
     message = "Requesting review data from vim.pack.update()",
   })
+  local stop_discovery_progress = start_discovery_progress_stream()
   local ok, err = pcall(vim.pack.update, names)
+  stop_discovery_progress()
   if not ok then
     emit_json(vim.json.encode({ ok = false, error = tostring(err) }))
     return
