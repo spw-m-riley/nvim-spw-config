@@ -199,4 +199,13 @@ M.pack_winbar = function()
   return table.concat(segments)
 end
 
+---Render a winbar for onebeer_pack_review buffers with phase/progress/counts.
+---@return string
+M.pack_review_winbar = function()
+  -- Foundation slice does NOT expose onebeer_pack_review_phase/progress/total/done; fallback to minimal chrome
+  local title = "%#OneBeerPackWinbarIcon#󱺰 %#OneBeerPackWinbarTitle#Pack Review"
+  local segs = { "%=", title, "%#OneBeerPackWinbarMuted# (phase info unavailable)", "%#WinBar#" }
+  return table.concat(segs)
+end
+
 return M

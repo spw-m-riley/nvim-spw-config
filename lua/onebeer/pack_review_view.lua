@@ -6,18 +6,36 @@ local ns = vim.api.nvim_create_namespace("onebeer.pack_review")
 ---@field id? string
 ---@field name string
 ---@field summary? string
----@field status? string
+---@field status? onebeer.PackReviewRowStatus
 ---@field details? string[]|string
 
 ---@alias onebeer.PackReviewPhase "loading"|"ready"|"applying"|"error"|"done"
+---@alias onebeer.PackReviewRowStatus "Queued"|"Checking"|"Applying"|"Done"|"Error"|"Update"|"Same"
+
+---@class onebeer.PackReviewProgress
+---@field phase_label string
+---@field percent? integer
+---@field current? string
+---@field active_row_id? string
+---@field indeterminate? boolean
+---@field spinner? boolean
 
 ---@class onebeer.PackReviewState
 ---@field phase? onebeer.PackReviewPhase
 ---@field title? string
+---@field progress? onebeer.PackReviewProgress
 ---@field message? string|string[]
 ---@field rows? onebeer.PackReviewRow[]
 ---@field on_apply? fun(ctx: onebeer.PackReviewCtx, state: onebeer.PackReviewState)
 ---@field on_cancel? fun(ctx: onebeer.PackReviewCtx, state: onebeer.PackReviewState)
+
+---@class onebeer.PackReviewLayout
+---@field width integer
+---@field height integer
+---@field row integer
+---@field col integer
+---@field phase onebeer.PackReviewPhase
+---@field rows_signature string
 
 ---@class onebeer.PackReviewCtx
 ---@field buf integer
@@ -25,8 +43,50 @@ local ns = vim.api.nvim_create_namespace("onebeer.pack_review")
 ---@field state onebeer.PackReviewState
 ---@field expanded table<string, boolean>
 ---@field line_to_row table<integer, string>
+---@field layout? onebeer.PackReviewLayout
 
 local M = {}
+local progress_bar_width = 14
+local spinner_icon = "⟳"
+local dimensions_for
+
+local status_palette = {
+  Queued = {
+    status = "OneBeerPackReviewStatusQueued",
+    name = "OneBeerPackReviewRowNameQueued",
+    summary = "OneBeerPackReviewSummaryQueued",
+  },
+  Checking = {
+    status = "OneBeerPackReviewStatusChecking",
+    name = "OneBeerPackReviewRowNameChecking",
+    summary = "OneBeerPackReviewSummaryChecking",
+  },
+  Applying = {
+    status = "OneBeerPackReviewStatusApplying",
+    name = "OneBeerPackReviewRowNameApplying",
+    summary = "OneBeerPackReviewSummaryApplying",
+  },
+  Done = {
+    status = "OneBeerPackReviewStatusDone",
+    name = "OneBeerPackReviewRowNameDone",
+    summary = "OneBeerPackReviewSummaryDone",
+  },
+  Error = {
+    status = "OneBeerPackReviewStatusError",
+    name = "OneBeerPackReviewRowNameError",
+    summary = "OneBeerPackReviewSummaryError",
+  },
+  Update = {
+    status = "OneBeerPackReviewStatusUpdate",
+    name = "OneBeerPackReviewRowNameUpdate",
+    summary = "OneBeerPackReviewSummaryUpdate",
+  },
+  Same = {
+    status = "OneBeerPackReviewStatusSame",
+    name = "OneBeerPackReviewRowNameSame",
+    summary = "OneBeerPackReviewSummarySame",
+  },
+}
 
 ---@param phase onebeer.PackReviewPhase|nil
 ---@return string
@@ -49,46 +109,19 @@ end
 ---@param status string|nil
 ---@return string
 local function status_highlight(status)
-  if status == "Error" then
-    return "OneBeerPackReviewStatusError"
-  end
-  if status == "Done" then
-    return "OneBeerPackReviewStatusDone"
-  end
-  if status == "Update" then
-    return "OneBeerPackReviewStatusUpdate"
-  end
-  return "OneBeerPackReviewStatusSame"
+  return (status_palette[status] or status_palette.Same).status
 end
 
 ---@param status string|nil
 ---@return string
 local function row_name_highlight(status)
-  if status == "Error" then
-    return "OneBeerPackReviewRowNameError"
-  end
-  if status == "Done" then
-    return "OneBeerPackReviewRowNameDone"
-  end
-  if status == "Update" then
-    return "OneBeerPackReviewRowNameUpdate"
-  end
-  return "OneBeerPackReviewRowNameSame"
+  return (status_palette[status] or status_palette.Same).name
 end
 
 ---@param status string|nil
 ---@return string
 local function summary_highlight(status)
-  if status == "Error" then
-    return "OneBeerPackReviewSummaryError"
-  end
-  if status == "Done" then
-    return "OneBeerPackReviewSummaryDone"
-  end
-  if status == "Update" then
-    return "OneBeerPackReviewSummaryUpdate"
-  end
-  return "OneBeerPackReviewSummarySame"
+  return (status_palette[status] or status_palette.Same).summary
 end
 
 ---@param phase onebeer.PackReviewPhase|nil
@@ -117,8 +150,8 @@ end
 
 ---@param buf integer
 ---@param line integer
----@param start_col integer
----@param end_col integer
+---@param start_col integer 0-based, end-exclusive extmark column
+---@param end_col integer 0-based, end-exclusive extmark column
 ---@param hl string
 local function highlight_range(buf, line, start_col, end_col, hl)
   vim.api.nvim_buf_set_extmark(buf, ns, line - 1, start_col, {
@@ -201,6 +234,19 @@ local function to_lines(value)
   return vim.split(value, "\n", { plain = true, trimempty = true })
 end
 
+---@param text string
+---@param max_width integer
+---@return string
+local function truncate_text(text, max_width)
+  if max_width <= 0 or vim.fn.strdisplaywidth(text) <= max_width then
+    return text
+  end
+  if max_width == 1 then
+    return "…"
+  end
+  return vim.fn.strcharpart(text, 0, max_width - 1) .. "…"
+end
+
 ---@param row onebeer.PackReviewRow
 ---@param index integer
 ---@return string
@@ -226,6 +272,25 @@ local function phase_label(phase)
   return "Loading"
 end
 
+---@param progress onebeer.PackReviewProgress|nil
+---@param phase onebeer.PackReviewPhase
+---@return onebeer.PackReviewProgress
+local function normalize_progress(progress, phase)
+  local defaults = {
+    phase_label = phase_label(phase),
+    percent = (phase == "ready" or phase == "done") and 100 or nil,
+    indeterminate = phase == "loading" or phase == "applying",
+    spinner = phase == "loading" or phase == "applying",
+  }
+  local next_progress = vim.tbl_deep_extend("force", defaults, progress or {})
+  if next_progress.indeterminate then
+    next_progress.percent = nil
+  elseif next_progress.percent ~= nil then
+    next_progress.percent = math.max(0, math.min(100, next_progress.percent))
+  end
+  return next_progress
+end
+
 ---@param state onebeer.PackReviewState|nil
 ---@return onebeer.PackReviewState
 local function normalize_state(state)
@@ -239,6 +304,7 @@ local function normalize_state(state)
   return vim.tbl_deep_extend("force", {
     title = "Pack review",
     phase = phase,
+    progress = normalize_progress(state and state.progress, phase),
     rows = rows,
     message = message,
   }, state)
@@ -283,6 +349,158 @@ local function append_row(ctx, row, index, lines)
   end
 end
 
+---@return string
+local function empty_rows_message(phase)
+  if phase == "loading" then
+    return "Loading updates..."
+  end
+  return "No plugin updates to review."
+end
+
+---@param progress onebeer.PackReviewProgress
+---@param width integer|nil
+---@return string
+local function progress_line_text(progress, width)
+  if progress.indeterminate then
+    local indicator = progress.spinner and spinner_icon or "•"
+    local text = progress.current or "Waiting for progress updates..."
+    if width ~= nil then
+      text = truncate_text(text, math.max(0, width - 4))
+    end
+    return table.concat({ " ", indicator, " ", text })
+  end
+
+  local percent = progress.percent or 0
+  local filled = math.floor((percent / 100) * progress_bar_width + 0.5)
+  local bar = string.rep("=", filled) .. string.rep("-", progress_bar_width - filled)
+  local current = progress.current and (" " .. progress.current) or ""
+  local line = (" [%s] %3d%%"):format(bar, percent) .. current
+  if width ~= nil then
+    line = truncate_text(line, math.max(0, width - 2))
+  end
+  return " " .. line
+end
+
+---@param progress_text string
+---@param progress onebeer.PackReviewProgress
+---@return { bar_start: integer, bar_end: integer, percent_start: integer|nil, percent_end: integer|nil, current_start: integer|nil }|nil
+local function progress_highlight_columns(progress_text, progress)
+  local open_bracket = progress_text:find("[", 1, true)
+  local close_bracket = open_bracket and progress_text:find("]", open_bracket, true) or nil
+  if not open_bracket or not close_bracket then
+    return nil
+  end
+
+  local percent_start, percent_end = progress_text:find("%d+%%", close_bracket + 1)
+  local current_start
+  if progress.current then
+    current_start = progress_text:find(progress.current, close_bracket + 1, true)
+  end
+
+  return {
+    bar_start = open_bracket,
+    bar_end = close_bracket - 1,
+    percent_start = percent_start and (percent_start - 1) or nil,
+    percent_end = percent_end or nil,
+    current_start = current_start and (current_start - 1) or nil,
+  }
+end
+
+---@class onebeer.PackReviewHeaderMeta
+---@field title_line integer
+---@field phase_line integer
+---@field progress_line integer
+---@field message_start integer
+---@field message_end integer
+
+---@param ctx onebeer.PackReviewCtx
+---@param lines string[]
+---@return onebeer.PackReviewHeaderMeta
+local function append_header_block(ctx, lines)
+  local state = ctx.state
+  local message_lines = to_lines(state.message)
+  local width = ctx.layout and ctx.layout.width or nil
+  local header = {
+    title_line = #lines + 1,
+    phase_line = #lines + 2,
+    progress_line = #lines + 3,
+    message_start = #lines + 4,
+    message_end = #lines + 3,
+  }
+
+  lines[#lines + 1] = " " .. (state.title or "Pack review")
+  lines[#lines + 1] = " " .. state.progress.phase_label
+  lines[#lines + 1] = progress_line_text(state.progress, width)
+  for _, line in ipairs(message_lines) do
+    lines[#lines + 1] = " " .. line
+  end
+  header.message_end = #lines
+  lines[#lines + 1] = ""
+  return header
+end
+
+---@param rows onebeer.PackReviewRow[]|nil
+---@return string
+local function rows_signature(rows)
+  local signature = {}
+  for i, row in ipairs(rows or {}) do
+    signature[#signature + 1] = table.concat({
+      row_key(row, i),
+      row.name or "",
+      tostring(#to_lines(row.details)),
+    }, ":")
+  end
+  return table.concat(signature, "|")
+end
+
+---@param width integer
+---@param height integer
+---@return integer, integer
+local function centered_position(width, height)
+  return math.floor((vim.o.lines - height) / 2), math.floor((vim.o.columns - width) / 2)
+end
+
+---@param ctx onebeer.PackReviewCtx
+---@return onebeer.PackReviewLayout
+local function compute_layout(ctx)
+  local width, height = dimensions_for(ctx.buf)
+  local row, col = centered_position(width, height)
+  return {
+    width = width,
+    height = height,
+    row = row,
+    col = col,
+    phase = ctx.state.phase,
+    rows_signature = rows_signature(ctx.state.rows),
+  }
+end
+
+---@param ctx onebeer.PackReviewCtx
+---@return boolean
+local function should_refresh_layout(ctx)
+  if ctx.layout == nil then
+    return true
+  end
+  return ctx.layout.phase ~= ctx.state.phase or ctx.layout.rows_signature ~= rows_signature(ctx.state.rows)
+end
+
+---@param ctx onebeer.PackReviewCtx
+local function refresh_layout(ctx)
+  ctx.layout = compute_layout(ctx)
+  if not vim.api.nvim_win_is_valid(ctx.win) then
+    return
+  end
+  vim.api.nvim_win_set_config(
+    ctx.win,
+    vim.tbl_deep_extend("force", vim.api.nvim_win_get_config(ctx.win), {
+      width = ctx.layout.width,
+      height = ctx.layout.height,
+      row = ctx.layout.row,
+      col = ctx.layout.col,
+    })
+  )
+end
+
 ---@param ctx onebeer.PackReviewCtx
 local function render(ctx)
   if not vim.api.nvim_buf_is_valid(ctx.buf) then
@@ -293,21 +511,12 @@ local function render(ctx)
   prune_expanded(ctx)
 
   local state = ctx.state
-  local phase_line = 1
-  local lines = {
-    string.format(" %s", phase_label(state.phase)),
-  }
-
-  for _, line in ipairs(to_lines(state.message)) do
-    lines[#lines + 1] = " " .. line
-  end
-
-  lines[#lines + 1] = ""
+  local lines = {}
+  local header = append_header_block(ctx, lines)
 
   local rows = state.rows or {}
   if #rows == 0 then
-    local empty = state.phase == "loading" and "Loading updates..." or "No plugin updates to review."
-    lines[#lines + 1] = " " .. empty
+    lines[#lines + 1] = " " .. empty_rows_message(state.phase)
   else
     for i, row in ipairs(rows) do
       append_row(ctx, row, i, lines)
@@ -323,8 +532,60 @@ local function render(ctx)
   vim.bo[ctx.buf].modified = false
   vim.api.nvim_buf_clear_namespace(ctx.buf, ns, 0, -1)
 
-  highlight_range(ctx.buf, phase_line, 1, #lines[phase_line], phase_highlight(state.phase))
-  for line_nr = 2, #lines - 2 do
+  highlight_range(ctx.buf, header.title_line, 1, #lines[header.title_line], "OneBeerPackReviewHeaderTitle")
+  highlight_range(ctx.buf, header.phase_line, 1, #lines[header.phase_line], phase_highlight(state.phase))
+  local progress_text = lines[header.progress_line]
+  if state.progress.indeterminate then
+    local indicator_width = #(state.progress.spinner and spinner_icon or "•")
+    highlight_range(ctx.buf, header.progress_line, 1, 1 + indicator_width, "OneBeerPackReviewProgressSpinner")
+    local current_start = indicator_width + 2
+    if #progress_text >= current_start then
+      highlight_range(ctx.buf, header.progress_line, current_start, #progress_text, "OneBeerPackReviewHeaderCurrent")
+    end
+  else
+    local columns = progress_highlight_columns(progress_text, state.progress)
+    if columns ~= nil then
+      local fill = math.floor(((state.progress.percent or 0) / 100) * progress_bar_width + 0.5)
+      if fill > 0 then
+        highlight_range(
+          ctx.buf,
+          header.progress_line,
+          columns.bar_start,
+          math.min(columns.bar_start + fill, columns.bar_end),
+          "OneBeerPackReviewProgressBarFill"
+        )
+      end
+      if fill < progress_bar_width then
+        highlight_range(
+          ctx.buf,
+          header.progress_line,
+          columns.bar_start + fill,
+          columns.bar_end,
+          "OneBeerPackReviewProgressBarTrack"
+        )
+      end
+      if columns.percent_start and columns.percent_end then
+        highlight_range(
+          ctx.buf,
+          header.progress_line,
+          columns.percent_start,
+          columns.percent_end,
+          "OneBeerPackReviewProgressPercent"
+        )
+      end
+      if columns.current_start and #progress_text >= columns.current_start then
+        highlight_range(
+          ctx.buf,
+          header.progress_line,
+          columns.current_start,
+          #progress_text,
+          "OneBeerPackReviewHeaderCurrent"
+        )
+      end
+    end
+  end
+
+  for line_nr = header.message_start, header.message_end do
     local line = lines[line_nr]
     if vim.trim(line) ~= "" then
       highlight_range(ctx.buf, line_nr, 1, #line, "OneBeerPackReviewMessage")
@@ -476,7 +737,7 @@ end
 
 ---@param buf integer
 ---@return integer, integer
-local function dimensions_for(buf)
+dimensions_for = function(buf)
   local content_width = 0
   for _, line in ipairs(vim.api.nvim_buf_get_lines(buf, 0, -1, false)) do
     content_width = math.max(content_width, vim.fn.strdisplaywidth(line))
@@ -506,10 +767,11 @@ function M.open(state)
     state = normalize_state(state),
     expanded = {},
     line_to_row = {},
+    layout = nil,
   }
 
   render(ctx)
-  local width, height = dimensions_for(buf)
+  ctx.layout = compute_layout(ctx)
   local config_opts, win_opts = split_float_opts(ui.float_winopts())
   local win = vim.api.nvim_open_win(
     buf,
@@ -517,10 +779,10 @@ function M.open(state)
     vim.tbl_deep_extend("force", {
       relative = "editor",
       style = "minimal",
-      width = width,
-      height = height,
-      row = math.floor((vim.o.lines - height) / 2),
-      col = math.floor((vim.o.columns - width) / 2),
+      width = ctx.layout.width,
+      height = ctx.layout.height,
+      row = ctx.layout.row,
+      col = ctx.layout.col,
       title = " Pack review ",
     }, config_opts)
   )
@@ -541,28 +803,26 @@ function M.update(ctx, state)
     return
   end
 
-  local next_state = vim.tbl_deep_extend("force", {}, ctx.state or {}, normalize_state(state))
+  local merged_state = vim.tbl_deep_extend("force", {}, ctx.state or {}, state)
   if state.rows ~= nil then
-    next_state.rows = state.rows
+    merged_state.rows = state.rows
   end
   if state.message ~= nil then
-    next_state.message = state.message
+    merged_state.message = state.message
+  end
+  if state.phase ~= nil and state.progress == nil then
+    merged_state.progress = nil
   end
 
-  ctx.state = next_state
+  ctx.state = normalize_state(merged_state)
+  local layout_needs_refresh = should_refresh_layout(ctx)
+  if layout_needs_refresh then
+    ctx.layout = nil
+  end
   render(ctx)
 
-  if vim.api.nvim_win_is_valid(ctx.win) then
-    local width, height = dimensions_for(ctx.buf)
-    vim.api.nvim_win_set_config(
-      ctx.win,
-      vim.tbl_deep_extend("force", vim.api.nvim_win_get_config(ctx.win), {
-        width = width,
-        height = height,
-        row = math.floor((vim.o.lines - height) / 2),
-        col = math.floor((vim.o.columns - width) / 2),
-      })
-    )
+  if layout_needs_refresh then
+    refresh_layout(ctx)
   end
 end
 

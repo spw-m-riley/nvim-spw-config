@@ -190,8 +190,8 @@ Linting runs through [nvim-lint](https://github.com/mfussenegger/nvim-lint) with
 | `:TrimWhitespaceToggle` | Toggle automatic trailing whitespace removal on save |
 | `:InspectLog` | Open the LSP log file |
 | `:LoaderResetCache` | Clear the Lua module loader cache |
-| `:Pack[!] sync` | Re-scan plugin spec files, install newly declared plugins, remove plugins no longer declared, then review updates; `!` applies updates immediately. Restart afterward to fully apply add/remove changes in the current session |
-| `:Pack[!] update [plugin ...]` | Open the Pack review float for all plugins or the named plugins; `<CR>` toggles details, `u` applies, `q` closes, and `!` still applies immediately |
+| `:Pack[!] sync` | Re-scan plugin spec files, install newly declared plugins, remove plugins no longer declared, then review updates in the Pack review float; `!` applies updates immediately. Restart afterward to fully apply add/remove changes in the current session |
+| `:Pack[!] update [plugin ...]` | Open the Pack review float for all plugins or the named plugins with live discovery/apply progress; `<CR>` toggles details, `u` applies, `q` closes, and `!` still applies immediately |
 
 There are also two JSON conversion tools:
 
