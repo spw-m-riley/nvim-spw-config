@@ -419,6 +419,15 @@ end
 local function append_header_block(ctx, lines)
   local state = ctx.state
   local message_lines = to_lines(state.message)
+  if state.progress and state.progress.current then
+    local filtered = {}
+    for _, line in ipairs(message_lines) do
+      if vim.trim(line) ~= vim.trim(state.progress.current) then
+        filtered[#filtered + 1] = line
+      end
+    end
+    message_lines = filtered
+  end
   local width = ctx.layout and ctx.layout.width or nil
   local header = {
     title_line = #lines + 1,
