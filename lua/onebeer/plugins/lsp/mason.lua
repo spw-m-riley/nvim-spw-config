@@ -93,6 +93,13 @@ local servers = {
     end,
   },
   {
+    name = "taplo",
+    ensure = "taplo",
+    is_available = function()
+      return lsp_settings.is_executable("taplo")
+    end,
+  },
+  {
     name = "terraformls",
     ensure = "terraformls",
     is_available = function()
