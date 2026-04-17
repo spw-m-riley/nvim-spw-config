@@ -6,7 +6,7 @@
       "version": "'master'"
     },
     "blink.cmp": {
-      "rev": "456d38d1cd3743926f329204c2340f3e7840aad6",
+      "rev": "c573a15a62bd0bfd4006ee0849b24f5404395500",
       "src": "https://github.com/saghen/blink.cmp"
     },
     "blink.compat": {
@@ -43,7 +43,7 @@
       "src": "https://github.com/rafamadriz/friendly-snippets"
     },
     "fzf-lua": {
-      "rev": "4be0a6923a64dc411489b57b77a6bf6f30404e66",
+      "rev": "83f7195972538beee3a40932b38ccd86c8cc0f06",
       "src": "https://github.com/ibhagwan/fzf-lua"
     },
     "fzf-lua-frecency.nvim": {
@@ -59,7 +59,7 @@
       "src": "https://github.com/folke/lazydev.nvim"
     },
     "markview.nvim": {
-      "rev": "5a890277ba7edd7823d20f4d0525132d277aea9a",
+      "rev": "288db27ed4bf799cafe2d9d607fa967050bd359a",
       "src": "https://github.com/OXY2DEV/markview.nvim"
     },
     "mason-lspconfig.nvim": {
@@ -96,7 +96,7 @@
       "version": "'1.0'"
     },
     "neogit": {
-      "rev": "e06745228600a585b88726fc9fba44a373c15a47",
+      "rev": "e906fce7e44ae562f06345be99a7db02f8315236",
       "src": "https://github.com/NeogitOrg/neogit"
     },
     "neotest": {
@@ -144,7 +144,7 @@
       "src": "https://github.com/antosha417/nvim-lsp-file-operations"
     },
     "nvim-lspconfig": {
-      "rev": "d10ce09e42bb0ca8600fd610c3bb58676e61208d",
+      "rev": "4b7fbaa239c5db6b36f424a4521ca9f1a401be33",
       "src": "https://github.com/neovim/nvim-lspconfig"
     },
     "nvim-nio": {
@@ -164,7 +164,7 @@
       "src": "https://github.com/nvim-tree/nvim-web-devicons"
     },
     "octo.nvim": {
-      "rev": "351b2922642c3ade27c1d13374c685d1d6ab27a9",
+      "rev": "65550fa020775fb18e6eacab86b80145560bfd9c",
       "src": "https://github.com/pwntester/octo.nvim"
     },
     "persistence.nvim": {
