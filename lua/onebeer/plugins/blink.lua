@@ -6,6 +6,18 @@ return {
   event = { "BufReadPre", "BufNewFile" },
   build = "cargo build --release",
   dependencies = {
+    {
+      "zbirenbaum/copilot.lua",
+      enabled = function()
+        return config.copilot
+      end,
+    },
+    {
+      "giuxtaposition/blink-cmp-copilot",
+      enabled = function()
+        return config.copilot
+      end,
+    },
     { "L3MON4D3/LuaSnip", branch = "master", build = "make install_jsregexp" },
     { "rafamadriz/friendly-snippets" },
     { "saghen/blink.compat", branch = "main", opts = {} },
@@ -16,6 +28,20 @@ return {
   opts = function()
     local blink = require("blink.cmp")
     local lsp_settings = require("onebeer.settings.lsp")
+    local default_sources = { "lsp", "path", "snippets", "buffer", "lazydev" }
+    local providers = {
+      lazydev = { name = "LazyDev", module = "lazydev.integrations.blink", score_offset = 100 },
+    }
+
+    if config.copilot then
+      table.insert(default_sources, "copilot")
+      providers.copilot = {
+        name = "Copilot",
+        module = "blink-cmp-copilot",
+        score_offset = 100,
+        async = true,
+      }
+    end
 
     local function sidekick_nes_jump_or_apply()
       if not config.copilot then
@@ -88,10 +114,8 @@ return {
         nerd_font_variant = "mono",
       },
       sources = {
-        providers = {
-          lazydev = { name = "LazyDev", module = "lazydev.integrations.blink", score_offset = 100 },
-        },
-        default = { "lsp", "path", "snippets", "buffer", "lazydev" },
+        providers = providers,
+        default = default_sources,
       },
       snippets = {
         preset = "luasnip",
