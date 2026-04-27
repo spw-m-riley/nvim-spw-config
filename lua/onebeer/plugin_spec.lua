@@ -3,6 +3,8 @@
 ---@alias onebeer.PluginConfig fun(spec: onebeer.PluginSpec, opts: onebeer.PluginOpts|nil)
 ---@alias onebeer.PluginDependency string|onebeer.PluginSpec
 ---@alias onebeer.PluginModule onebeer.PluginSpec|onebeer.PluginSpec[]
+---@alias onebeer.PluginVersion string|vim.VersionRange
+---@alias onebeer.PluginBuild string|fun(spec: onebeer.PluginSpec, path: string)
 
 ---@class onebeer.PluginKey
 ---@field [1] string
@@ -14,7 +16,7 @@
 ---@field [1]? string
 ---@field src? string
 ---@field name? string
----@field version? string
+---@field version? onebeer.PluginVersion
 ---@field branch? string
 ---@field main? string
 ---@field lazy? boolean
@@ -26,7 +28,7 @@
 ---@field init? fun()
 ---@field opts? onebeer.PluginOpts|onebeer.PluginOptsFactory
 ---@field config? boolean|onebeer.PluginConfig
----@field build? string
+---@field build? onebeer.PluginBuild
 ---@field dependencies? onebeer.PluginDependency[]
 ---@field enabled? boolean|fun():boolean
 

@@ -22,13 +22,13 @@ return {
     { "rafamadriz/friendly-snippets" },
     { "saghen/blink.compat", branch = "main", opts = {} },
   },
-  version = "v0.*",
+  version = vim.version.range("^1"),
   ---@module 'blink.cmp'
   ---@type blink.cmp.Config
   opts = function()
     local blink = require("blink.cmp")
     local lsp_settings = require("onebeer.settings.lsp")
-    local default_sources = { "lsp", "path", "snippets", "buffer", "lazydev" }
+    local default_sources = { "lsp", "path", "snippets", "buffer" }
     local providers = {
       lazydev = { name = "LazyDev", module = "lazydev.integrations.blink", score_offset = 100 },
     }
@@ -114,6 +114,9 @@ return {
         nerd_font_variant = "mono",
       },
       sources = {
+        per_filetype = {
+          lua = { inherit_defaults = true, "lazydev" },
+        },
         providers = providers,
         default = default_sources,
       },

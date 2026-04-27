@@ -77,7 +77,7 @@ local function default_main(name, raw)
 end
 
 ---@param raw onebeer.PluginSpec
----@return string|nil
+---@return onebeer.PluginVersion|nil
 local function pinned_version(raw)
   return raw.version or raw.branch
 end
@@ -96,6 +96,12 @@ end
 ---@param path string
 local function build_command(spec, path)
   local build = assert(spec.build, ("missing build command for %s"):format(spec.name))
+  if type(build) == "function" then
+    vim.cmd.packadd(vim.fn.escape(spec.name, " "))
+    build(spec, path)
+    return
+  end
+
   if build:sub(1, 1) == ":" then
     vim.cmd.packadd(vim.fn.escape(spec.name, " "))
     vim.cmd(build:sub(2))
@@ -188,7 +194,8 @@ local function register_in_registry(registry, raw)
   end
 
   spec.src = src:match("^https?://") and src or ("https://github.com/" .. src)
-  spec.version = pinned_version(raw)
+  -- Preserve an earlier explicit pin when the same plugin is later referenced as an unpinned dependency.
+  spec.version = pinned_version(raw) or spec.version
   spec.main = default_main(name, raw)
   spec.lazy = raw.lazy == false and false or spec.lazy
   spec.priority = raw.priority or spec.priority
@@ -487,7 +494,7 @@ end
 autocmds.create_autocmd("PackChanged", {
   callback = function(ev)
     local spec = specs[ev.data.spec.name]
-    if spec and type(spec.build) == "string" then
+    if spec and (type(spec.build) == "string" or type(spec.build) == "function") then
       build_command(spec, ev.data.path)
     end
   end,
