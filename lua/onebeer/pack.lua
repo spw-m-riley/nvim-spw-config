@@ -197,7 +197,9 @@ local function register_in_registry(registry, raw)
   -- Preserve an earlier explicit pin when the same plugin is later referenced as an unpinned dependency.
   spec.version = pinned_version(raw) or spec.version
   spec.main = default_main(name, raw)
-  spec.lazy = raw.lazy == false and false or spec.lazy
+  if raw.lazy ~= nil then
+    spec.lazy = raw.lazy
+  end
   spec.priority = raw.priority or spec.priority
   spec.event = raw.event or spec.event
   spec.ft = raw.ft or spec.ft
