@@ -190,7 +190,9 @@ local function register_in_registry(registry, raw)
   spec.src = src:match("^https?://") and src or ("https://github.com/" .. src)
   spec.version = pinned_version(raw)
   spec.main = default_main(name, raw)
-  spec.lazy = raw.lazy == false and false or spec.lazy
+  if raw.lazy ~= nil then
+    spec.lazy = raw.lazy
+  end
   spec.priority = raw.priority or spec.priority
   spec.event = raw.event or spec.event
   spec.ft = raw.ft or spec.ft
