@@ -1,5 +1,11 @@
 local ui = require("onebeer.ui")
 
+---@param action lsp.Command|lsp.CodeAction
+---@return boolean
+local function applicable_code_action(action)
+  return not action.disabled
+end
+
 ---@type onebeer.PluginSpec
 return {
   "ibhagwan/fzf-lua",
@@ -33,6 +39,14 @@ return {
         "--follow",
         "--trim",
       }, " "),
+    },
+    lsp = {
+      code_actions = {
+        filter = applicable_code_action,
+        fzf_opts = {
+          ["--preview-window"] = "nohidden:right:0",
+        },
+      },
     },
   },
   config = function(_, opts)
