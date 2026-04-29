@@ -29,6 +29,20 @@ vim.lsp.config("*", {
   capabilities = vim.deepcopy(base_capabilities),
 })
 
+local function preload_watchfiles()
+  if package.loaded["vim.lsp._watchfiles"] then
+    return
+  end
+
+  if #vim.api.nvim_get_runtime_file("lua/vim/lsp/_watchfiles.lua", false) == 0 then
+    return
+  end
+
+  require("vim.lsp._watchfiles")
+end
+
+preload_watchfiles()
+
 ---@param client vim.lsp.Client
 local function disable_formatting(client)
   if not client or not client.server_capabilities then
