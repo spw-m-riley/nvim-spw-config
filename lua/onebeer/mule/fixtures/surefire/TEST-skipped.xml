@@ -1,0 +1,5 @@
+<testsuite tests="1" failures="0" errors="0" skipped="1">
+  <testcase classname="api-test" name="api-main-test" time="0.1">
+    <skipped message="disabled" />
+  </testcase>
+</testsuite>

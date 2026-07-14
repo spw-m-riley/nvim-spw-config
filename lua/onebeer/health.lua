@@ -699,6 +699,13 @@ function M.check()
     "Validate Mason-managed servers and attachment separately with `:checkhealth mason`, `:checkhealth vim.lsp`, and `:checkhealth ts-install`."
   )
 
+  local ok_mule_health, mule_health = pcall(require, "onebeer.mule.health")
+  if ok_mule_health then
+    mule_health.check()
+  else
+    vim.health.warn("MuleSoft health checks could not be loaded: " .. tostring(mule_health))
+  end
+
   if #missing > 0 then
     if #vim.api.nvim_list_uis() == 0 then
       vim.health.info(

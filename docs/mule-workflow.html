@@ -1,0 +1,443 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>OneBeer MuleSoft Workflow</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #11111b;
+        --panel: #181825;
+        --panel-2: #1e1e2e;
+        --text: #cdd6f4;
+        --muted: #a6adc8;
+        --accent: #89b4fa;
+        --accent-2: #a6e3a1;
+        --warn: #f9e2af;
+        --danger: #f38ba8;
+        --border: #313244;
+        --code: #0b0b12;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        background:
+          radial-gradient(circle at top left, rgba(137, 180, 250, 0.22), transparent 32rem),
+          radial-gradient(circle at top right, rgba(166, 227, 161, 0.12), transparent 28rem),
+          var(--bg);
+        color: var(--text);
+        font:
+          16px/1.6 system-ui,
+          -apple-system,
+          BlinkMacSystemFont,
+          "Segoe UI",
+          sans-serif;
+      }
+
+      a {
+        color: var(--accent);
+      }
+
+      code,
+      pre {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      }
+
+      header,
+      main,
+      footer {
+        width: min(1120px, calc(100% - 2rem));
+        margin: 0 auto;
+      }
+
+      header {
+        padding: 5rem 0 2.5rem;
+      }
+
+      .eyebrow {
+        color: var(--accent-2);
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      h1 {
+        max-width: 820px;
+        margin: 0.5rem 0 1rem;
+        font-size: clamp(2.4rem, 8vw, 5.5rem);
+        line-height: 0.95;
+      }
+
+      h2 {
+        margin-top: 0;
+        font-size: clamp(1.5rem, 4vw, 2.25rem);
+      }
+
+      h3 {
+        margin-bottom: 0.35rem;
+      }
+
+      .lede {
+        max-width: 820px;
+        color: var(--muted);
+        font-size: 1.2rem;
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 1rem;
+      }
+
+      .card,
+      .panel {
+        border: 1px solid var(--border);
+        border-radius: 20px;
+        background: rgba(24, 24, 37, 0.82);
+        box-shadow: 0 18px 60px rgba(0, 0, 0, 0.28);
+      }
+
+      .card {
+        padding: 1.25rem;
+      }
+
+      .panel {
+        margin: 1.25rem 0;
+        padding: clamp(1.25rem, 4vw, 2rem);
+      }
+
+      .toc {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.65rem;
+        padding: 0;
+        list-style: none;
+      }
+
+      .toc a {
+        display: inline-block;
+        border: 1px solid var(--border);
+        border-radius: 999px;
+        padding: 0.45rem 0.8rem;
+        background: var(--panel-2);
+        text-decoration: none;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        overflow: hidden;
+        border: 1px solid var(--border);
+        border-radius: 16px;
+      }
+
+      th,
+      td {
+        border-bottom: 1px solid var(--border);
+        padding: 0.8rem;
+        text-align: left;
+        vertical-align: top;
+      }
+
+      th {
+        background: var(--panel-2);
+      }
+
+      tr:last-child td {
+        border-bottom: 0;
+      }
+
+      pre {
+        overflow-x: auto;
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 1rem;
+        background: var(--code);
+        color: #f5e0dc;
+      }
+
+      .callout {
+        border-left: 4px solid var(--accent);
+        padding: 0.85rem 1rem;
+        background: rgba(137, 180, 250, 0.09);
+        border-radius: 12px;
+      }
+
+      .warn {
+        border-left-color: var(--warn);
+        background: rgba(249, 226, 175, 0.08);
+      }
+
+      .danger {
+        border-left-color: var(--danger);
+        background: rgba(243, 139, 168, 0.08);
+      }
+
+      .demo {
+        width: 100%;
+        border: 1px solid var(--border);
+        border-radius: 18px;
+        background: var(--code);
+      }
+
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        border: 1px solid var(--border);
+        border-radius: 999px;
+        padding: 0.25rem 0.6rem;
+        color: var(--muted);
+        background: var(--panel-2);
+        font-size: 0.9rem;
+      }
+
+      footer {
+        padding: 2rem 0 4rem;
+        color: var(--muted);
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div class="eyebrow">OneBeer MuleSoft workflow</div>
+      <h1>Use Mule without living inside Anypoint Studio.</h1>
+      <p class="lede">
+        This workflow adds Mule project detection, Maven/MUnit commands, DataWeave CLI helpers, local XML catalog support,
+        APIKit navigation, optional Anypoint CLI wrappers, and guarded test/debug integrations to the OneBeer Neovim
+        config.
+      </p>
+      <ul class="toc" aria-label="Page sections">
+        <li><a href="#quick-start">Quick start</a></li>
+        <li><a href="#commands">Commands</a></li>
+        <li><a href="#workflows">Workflows</a></li>
+        <li><a href="#validation">Validation</a></li>
+        <li><a href="#troubleshooting">Troubleshooting</a></li>
+      </ul>
+    </header>
+
+    <main>
+      <section class="panel" id="quick-start">
+        <h2>Quick start</h2>
+        <div class="grid">
+          <article class="card">
+            <h3>1. Open a Mule project</h3>
+            <p>
+              Detection looks for <code>pom.xml</code>, <code>mule-artifact.json</code>, and
+              <code>src/main/mule/</code>. Mule-specific XML behavior only activates for buffers under
+              <code>src/main/mule/**</code> or <code>src/test/munit/**</code>.
+            </p>
+          </article>
+          <article class="card">
+            <h3>2. Check dependencies</h3>
+            <pre><code>:checkhealth onebeer</code></pre>
+            <p>The Mule section reports Java, Maven, <code>dw</code>, LemMinX, Anypoint CLI v4, Node, and npm.</p>
+          </article>
+          <article class="card">
+            <h3>3. Run the tight loop</h3>
+            <pre><code>:MuleBuild
+:MuleTest
+:MuleDwValidate</code></pre>
+            <p>Failures go to quickfix where possible. Successful commands stay quiet and focused.</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="panel" id="commands">
+        <h2>Command reference</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Command</th>
+              <th>What it does</th>
+              <th>Depends on</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>:MuleBuild [args]</code></td>
+              <td>Runs Maven in the detected Mule project. Defaults to <code>mvn package</code>.</td>
+              <td>Java, Maven</td>
+            </tr>
+            <tr>
+              <td><code>:MuleTest [selector]</code></td>
+              <td>Runs MUnit through Maven. Pass a selector to map to <code>-Dmunit.test=...</code>.</td>
+              <td>Java, Maven, MUnit config</td>
+            </tr>
+            <tr>
+              <td><code>:MuleTestNearest</code></td>
+              <td>Finds the nearest <code>&lt;munit:test&gt;</code> in the current suite and runs that selector.</td>
+              <td>Java, Maven, MUnit config</td>
+            </tr>
+            <tr>
+              <td><code>:MuleDwValidate</code></td>
+              <td>Runs <code>dw validate</code> for the current DataWeave buffer.</td>
+              <td>DataWeave CLI</td>
+            </tr>
+            <tr>
+              <td><code>:MuleDwRun</code></td>
+              <td>Runs the current DataWeave buffer with <code>dw run</code> and opens scratch output.</td>
+              <td>DataWeave CLI</td>
+            </tr>
+            <tr>
+              <td><code>:MuleDwRepl</code></td>
+              <td>Opens <code>dw repl</code> in a terminal split.</td>
+              <td>DataWeave CLI</td>
+            </tr>
+            <tr>
+              <td><code>:MuleGenerateCatalog</code></td>
+              <td>
+                Discovers local XSD <code>targetNamespace</code> mappings from project resources/Exchange-module paths
+                and writes <code>.onebeer/mule-catalog.xml</code> for LemMinX.
+              </td>
+              <td>LemMinX for editor diagnostics</td>
+            </tr>
+            <tr>
+              <td><code>:MuleStatus {args}</code></td>
+              <td>Runs explicit Anypoint CLI status/list-style arguments and displays the output.</td>
+              <td>Anypoint CLI v4</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section class="panel" id="workflows">
+        <h2>Core workflows</h2>
+
+        <h3>Build and test Mule apps</h3>
+        <pre><code>:MuleBuild
+:MuleBuild clean package
+:MuleTest
+:MuleTest api-test#api-main-test
+:MuleTestNearest</code></pre>
+        <p>
+          Maven owns build and test semantics. OneBeer only chooses the project root, runs the command, and turns
+          failures into quickfix entries where the output includes file and line data.
+        </p>
+
+        <h3>Work with DataWeave</h3>
+        <pre><code>:edit src/main/resources/dw/transform.dwl
+:MuleDwValidate
+:MuleDwRun
+:MuleDwRepl</code></pre>
+        <p>
+          <code>*.dwl</code> files use the <code>dataweave</code> filetype. Validation and execution are delegated to
+          <code>dw</code>, because there is no open, reliable DataWeave language server in this workflow.
+        </p>
+
+        <h3>Validate Mule XML locally</h3>
+        <pre><code>:MuleGenerateCatalog
+:checkhealth vim.lsp</code></pre>
+        <p>
+          Mule XML remains normal <code>xml</code>. Mule-specific behavior is gated by project root and path checks, so
+          generic XML files do not inherit Mule catalog settings. If no local XSD mappings are found, the command reports
+          that state instead of writing an empty catalog.
+        </p>
+
+        <h3>Navigate APIKit projects</h3>
+        <p>
+          The APIKit parser understands generated flow names such as <code>get:\health:api-config</code> and maps them
+          back to local specs declared by <code>apikit:config</code>. Local RAML supports top-level and nested resource
+          segments; local OpenAPI YAML supports <code>paths</code> entries and method lines.
+        </p>
+        <p>
+          Remote <code>resource::</code> Exchange specs stay offline-only: navigation reports that a local file is
+          required instead of fetching from Anypoint or resolving credentials.
+        </p>
+
+        <h3>Use Anypoint CLI explicitly</h3>
+        <pre><code>:MuleStatus runtime-mgr:application:describe my-app --output json
+:MuleStatus runtime-mgr:application:describe my-app --output=json</code></pre>
+        <p>
+          OneBeer does not infer destructive targets. Pass the Anypoint CLI arguments you intend to run, and keep org,
+          environment, and credentials configured in Anypoint CLI itself. JSON output parsing is enabled for
+          <code>--output json</code>, <code>--output=json</code>, and <code>-o json</code>.
+        </p>
+      </section>
+
+      <section class="panel" id="validation">
+        <h2>Validation and smoke gates</h2>
+        <p>
+          The implementation ships with fixture-backed smoke stages so you can verify each surface without a real
+          MuleSoft tenant.
+        </p>
+        <pre><code>nvim --headless "+lua require('onebeer.mule.smoke').run('harness')" +qa
+nvim --headless "+lua require('onebeer.mule.smoke').run('foundation')" +qa
+nvim --headless "+lua require('onebeer.mule.smoke').run('maven-build')" +qa
+nvim --headless "+lua require('onebeer.mule.smoke').run('munit-runner')" +qa
+nvim --headless "+lua require('onebeer.mule.smoke').run('dataweave-cli')" +qa
+nvim --headless "+lua require('onebeer.mule.smoke').run('lemminx-catalog')" +qa
+nvim --headless "+lua require('onebeer.mule.smoke').run('apikit-navigation')" +qa
+nvim --headless "+lua require('onebeer.mule.smoke').run('anypoint-cli')" +qa
+nvim --headless "+lua require('onebeer.mule.smoke').run('neotest-adapter')" +qa
+nvim --headless "+lua require('onebeer.mule.smoke').run('dap-feasibility')" +qa</code></pre>
+        <div class="callout">
+          <strong>Full repo checks:</strong> use <code>stylua --check .</code>, <code>selene .</code>,
+          <code>nvim --headless "+helptags doc" +qa</code>, and <code>nvim --headless "+checkhealth onebeer" +qa</code>
+          after changing this workflow.
+        </div>
+      </section>
+
+      <section class="panel" id="troubleshooting">
+        <h2>Troubleshooting</h2>
+        <div class="grid">
+          <article class="card">
+            <h3>No Mule project detected</h3>
+            <p>
+              Confirm the buffer is inside a project with <code>pom.xml</code>, <code>mule-artifact.json</code>, and
+              <code>src/main/mule/</code>. Generic XML files are intentionally ignored.
+            </p>
+          </article>
+          <article class="card">
+            <h3><code>dw</code> is missing</h3>
+            <p>
+              Install DataWeave CLI and re-run <code>:checkhealth onebeer</code>. DataWeave commands fail closed when
+              <code>dw</code> is not executable.
+            </p>
+          </article>
+          <article class="card">
+            <h3>Anypoint auth fails</h3>
+            <p>
+              Fix Anypoint CLI or Maven settings outside Neovim. OneBeer reports auth failures but never reads or stores
+              credentials.
+            </p>
+          </article>
+          <article class="card">
+            <h3>DAP is unavailable</h3>
+            <p>
+              Mule DAP support is guarded until a local JDWP smoke test proves the path. The existing Neotest DAP keymap
+              must not imply Mule debug support by default.
+            </p>
+          </article>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>What this deliberately does not do</h2>
+        <p class="callout danger">
+          This is not a clone of Studio's visual canvas, DataSense, Anypoint Code Builder, or closed Mule DX internals.
+          It is a Neovim-native workflow around the source files and command-line tools you can actually own.
+        </p>
+        <p>
+          The module boundaries under <code>lua/onebeer/mule/</code> are intentionally extraction-ready, but the first
+          implementation lives inside OneBeer until the public API is stable.
+        </p>
+        <p>
+          <code>:MuleGenerateCatalog</code> intentionally does not extract Maven artifacts or fetch remote/private
+          schemas.
+        </p>
+      </section>
+    </main>
+
+    <footer>
+      <span class="badge">Source: <code>lua/onebeer/mule/</code></span>
+      <span class="badge">Help: <code>:h onebeer-mule</code></span>
+      <span class="badge">Health: <code>:checkhealth onebeer</code></span>
+    </footer>
+  </body>
+</html>

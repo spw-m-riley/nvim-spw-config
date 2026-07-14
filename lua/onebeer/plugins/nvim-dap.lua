@@ -54,6 +54,11 @@ return {
       }
     end
 
+    local ok_mule_dap, mule_dap = pcall(require, "onebeer.mule.integrations.dap")
+    if ok_mule_dap then
+      mule_dap.setup()
+    end
+
     dapui.setup({
       icons = { expanded = "▾", collapsed = "▸", current_frame = "*" },
       controls = {

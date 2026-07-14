@@ -1,0 +1,7 @@
+<project>
+  <modelVersion>4.0.0</modelVersion>
+  <groupId>dev.onebeer</groupId>
+  <artifactId>basic-mule</artifactId>
+  <version>1.0.0</version>
+  <packaging>mule-application</packaging>
+</project>

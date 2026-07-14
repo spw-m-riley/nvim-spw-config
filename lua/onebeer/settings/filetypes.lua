@@ -3,6 +3,7 @@
 local M = {
   astro = "astro",
   css = "css",
+  dataweave = "dataweave",
   dockerfile = "dockerfile",
   dotenv = "dotenv",
   eruby = "eruby",
@@ -39,6 +40,7 @@ local M = {
 vim.filetype.add({
   extension = {
     astro = M.astro,
+    dwl = M.dataweave,
     templ = M.templ,
     http = M.http,
     env = M.dotenv,

@@ -89,6 +89,7 @@ return {
         }),
         require("neotest-vitest"),
         require("neotest-plenary"),
+        require("onebeer.mule.integrations.neotest").adapter(),
       },
       discovery = {
         enabled = false,

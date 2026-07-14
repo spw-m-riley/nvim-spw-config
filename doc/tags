@@ -6,6 +6,14 @@ InspectTree	onebeer.txt	/*InspectTree*
 LintToggle	onebeer.txt	/*LintToggle*
 LintToggleBuffer	onebeer.txt	/*LintToggleBuffer*
 LoaderResetCache	onebeer.txt	/*LoaderResetCache*
+MuleBuild	onebeer.txt	/*MuleBuild*
+MuleDwRepl	onebeer.txt	/*MuleDwRepl*
+MuleDwRun	onebeer.txt	/*MuleDwRun*
+MuleDwValidate	onebeer.txt	/*MuleDwValidate*
+MuleGenerateCatalog	onebeer.txt	/*MuleGenerateCatalog*
+MuleStatus	onebeer.txt	/*MuleStatus*
+MuleTest	onebeer.txt	/*MuleTest*
+MuleTestNearest	onebeer.txt	/*MuleTestNearest*
 OneBeerDoctor	onebeer.txt	/*OneBeerDoctor*
 OneBeerHelp	onebeer.txt	/*OneBeerHelp*
 Pack	onebeer.txt	/*Pack*
@@ -35,6 +43,9 @@ onebeer-lsp-actions	onebeer.txt	/*onebeer-lsp-actions*
 onebeer-lsp-go	onebeer.txt	/*onebeer-lsp-go*
 onebeer-lsp-lua	onebeer.txt	/*onebeer-lsp-lua*
 onebeer-lsp-typescript	onebeer.txt	/*onebeer-lsp-typescript*
+onebeer-mule	onebeer.txt	/*onebeer-mule*
+onebeer-mule-commands	onebeer.txt	/*onebeer-mule-commands*
+onebeer-mule-nongoals	onebeer.txt	/*onebeer-mule-nongoals*
 onebeer-multicursor	onebeer.txt	/*onebeer-multicursor*
 onebeer-navigation	onebeer.txt	/*onebeer-navigation*
 onebeer-neogit	onebeer.txt	/*onebeer-neogit*

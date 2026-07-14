@@ -60,6 +60,13 @@ local servers = {
     end,
   },
   {
+    name = "lemminx",
+    ensure = "lemminx",
+    is_available = function()
+      return lsp_settings.is_executable("lemminx")
+    end,
+  },
+  {
     name = "lua_ls",
     ensure = "lua_ls",
     is_available = function()

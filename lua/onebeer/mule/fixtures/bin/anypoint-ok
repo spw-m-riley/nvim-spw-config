@@ -1,0 +1,9 @@
+#!/bin/sh
+case "$*" in
+  *--output\ json*|*--output=json*|*-o\ json*|*-o=json*)
+    printf '%s\n' '{"status":"STARTED"}'
+    ;;
+  *)
+    printf '%s\n' 'application started'
+    ;;
+esac

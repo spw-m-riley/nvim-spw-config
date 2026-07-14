@@ -1,0 +1,18 @@
+#!/bin/sh
+case "$1" in
+  validate)
+    printf 'dw validate ok: %s\n' "$2"
+    ;;
+  run)
+    printf 'dw run ok: %s\n' "$2"
+    printf 'dw cwd: '
+    pwd
+    ;;
+  repl)
+    printf '%s\n' 'dw repl ok'
+    ;;
+  *)
+    printf 'unexpected dw args: %s\n' "$*" >&2
+    exit 2
+    ;;
+esac

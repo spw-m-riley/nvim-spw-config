@@ -1,0 +1,8 @@
+<mule xmlns="http://www.mulesoft.org/schema/mule/core"
+      xmlns:http="http://www.mulesoft.org/schema/mule/http"
+      xmlns:apikit="http://www.mulesoft.org/schema/mule/mule-apikit">
+  <http:config name="http-listener-config" />
+  <apikit:config name="api-config" api="api/basic.raml" />
+  <apikit:config name="oas-config" api="api/openapi.yaml" />
+  <apikit:config name="exchange-config" api="resource::dev.onebeer:remote-api:1.0.0:raml:zip:api.raml" />
+</mule>

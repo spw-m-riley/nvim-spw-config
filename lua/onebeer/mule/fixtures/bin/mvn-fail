@@ -1,0 +1,3 @@
+#!/bin/sh
+printf '%s\n' "[ERROR] $PWD/src/main/mule/api.xml:[3,5] broken flow" >&2
+exit 17

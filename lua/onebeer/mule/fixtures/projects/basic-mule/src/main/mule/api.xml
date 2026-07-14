@@ -1,0 +1,11 @@
+<mule xmlns="http://www.mulesoft.org/schema/mule/core"
+      xmlns:munit="http://www.mulesoft.org/schema/mule/munit">
+  <flow name="api-main">
+    <flow-ref name="impl-health" />
+  </flow>
+  <flow name="get:\health:api-config" />
+  <flow name="post:\platform-metrics\load:application\json:api-config" />
+  <flow name="get:\widgets\{widgetId}:oas-config" />
+  <flow name="get:\remote:exchange-config" />
+  <sub-flow name="impl-health" />
+</mule>

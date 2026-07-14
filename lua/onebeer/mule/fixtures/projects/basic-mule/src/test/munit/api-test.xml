@@ -1,0 +1,3 @@
+<mule xmlns:munit="http://www.mulesoft.org/schema/mule/munit">
+  <munit:test name="api-main-test" />
+</mule>

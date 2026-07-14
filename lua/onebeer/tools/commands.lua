@@ -181,4 +181,13 @@ create_command("InspectSyntax", inspect_syntax, { desc = "Inspect highlight grou
 create_command("OneBeerHelp", help, { desc = "Show OneBeer keymap cheatsheet" })
 create_command("OneBeerDoctor", doctor, { desc = "Run core diagnostics (checkhealth/vim.pack/LspInfo)" })
 
+local ok_mule_commands, mule_commands = pcall(require, "onebeer.mule.commands")
+if ok_mule_commands then
+  mule_commands.setup()
+else
+  vim.schedule(function()
+    vim.notify("Failed to load Mule commands: " .. tostring(mule_commands), vim.log.levels.WARN, { title = "Mule" })
+  end)
+end
+
 return {}

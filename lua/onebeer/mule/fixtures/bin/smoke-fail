@@ -1,0 +1,3 @@
+#!/bin/sh
+printf '%s\n' 'onebeer-mule-smoke-fail' >&2
+exit 42

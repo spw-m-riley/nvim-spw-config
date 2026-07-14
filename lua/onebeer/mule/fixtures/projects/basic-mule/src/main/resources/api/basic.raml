@@ -1,0 +1,16 @@
+#%RAML 1.0
+title: Basic API
+/health:
+  get:
+    responses:
+      200:
+        body:
+          application/json:
+            type: !include exchange_modules/dev.onebeer/basic-types/1.0.0/Health.raml
+/platform-metrics:
+  /load:
+    post:
+      body:
+        application/json:
+      responses:
+        202:

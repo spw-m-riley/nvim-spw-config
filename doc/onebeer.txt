@@ -20,9 +20,10 @@ CONTENTS                                    *onebeer* *onebeer-contents*
 8. AI, completion, and snippets.................|onebeer-ai|
 9. Testing, debugging, sessions, utilities......|onebeer-testing|
 10. Commands and toggles........................|onebeer-commands|
-11. Health, development, troubleshooting........|onebeer-health|
-12. Local overrides and Neovide.................|onebeer-local|
-13. Plugin index................................|onebeer-plugin-index|
+11. MuleSoft workflow...........................|onebeer-mule|
+12. Health, development, troubleshooting........|onebeer-health|
+13. Local overrides and Neovide.................|onebeer-local|
+14. Plugin index................................|onebeer-plugin-index|
 
 ==============================================================================
 OVERVIEW                                    *onebeer-overview*
@@ -537,6 +538,8 @@ Adapter notes:
 - Go adapter runs with `-count=1 -timeout=60s`.
 - Jest adapter uses `npm test --` with `CI=true`.
 - Vitest and plenary adapters are enabled.
+- Mule MUnit XML suites are available through the guarded OneBeer adapter once a
+  Mule project is detected.
 - discovery is disabled and concurrent runs are enabled.
 
 Debugging via `nvim-dap`                       *onebeer-debugging*
@@ -555,6 +558,8 @@ A few debugging notes:
 - Node debugging uses the `pwa-node` adapter via `js-debug-adapter`.
 - DAP UI opens automatically on session start and closes on exit.
 - virtual text is enabled for DAP sessions.
+- Mule DAP support is intentionally gated and does not register unless the
+  experimental toggle is enabled after a JDWP smoke test proves local support.
 
 Sessions and diagnostics lists              *onebeer-sessions*
 
@@ -589,6 +594,82 @@ Visual `M`		match cursors by regex
 `<leader>t` / `<leader>T`	transpose cursor contents
 
 ==============================================================================
+MULESOFT WORKFLOW                           *onebeer-mule*
+*onebeer-mule-commands*
+*onebeer-mule-nongoals*
+
+The MuleSoft workflow is built into OneBeer first, with extraction-ready module
+boundaries under `lua/onebeer/mule/`. It is intentionally text-first: it wraps
+Maven, MUnit, DataWeave CLI, LemMinX, and Anypoint CLI instead of trying to
+clone Studio's visual canvas.
+
+Project detection requires a Mule-style root with `pom.xml`,
+`mule-artifact.json`, and `src/main/mule/`. Mule XML behavior is additionally
+gated per buffer so generic XML files do not inherit Mule-specific navigation or
+catalog settings.
+
+Command		Meaning ~
+`MuleBuild [args]`	run Maven for the current Mule project; defaults to
+			`mvn package`
+`MuleTest [selector]`	run MUnit through Maven, optionally with a
+			`-Dmunit.test` selector
+`MuleTestNearest`	run the nearest `<munit:test>` in a MUnit XML suite
+`MuleDwValidate`	validate the current `.dwl` buffer with `dw validate`
+`MuleDwRun`	run the current `.dwl` buffer with `dw run`
+`MuleDwRepl`	open `dw repl` in a terminal split
+`MuleGenerateCatalog`	discover local XSD targetNamespace mappings under
+			project resources/Exchange-module directories and
+			write `.onebeer/mule-catalog.xml` for LemMinX
+`MuleStatus {args}`	run an explicit `anypoint-cli-v4` status/list command
+			and show the output; JSON parsing supports
+			`--output json`, `--output=json`, and `-o json`
+
+APIKit navigation:
+
+- generated flow names such as `get:\health:api-config` map back to the local
+  file declared by the matching `apikit:config`
+- local RAML files support top-level and nested resource segments, returning the
+  method line when present and the path line otherwise
+- local OpenAPI YAML files support `paths` entries and method lines
+- `resource::` Exchange references stay offline-only and report that a local
+  file is required instead of attempting network resolution
+
+External tool ownership:
+
+- Java and Maven own build/test execution.
+- `dw` owns DataWeave validation, run, and REPL behavior.
+- LemMinX owns XML/XSD validation once a local catalog exists; if no local XSD
+  mappings are found, `MuleGenerateCatalog` reports that instead of writing an
+  empty catalog.
+- Anypoint CLI v4 owns Runtime Manager / CloudHub / Exchange-style operations.
+- OneBeer never stores MuleSoft credentials; configure Maven and Anypoint CLI
+ outside Neovim.
+
+Known non-goals:
+
+- no Studio canvas clone
+- no DataSense reimplementation
+- no Maven artifact XSD extraction or remote/private schema fetching from
+  `MuleGenerateCatalog`
+- no extraction or bundling of closed Anypoint Code Builder or Mule DX tooling
+- no implied Mule DAP support until JDWP feasibility is proven locally
+
+Developer validation entrypoints:
+
+>
+nvim --headless "+lua require('onebeer.mule.smoke').run('harness')" +qa
+nvim --headless "+lua require('onebeer.mule.smoke').run('foundation')" +qa
+nvim --headless "+lua require('onebeer.mule.smoke').run('maven-build')" +qa
+nvim --headless "+lua require('onebeer.mule.smoke').run('munit-runner')" +qa
+nvim --headless "+lua require('onebeer.mule.smoke').run('dataweave-cli')" +qa
+nvim --headless "+lua require('onebeer.mule.smoke').run('lemminx-catalog')" +qa
+nvim --headless "+lua require('onebeer.mule.smoke').run('apikit-navigation')" +qa
+nvim --headless "+lua require('onebeer.mule.smoke').run('anypoint-cli')" +qa
+nvim --headless "+lua require('onebeer.mule.smoke').run('neotest-adapter')" +qa
+nvim --headless "+lua require('onebeer.mule.smoke').run('dap-feasibility')" +qa
+<
+
+==============================================================================
 COMMANDS AND TOGGLES                        *onebeer-keymaps*
 *onebeer-commands*
 *OneBeerHelp*
@@ -603,6 +684,14 @@ COMMANDS AND TOGGLES                        *onebeer-keymaps*
 *TrimWhitespaceToggle*
 *LoaderResetCache*
 *Pack*
+*MuleBuild*
+*MuleTest*
+*MuleTestNearest*
+*MuleDwValidate*
+*MuleDwRun*
+*MuleDwRepl*
+*MuleGenerateCatalog*
+*MuleStatus*
 
 Native help stays canonical. |OneBeerHelp| is the short floating overview
 when you just need a quick refresher.
@@ -623,6 +712,14 @@ Command		Meaning ~
 `LoaderResetCache`	reset Neovim Lua loader cache
 `Pack[!] sync`		re-scan plugin spec files, install newly declared plugins, remove plugins no longer declared, then review updates in the Pack review float; `!` applies updates immediately and restart is recommended after add/remove changes
 `Pack[!] update [plugin ...]`	open the Pack review float with live discovery/apply progress; `<CR>` toggles details, `u` applies, `q` closes, and `!` applies immediately
+`MuleBuild [args]`	run Maven in the detected Mule project
+`MuleTest [selector]`	run MUnit through Maven
+`MuleTestNearest`	run nearest MUnit XML test
+`MuleDwValidate`	validate current DataWeave buffer
+`MuleDwRun`		run current DataWeave buffer
+`MuleDwRepl`		open DataWeave REPL
+`MuleGenerateCatalog`	generate Mule XML catalog for LemMinX
+`MuleStatus {args}`	run explicit Anypoint CLI status/list command
 
 Common non-command keymaps worth keeping nearby:
 
@@ -673,6 +770,9 @@ The health check gives you a practical readiness sweep across:
 - language-surface tooling such as `ruff`, `rustfmt`, `sqlfluff`, `ruby-lsp`,
   `rubocop`, `gleam`, `zig`, and `zls`, with runtime-managed tools reported
   explicitly when they are absent
+- MuleSoft workflow tooling such as Java, Maven, DataWeave CLI (`dw`),
+  LemMinX, Anypoint CLI v4, Node, and npm; these checks report readiness only
+  and never read or store MuleSoft credentials
 - interactive installation offers for supported external and Mason-managed
   tools
 
