@@ -245,6 +245,17 @@ local function generate_catalog()
     return
   end
 
+  local refreshed, refresh_err =
+    pcall(require("onebeer.mule.integrations.lemminx").refresh, vim.api.nvim_buf_get_name(0))
+  if not refreshed then
+    vim.notify(
+      ("Mule XML catalog written to %s, but LemMinX refresh failed: %s"):format(output, refresh_err),
+      vim.log.levels.ERROR,
+      { title = title }
+    )
+    return
+  end
+
   vim.notify(("Mule XML catalog written to %s"):format(output), vim.log.levels.INFO, { title = title })
 end
 

@@ -698,12 +698,15 @@ local function lemminx_catalog()
   local lemminx = require("onebeer.mule.integrations.lemminx")
   local mule_root = fixture_path("projects/basic-mule")
   local api_xml = mule_root .. "/src/main/mule/api.xml"
+  local not_mule_xml = fixture_path("projects/not-mule/random.xml")
   local scratch = fixture_path("scratch/lemminx")
   local generated_catalog = scratch .. "/catalog.xml"
   local explicit_catalog = scratch .. "/explicit-catalog.xml"
   local empty_catalog = scratch .. "/empty-catalog.xml"
   local blocked_parent = scratch .. "/blocked-parent"
   local blocked_catalog = blocked_parent .. "/catalog.xml"
+  local generic_resource_root = scratch .. "/generic-resource-mule"
+  local generic_resource_xml = generic_resource_root .. "/src/main/resources/generic.xml"
   vim.fn.delete(scratch, "rf")
   assert_true("lemminx scratch mkdir", vim.fn.mkdir(scratch, "p") ~= 0, "failed to create scratch")
 
@@ -799,12 +802,90 @@ local function lemminx_catalog()
   })
   assert_equal("Direct catalog write", written, true)
   assert_equal("Direct catalog write error", write_err, nil)
-  local settings = lemminx.settings(vim.fn.bufadd(api_xml))
+  local settings = lemminx.settings_for_path(api_xml)
   assert_equal(
     "LemMinX catalog setting",
-    vim.uv.fs_realpath(settings.settings.xml.catalogs[1]),
+    vim.uv.fs_realpath(settings.xml.catalogs[1]),
     vim.uv.fs_realpath(project_catalog)
   )
+  assert_equal("LemMinX root settings", lemminx.settings_for_root(project.root), settings)
+  assert_equal("LemMinX generic XML settings", lemminx.settings_for_path(not_mule_xml), {})
+
+  local generic_copy_result = vim.fn.system({ "cp", "-R", mule_root, generic_resource_root })
+  assert_equal("LemMinX generic resource copy status", vim.v.shell_error, 0)
+  assert_true("LemMinX generic resource copy output", type(generic_copy_result) == "string", "missing copy output")
+  assert_true(
+    "LemMinX generic resource XML write",
+    vim.fn.writefile({ "<resources />" }, generic_resource_xml) == 0,
+    "failed to write generic resource XML"
+  )
+
+  local selected_root
+  lemminx.root_dir(vim.fn.bufadd(api_xml), function(root)
+    selected_root = root
+  end)
+  assert_equal("LemMinX Mule root", vim.fs.normalize(selected_root), vim.fs.normalize(project.root))
+
+  local fallback_root
+  lemminx.root_dir(vim.fn.bufadd(not_mule_xml), function(root)
+    fallback_root = root
+  end)
+  assert_equal(
+    "LemMinX generic XML root",
+    vim.fs.normalize(fallback_root),
+    vim.fs.root(vim.fs.dirname(not_mule_xml), { ".git" }) or vim.fs.dirname(not_mule_xml)
+  )
+  lemminx.root_dir(vim.fn.bufadd(generic_resource_xml), function(root)
+    fallback_root = root
+  end)
+  assert_equal("LemMinX Mule resource XML root", vim.fs.normalize(fallback_root), vim.fs.dirname(generic_resource_xml))
+  assert_equal("LemMinX Mule resource XML settings", lemminx.settings_for_path(generic_resource_xml), {})
+
+  local notifications = {}
+  local fake_client = {
+    settings = {
+      xml = {
+        fileAssociations = { { pattern = "*.xml", systemId = "schema.xsd" } },
+      },
+    },
+    notify = function(_, method, params)
+      notifications[#notifications + 1] = { method = method, params = params }
+      return true
+    end,
+  }
+  assert_equal("LemMinX apply catalog", lemminx.apply(fake_client, api_xml), true)
+  assert_equal("LemMinX apply catalog path", fake_client.settings.xml.catalogs[1], project_catalog)
+  assert_equal("LemMinX existing settings retained", fake_client.settings.xml.fileAssociations[1].pattern, "*.xml")
+  assert_equal("LemMinX apply notification count", #notifications, 1)
+  assert_equal("LemMinX apply notification method", notifications[1].method, "workspace/didChangeConfiguration")
+  assert_equal("LemMinX apply notification settings", notifications[1].params.settings, nil)
+
+  local other_notifications = 0
+  local other_client = {
+    config = { root_dir = fixture_path("projects/not-mule") },
+    settings = {},
+    notify = function()
+      other_notifications = other_notifications + 1
+    end,
+  }
+  fake_client.config = { root_dir = project.root }
+  local original_get_clients = vim.lsp.get_clients
+  vim.lsp.get_clients = function(filter)
+    assert_equal("LemMinX refresh client filter", filter, { name = "lemminx" })
+    return { fake_client, other_client }
+  end
+  local refreshed_ok, refreshed = pcall(lemminx.refresh, api_xml)
+  vim.lsp.get_clients = original_get_clients
+  assert_equal("LemMinX refresh succeeds", refreshed_ok, true)
+  assert_equal("LemMinX refresh count", refreshed, 1)
+  assert_equal("LemMinX refresh notification count", #notifications, 2)
+  assert_equal("LemMinX refresh ignores other project", other_notifications, 0)
+
+  local lsp_config = vim.lsp.config.lemminx
+  assert_true("LemMinX repo config root function", type(lsp_config.root_dir) == "function", "missing root_dir function")
+  local initialized_config = { root_dir = project.root, settings = {} }
+  lsp_config.before_init({}, initialized_config)
+  assert_equal("LemMinX repo config catalog setting", initialized_config.settings.xml.catalogs[1], project_catalog)
 
   vim.fn.delete(project_catalog, "rf")
   vim.fn.delete(blocked_parent, "rf")

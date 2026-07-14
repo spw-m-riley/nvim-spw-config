@@ -335,8 +335,9 @@
 :checkhealth vim.lsp</code></pre>
         <p>
           Mule XML remains normal <code>xml</code>. Mule-specific behavior is gated by project root and path checks, so
-          generic XML files do not inherit Mule catalog settings. If no local XSD mappings are found, the command reports
-          that state instead of writing an empty catalog.
+          generic XML files do not inherit Mule catalog settings. Generation refreshes an active project-local LemMinX
+          client; when no client is active, the next project-local start picks up the catalog. If no local XSD mappings
+          are found, the command reports that state instead of writing an empty catalog.
         </p>
 
         <h3>Navigate APIKit projects</h3>

@@ -619,7 +619,8 @@ Command		Meaning ~
 `MuleDwRepl`	open `dw repl` in a terminal split
 `MuleGenerateCatalog`	discover local XSD targetNamespace mappings under
 			project resources/Exchange-module directories and
-			write `.onebeer/mule-catalog.xml` for LemMinX
+			write `.onebeer/mule-catalog.xml` for LemMinX and refresh
+			the active project-local client
 `MuleStatus {args}`	run an explicit `anypoint-cli-v4` status/list command
 			and show the output; JSON parsing supports
 			`--output json`, `--output=json`, and `-o json`
@@ -638,9 +639,10 @@ External tool ownership:
 
 - Java and Maven own build/test execution.
 - `dw` owns DataWeave validation, run, and REPL behavior.
-- LemMinX owns XML/XSD validation once a local catalog exists; if no local XSD
-  mappings are found, `MuleGenerateCatalog` reports that instead of writing an
-  empty catalog.
+- LemMinX owns XML/XSD validation once a local catalog exists. Catalog generation
+  refreshes the active project-local LemMinX client; without one, the next client
+  start picks up the catalog. If no local XSD mappings are found,
+  `MuleGenerateCatalog` reports that instead of writing an empty catalog.
 - Anypoint CLI v4 owns Runtime Manager / CloudHub / Exchange-style operations.
 - OneBeer never stores MuleSoft credentials; configure Maven and Anypoint CLI
  outside Neovim.
@@ -726,7 +728,8 @@ Command		Meaning ~
 `MuleDwValidate`	validate current DataWeave buffer
 `MuleDwRun`		run current DataWeave buffer
 `MuleDwRepl`		open DataWeave REPL
-`MuleGenerateCatalog`	generate Mule XML catalog for LemMinX
+`MuleGenerateCatalog`	generate Mule XML catalog for LemMinX and refresh
+			the active project-local client
 `MuleStatus {args}`	run explicit Anypoint CLI status/list command
 
 Common non-command keymaps worth keeping nearby:
