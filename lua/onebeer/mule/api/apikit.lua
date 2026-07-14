@@ -51,6 +51,22 @@ function M.parse_flow_name(name)
   }
 end
 
+---@param xml_path string
+---@param line integer
+---@return onebeer.mule.IndexEntry|nil
+function M.generated_flow_at(xml_path, line)
+  if not detect.is_mule_xml(xml_path) then
+    return nil
+  end
+
+  local flow = indexer.flow_at(xml_path, line)
+  if flow == nil or M.parse_flow_name(flow.name) == nil then
+    return nil
+  end
+
+  return flow
+end
+
 ---@param spec_path string
 ---@param route onebeer.mule.ApiKitRoute
 ---@return integer|nil

@@ -44,28 +44,115 @@ local function add_entry(entries, name, path, line)
   }
 end
 
+---@param lines string[]
+---@param start_line integer
+---@param tag string
+---@return string|nil, integer|nil
+local function opening_tag_at(lines, start_line, tag)
+  local opening_line = lines[start_line]
+  if
+    opening_line == nil
+    or (opening_line:match("^%s*<" .. tag .. "$") == nil and opening_line:match("^%s*<" .. tag .. "[%s/>]") == nil)
+  then
+    return nil, nil
+  end
+
+  local parts = {}
+  for line_number = start_line, #lines do
+    local line = lines[line_number]
+    local end_column = line:find(">", 1, true)
+    parts[#parts + 1] = end_column and line:sub(1, end_column) or line
+    if end_column then
+      return table.concat(parts, "\n"), line_number
+    end
+  end
+
+  return nil, nil
+end
+
+---@param tag string
+---@param name string
+---@return string|nil
+local function attribute(tag, name)
+  return tag:match(name .. "%s*=%s*[\"']([^\"']+)[\"']")
+end
+
 ---@param index onebeer.mule.Index
 ---@param path string
 local function index_mule_xml(index, path)
-  for line_number, line in ipairs(read_lines(path)) do
-    for flow in line:gmatch("<flow%s+[^>]-name=[\"']([^\"']+)") do
-      add_entry(index.flows, flow, path, line_number)
-    end
-    for subflow in line:gmatch("<sub%-flow%s+[^>]-name=[\"']([^\"']+)") do
-      add_entry(index.subflows, subflow, path, line_number)
-    end
-    for prefix, name in line:gmatch("<([%w_-]+):config%s+[^>]-name=[\"']([^\"']+)") do
-      add_entry(index.configs, prefix .. ":" .. name, path, line_number)
-    end
-    for name, api in line:gmatch("<apikit:config%s+[^>]-name=[\"']([^\"']+)[\"'][^>]-api=[\"']([^\"']+)") do
-      index.apikit_configs[#index.apikit_configs + 1] = {
-        name = name,
-        api = api,
-        path = path,
-        line = line_number,
-      }
+  local lines = read_lines(path)
+  local line_number = 1
+  while line_number <= #lines do
+    local tag, end_line = opening_tag_at(lines, line_number, "flow")
+    if tag then
+      local name = attribute(tag, "name")
+      if name then
+        add_entry(index.flows, name, path, line_number)
+      end
+      line_number = end_line + 1
+    else
+      tag, end_line = opening_tag_at(lines, line_number, "sub%-flow")
+      if tag then
+        local name = attribute(tag, "name")
+        if name then
+          add_entry(index.subflows, name, path, line_number)
+        end
+        line_number = end_line + 1
+      else
+        local prefix = lines[line_number]:match("^%s*<([%w_-]+):config[%s/>]")
+          or lines[line_number]:match("^%s*<([%w_-]+):config$")
+        if prefix then
+          tag, end_line = opening_tag_at(lines, line_number, prefix .. ":config")
+          local name = tag and attribute(tag, "name") or nil
+          if name then
+            add_entry(index.configs, prefix .. ":" .. name, path, line_number)
+            if prefix == "apikit" then
+              local api = attribute(tag, "api")
+              if api then
+                index.apikit_configs[#index.apikit_configs + 1] = {
+                  name = name,
+                  api = api,
+                  path = path,
+                  line = line_number,
+                }
+              end
+            end
+          end
+          line_number = end_line and end_line + 1 or line_number + 1
+        else
+          line_number = line_number + 1
+        end
+      end
     end
   end
+end
+
+---@param path string
+---@param line integer
+---@return onebeer.mule.IndexEntry|nil
+function M.flow_at(path, line)
+  local lines = read_lines(path)
+  local line_number = 1
+  while line_number <= line do
+    local tag, end_line = opening_tag_at(lines, line_number, "flow")
+    if tag then
+      if line <= end_line then
+        local name = attribute(tag, "name")
+        if name then
+          return {
+            name = name,
+            path = path,
+            line = line_number,
+          }
+        end
+      end
+      line_number = end_line + 1
+    else
+      line_number = line_number + 1
+    end
+  end
+
+  return nil
 end
 
 ---@param index onebeer.mule.Index

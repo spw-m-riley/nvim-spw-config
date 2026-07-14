@@ -227,6 +227,7 @@ local mule_command_names = {
   "MuleDwRun",
   "MuleDwRepl",
   "MuleGenerateCatalog",
+  "MuleApiNavigate",
   "MuleStatus",
 }
 
@@ -305,6 +306,53 @@ local function commands()
       },
     }, function()
       setup_mule_commands()
+
+      for _, case in ipairs({
+        {
+          cursor = 7,
+          line = 4,
+          name = "RAML top-level",
+          spec = mule_root .. "/src/main/resources/api/basic.raml",
+        },
+        {
+          cursor = 8,
+          line = 12,
+          name = "RAML nested",
+          spec = mule_root .. "/src/main/resources/api/basic.raml",
+        },
+        {
+          cursor = 9,
+          line = 7,
+          name = "OpenAPI",
+          spec = mule_root .. "/src/main/resources/api/openapi.yaml",
+        },
+      }) do
+        with_fixture_buffer(main_xml, function()
+          vim.api.nvim_win_set_cursor(0, { case.cursor, 0 })
+          local notifications = run_command("MuleApiNavigate")
+          assert_equal(case.name .. " navigation notifications", notifications, {})
+          assert_equal(case.name .. " navigation buffer", vim.api.nvim_buf_get_name(0), case.spec)
+          assert_equal(case.name .. " navigation line", vim.api.nvim_win_get_cursor(0)[1], case.line)
+        end)
+      end
+
+      with_fixture_buffer(main_xml, function(buf)
+        vim.api.nvim_win_set_cursor(0, { 3, 0 })
+        local notifications = run_command("MuleApiNavigate")
+        local warned = find_notification(notifications, "Place the cursor on an APIKit generated <flow> declaration")
+        assert_true("MuleApiNavigate regular flow warning", warned ~= nil, "missing flow warning")
+        assert_equal("MuleApiNavigate regular flow warning level", warned.level, vim.log.levels.WARN)
+        assert_equal("MuleApiNavigate regular flow buffer", vim.api.nvim_get_current_buf(), buf)
+      end)
+
+      with_fixture_buffer(main_xml, function(buf)
+        vim.api.nvim_win_set_cursor(0, { 10, 0 })
+        local notifications = run_command("MuleApiNavigate")
+        local warned = find_notification(notifications, "Exchange resource specs are not resolved without a local file")
+        assert_true("MuleApiNavigate Exchange warning", warned ~= nil, "missing Exchange warning")
+        assert_equal("MuleApiNavigate Exchange warning level", warned.level, vim.log.levels.WARN)
+        assert_equal("MuleApiNavigate Exchange buffer", vim.api.nvim_get_current_buf(), buf)
+      end)
 
       with_fixture_buffer(main_xml, function()
         local notifications = run_command("MuleBuild")
@@ -449,6 +497,7 @@ local function commands()
   cleanup_project_artifacts(mule_root)
   vim.fn.delete(no_xsd_root, "rf")
   vim.fn.delete(command_scratch, "rf")
+  cleanup_fixture_buffers()
   if not ok then
     error(result, 0)
   end
@@ -660,6 +709,11 @@ local function apikit_navigation()
   assert_equal("APIKit mime", route.mime, "application/json")
   assert_equal("APIKit config", route.config, "api-config")
   assert_equal("Malformed APIKit flow ignored", apikit.parse_flow_name("api-main"), nil)
+  local flow = apikit.generated_flow_at(api_xml, 7)
+  assert_equal("APIKit multiline flow name", flow.name, [=[get:\health:api-config]=])
+  assert_equal("APIKit multiline flow start line", flow.line, 6)
+  assert_equal("APIKit generated flow outside declaration", apikit.generated_flow_at(api_xml, 4), nil)
+  assert_equal("APIKit non-Mule generated flow", apikit.generated_flow_at(not_mule_xml, 1), nil)
 
   local target, err = apikit.route_for_flow(api_xml, [=[get:\health:api-config]=])
   assert_equal("APIKit route error", err, nil)

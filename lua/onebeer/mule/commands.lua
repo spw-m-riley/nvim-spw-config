@@ -259,6 +259,26 @@ local function generate_catalog()
   vim.notify(("Mule XML catalog written to %s"):format(output), vim.log.levels.INFO, { title = title })
 end
 
+local function api_navigate()
+  local path = vim.api.nvim_buf_get_name(0)
+  local cursor = vim.api.nvim_win_get_cursor(0)
+  local apikit = require("onebeer.mule.api.apikit")
+  local flow = apikit.generated_flow_at(path, cursor[1])
+  if flow == nil then
+    vim.notify("Place the cursor on an APIKit generated <flow> declaration", vim.log.levels.WARN, { title = title })
+    return
+  end
+
+  local target, err = apikit.route_for_flow(path, flow.name)
+  if target == nil then
+    vim.notify(err or "APIKit route could not be resolved", vim.log.levels.WARN, { title = title })
+    return
+  end
+
+  vim.cmd.edit(vim.fn.fnameescape(target.spec_path))
+  vim.api.nvim_win_set_cursor(0, { target.line, 0 })
+end
+
 local function anypoint_status(ctx)
   local args = command_args(ctx)
   if #args == 0 then
@@ -305,6 +325,9 @@ function M.setup()
   })
   create_command("MuleGenerateCatalog", generate_catalog, {
     desc = "Generate Mule XML catalog for LemMinX",
+  })
+  create_command("MuleApiNavigate", api_navigate, {
+    desc = "Navigate APIKit generated flow to its local API route",
   })
   create_command("MuleStatus", anypoint_status, {
     desc = "Run explicit Anypoint CLI status/list command",

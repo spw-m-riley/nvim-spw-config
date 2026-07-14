@@ -622,12 +622,16 @@ Command		Meaning ~
 			project resources/Exchange-module directories and
 			write `.onebeer/mule-catalog.xml` for LemMinX and refresh
 			the active project-local client
+`MuleApiNavigate`	*MuleApiNavigate* navigate from the generated APIKit
+			`<flow>` declaration under the cursor to its local API route
 `MuleStatus {args}`	run an explicit `anypoint-cli-v4` status/list command
 			and show the output; JSON parsing supports
 			`--output json`, `--output=json`, and `-o json`
 
 APIKit navigation:
 
+- place the cursor on a generated APIKit `<flow>` declaration and run
+  `:MuleApiNavigate`
 - generated flow names such as `get:\health:api-config` map back to the local
   file declared by the matching `apikit:config`
 - local RAML files support top-level and nested resource segments, returning the
@@ -635,6 +639,8 @@ APIKit navigation:
 - local OpenAPI YAML files support `paths` entries and method lines
 - `resource::` Exchange references stay offline-only and report that a local
   file is required instead of attempting network resolution
+- the command does not navigate from arbitrary processor lines and does not
+  override `gd`, `gf`, or any global keymap
 
 External tool ownership:
 

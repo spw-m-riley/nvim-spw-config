@@ -298,6 +298,11 @@
               <td>LemMinX for editor diagnostics</td>
             </tr>
             <tr>
+              <td><code>:MuleApiNavigate</code></td>
+              <td>Navigates from the generated APIKit <code>&lt;flow&gt;</code> declaration under the cursor to its local API route.</td>
+              <td>Local RAML or OpenAPI spec</td>
+            </tr>
+            <tr>
               <td><code>:MuleStatus {args}</code></td>
               <td>Runs explicit Anypoint CLI status/list-style arguments and displays the output.</td>
               <td>Anypoint CLI v4</td>
@@ -341,14 +346,17 @@
         </p>
 
         <h3>Navigate APIKit projects</h3>
+        <pre><code>:MuleApiNavigate</code></pre>
         <p>
-          The APIKit parser understands generated flow names such as <code>get:\health:api-config</code> and maps them
-          back to local specs declared by <code>apikit:config</code>. Local RAML supports top-level and nested resource
+          Place the cursor on a generated APIKit <code>&lt;flow&gt;</code> declaration, such as
+          <code>get:\health:api-config</code>, then run <code>:MuleApiNavigate</code>. It maps the flow back to the
+          local spec declared by <code>apikit:config</code>. Local RAML supports top-level and nested resource
           segments; local OpenAPI YAML supports <code>paths</code> entries and method lines.
         </p>
         <p>
           Remote <code>resource::</code> Exchange specs stay offline-only: navigation reports that a local file is
-          required instead of fetching from Anypoint or resolving credentials.
+          required instead of fetching from Anypoint or resolving credentials. The command does not navigate from
+          arbitrary processor lines and does not override <code>gd</code>, <code>gf</code>, or global keymaps.
         </p>
 
         <h3>Use Anypoint CLI explicitly</h3>

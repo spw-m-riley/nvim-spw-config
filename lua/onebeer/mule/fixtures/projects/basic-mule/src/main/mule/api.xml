@@ -3,7 +3,8 @@
   <flow name="api-main">
     <flow-ref name="impl-health" />
   </flow>
-  <flow name="get:\health:api-config" />
+  <flow
+      name="get:\health:api-config" />
   <flow name="post:\platform-metrics\load:application\json:api-config" />
   <flow name="get:\widgets\{widgetId}:oas-config" />
   <flow name="get:\remote:exchange-config" />

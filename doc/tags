@@ -6,6 +6,7 @@ InspectTree	onebeer.txt	/*InspectTree*
 LintToggle	onebeer.txt	/*LintToggle*
 LintToggleBuffer	onebeer.txt	/*LintToggleBuffer*
 LoaderResetCache	onebeer.txt	/*LoaderResetCache*
+MuleApiNavigate	onebeer.txt	/*MuleApiNavigate*
 MuleBuild	onebeer.txt	/*MuleBuild*
 MuleDwRepl	onebeer.txt	/*MuleDwRepl*
 MuleDwRun	onebeer.txt	/*MuleDwRun*
