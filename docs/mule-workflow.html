@@ -324,6 +324,17 @@
           Maven owns build and test semantics. OneBeer only chooses the project root, runs the command, and turns
           failures into quickfix entries where the output includes file and line data.
         </p>
+        <div class="callout">
+          <strong>Background commands:</strong> <code>:MuleBuild</code>, <code>:MuleTest</code>,
+          <code>:MuleTestNearest</code>, <code>:MuleDwValidate</code>, <code>:MuleDwRun</code>, and
+          <code>:MuleStatus</code> start external CLI work in the background and report completion asynchronously.
+          Quickfix entries and output windows appear after completion, not when the command starts.
+        </div>
+        <p>
+          Starting another external Mule command while one is active is allowed and unmanaged. Concurrent Maven jobs
+          for the same project can contend for output such as <code>target/</code>. OneBeer currently provides no
+          cancellation, progress reporting, queue, or per-project lock.
+        </p>
 
         <h3>Work with DataWeave</h3>
         <pre><code>:edit src/main/resources/dw/transform.dwl

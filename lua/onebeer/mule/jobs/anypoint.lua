@@ -34,6 +34,24 @@ local function classify_failure(result)
   }
 end
 
+---@param result vim.SystemCompleted
+---@param opts? onebeer.mule.AnypointRunOpts
+---@return boolean, any
+local function finalize(result, opts)
+  if result.code ~= 0 then
+    return false, classify_failure(result)
+  end
+
+  if opts and opts.json then
+    local ok, decoded = pcall(vim.json.decode, result.stdout or "")
+    if ok then
+      return true, decoded
+    end
+  end
+
+  return true, result.stdout or ""
+end
+
 ---@class onebeer.mule.AnypointRunOpts
 ---@field json? boolean
 
@@ -57,18 +75,34 @@ function M.run(args, opts)
     }
   end
 
-  if result.code ~= 0 then
-    return false, classify_failure(result)
+  return finalize(result, opts)
+end
+
+---@param args string[]
+---@param opts? onebeer.mule.AnypointRunOpts
+---@param callback fun(ok: boolean, result_or_error: any)
+---@return vim.SystemObj|nil, string|nil
+function M.run_async(args, opts, callback)
+  local available, err = ensure_cli()
+  if not available then
+    callback(false, {
+      kind = "missing",
+      message = err or "Failed to start Anypoint CLI",
+    })
+    return nil, err
   end
 
-  if opts and opts.json then
-    local ok, decoded = pcall(vim.json.decode, result.stdout or "")
-    if ok then
-      return true, decoded
+  return process.start("anypoint", args, nil, function(result, process_err)
+    if result == nil then
+      callback(false, {
+        kind = "start",
+        message = process_err or "Failed to start Anypoint CLI",
+      })
+      return
     end
-  end
-
-  return true, result.stdout or ""
+    local ok, finalized = finalize(result, opts)
+    callback(ok, finalized)
+  end)
 end
 
 return M

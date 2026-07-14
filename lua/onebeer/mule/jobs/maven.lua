@@ -11,6 +11,20 @@ local process = require("onebeer.mule.jobs.process")
 ---@field args? string[]
 ---@field quickfix? boolean
 
+---@param result vim.SystemCompleted
+---@param opts onebeer.mule.MavenBuildOpts
+---@return boolean, vim.SystemCompleted
+local function finalize(result, opts)
+  if result.code ~= 0 then
+    if opts.quickfix ~= false then
+      diagnostics.set_quickfix("Mule Maven Build", maven_output.quickfix_items(result))
+    end
+    return false, result
+  end
+
+  return true, result
+end
+
 ---@param opts? onebeer.mule.MavenBuildOpts
 ---@return boolean, vim.SystemCompleted|string
 function M.build(opts)
@@ -25,14 +39,29 @@ function M.build(opts)
     return false, err or "Failed to start Maven"
   end
 
-  if result.code ~= 0 then
-    if options.quickfix ~= false then
-      diagnostics.set_quickfix("Mule Maven Build", maven_output.quickfix_items(result))
-    end
-    return false, result
+  return finalize(result, options)
+end
+
+---@param opts? onebeer.mule.MavenBuildOpts
+---@param callback fun(ok: boolean, result_or_error: vim.SystemCompleted|string)
+---@return vim.SystemObj|nil, string|nil
+function M.build_async(opts, callback)
+  local options = opts or {}
+  local project = detect.project(options.path)
+  if project == nil then
+    local err = "No Mule project detected"
+    callback(false, err)
+    return nil, err
   end
 
-  return true, result
+  return process.start("maven", options.args or { "package" }, { cwd = project.root }, function(result, err)
+    if result == nil then
+      callback(false, err or "Failed to start Maven")
+      return
+    end
+    local ok, finalized = finalize(result, options)
+    callback(ok, finalized)
+  end)
 end
 
 return M

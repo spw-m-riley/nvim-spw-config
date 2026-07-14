@@ -98,6 +98,20 @@ end
 ---@field selector? string
 ---@field quickfix? boolean
 
+---@param result vim.SystemCompleted
+---@param opts onebeer.mule.MUnitRunOpts
+---@return boolean, vim.SystemCompleted
+local function finalize(result, opts)
+  if result.code ~= 0 then
+    if opts.quickfix ~= false then
+      diagnostics.set_quickfix("Mule MUnit", maven_output.quickfix_items(result))
+    end
+    return false, result
+  end
+
+  return true, result
+end
+
 ---@param opts? onebeer.mule.MUnitRunOpts
 ---@return boolean, vim.SystemCompleted|string
 function M.run(opts)
@@ -117,14 +131,34 @@ function M.run(opts)
     return false, err or "Failed to start Maven"
   end
 
-  if result.code ~= 0 then
-    if options.quickfix ~= false then
-      diagnostics.set_quickfix("Mule MUnit", maven_output.quickfix_items(result))
-    end
-    return false, result
+  return finalize(result, options)
+end
+
+---@param opts? onebeer.mule.MUnitRunOpts
+---@param callback fun(ok: boolean, result_or_error: vim.SystemCompleted|string)
+---@return vim.SystemObj|nil, string|nil
+function M.run_async(opts, callback)
+  local options = opts or {}
+  local project = detect.project(options.path)
+  if project == nil then
+    local err = "No Mule project detected"
+    callback(false, err)
+    return nil, err
   end
 
-  return true, result
+  local args = { "clean", "test" }
+  if options.selector and options.selector ~= "" then
+    args[#args + 1] = "-Dmunit.test=" .. options.selector
+  end
+
+  return process.start("maven", args, { cwd = project.root }, function(result, err)
+    if result == nil then
+      callback(false, err or "Failed to start Maven")
+      return
+    end
+    local ok, finalized = finalize(result, options)
+    callback(ok, finalized)
+  end)
 end
 
 return M

@@ -157,38 +157,6 @@ local function with_fixture_buffer(path, fn)
   return result
 end
 
----@param fn fun()
----@return table[]
----@return any
-local function with_output_windows(fn)
-  local existing = {}
-  for _, win in ipairs(vim.api.nvim_list_wins()) do
-    existing[win] = true
-  end
-
-  local ok, result = pcall(fn)
-
-  local outputs = {}
-  for _, win in ipairs(vim.api.nvim_list_wins()) do
-    if not existing[win] then
-      local buf = vim.api.nvim_win_get_buf(win)
-      outputs[#outputs + 1] = {
-        lines = vim.api.nvim_buf_get_lines(buf, 0, -1, false),
-        win = win,
-      }
-    end
-  end
-  for _, output in ipairs(outputs) do
-    pcall(vim.api.nvim_win_close, output.win, true)
-  end
-
-  if not ok then
-    error(result, 0)
-  end
-
-  return outputs, result
-end
-
 ---@param notifications table[]
 ---@param text string
 ---@return table|nil
@@ -247,6 +215,65 @@ local function run_command(command)
   return notifications
 end
 
+---@param command string
+---@param complete fun(notifications: table[], existing_windows: table<integer, boolean>): boolean
+---@return table[], table[], number
+local function run_async_command(command, complete)
+  local existing_windows = {}
+  for _, win in ipairs(vim.api.nvim_list_wins()) do
+    existing_windows[win] = true
+  end
+
+  local notifications = {}
+  local original_notify = vim.notify
+  vim.notify = function(message, level, opts)
+    notifications[#notifications + 1] = {
+      level = level,
+      message = tostring(message),
+      title = opts and opts.title or nil,
+    }
+  end
+
+  local started_at = vim.uv.hrtime()
+  local ok, result = pcall(vim.cmd, command)
+  local elapsed_ms = (vim.uv.hrtime() - started_at) / 1000000
+  local completed = ok and vim.wait(2000, function()
+    return complete(notifications, existing_windows)
+  end, 10)
+
+  local outputs = {}
+  for _, win in ipairs(vim.api.nvim_list_wins()) do
+    if not existing_windows[win] then
+      local buf = vim.api.nvim_win_get_buf(win)
+      outputs[#outputs + 1] = {
+        lines = vim.api.nvim_buf_get_lines(buf, 0, -1, false),
+        win = win,
+      }
+    end
+  end
+  for _, output in ipairs(outputs) do
+    pcall(vim.api.nvim_win_close, output.win, true)
+  end
+  vim.notify = original_notify
+
+  if not ok then
+    error(result, 0)
+  end
+  assert_true("async command completion", completed, ("timed out: %s"):format(command))
+  return notifications, outputs, elapsed_ms
+end
+
+---@param existing_windows table<integer, boolean>
+---@return boolean
+local function has_new_window(existing_windows)
+  for _, win in ipairs(vim.api.nvim_list_wins()) do
+    if not existing_windows[win] then
+      return true
+    end
+  end
+  return false
+end
+
 local function commands()
   local mule_root = fixture_path("projects/basic-mule")
   local main_xml = mule_root .. "/src/main/mule/api.xml"
@@ -302,7 +329,7 @@ local function commands()
       executables = {
         anypoint = config.fixture_bin_root() .. "/anypoint-ok",
         dw = config.fixture_bin_root() .. "/dw-ok",
-        maven = capture_maven,
+        maven = config.fixture_bin_root() .. "/mvn-ok",
       },
     }, function()
       setup_mule_commands()
@@ -355,26 +382,74 @@ local function commands()
       end)
 
       with_fixture_buffer(main_xml, function()
-        local notifications = run_command("MuleBuild")
+        local notifications = run_async_command("MuleBuild", function(current)
+          return find_notification(current, "Maven build complete") ~= nil
+        end)
         local completed = find_notification(notifications, "Maven build complete")
         assert_true("MuleBuild notification", completed ~= nil, "missing success notification")
         assert_equal("MuleBuild level", completed.level, vim.log.levels.INFO)
       end)
 
       with_fixture_buffer(main_xml, function()
-        vim.fn.delete(captured_args_path)
-        local notifications = run_command("MuleBuild -DskipTests -Dexample=value\\ with\\ spaces")
+        config.with({
+          executables = {
+            maven = capture_maven,
+          },
+        }, function()
+          vim.fn.delete(captured_args_path)
+          local notifications = run_async_command(
+            "MuleBuild -DskipTests -Dexample=value\\ with\\ spaces",
+            function(current)
+              return find_notification(current, "Maven build complete") ~= nil
+            end
+          )
 
-        local completed = find_notification(notifications, "Maven build complete")
-        assert_true("MuleBuild quoted args notification", completed ~= nil, "missing success notification")
-        local captured_args = vim.fn.readfile(captured_args_path)
-        assert_equal("MuleBuild quoted args count", #captured_args, 2)
-        assert_equal("MuleBuild quoted arg[1]", captured_args[1], "-DskipTests")
-        assert_equal("MuleBuild quoted arg[2]", captured_args[2], "-Dexample=value with spaces")
+          local completed = find_notification(notifications, "Maven build complete")
+          assert_true("MuleBuild quoted args notification", completed ~= nil, "missing success notification")
+          local captured_args = vim.fn.readfile(captured_args_path)
+          assert_equal("MuleBuild quoted args count", #captured_args, 2)
+          assert_equal("MuleBuild quoted arg[1]", captured_args[1], "-DskipTests")
+          assert_equal("MuleBuild quoted arg[2]", captured_args[2], "-Dexample=value with spaces")
+        end)
+      end)
+
+      with_fixture_buffer(main_xml, function()
+        local notifications, _, elapsed_ms = run_async_command("MuleBuild fixture-delay", function(current)
+          return find_notification(current, "Maven build complete") ~= nil
+        end)
+        assert_true("MuleBuild delayed immediate return", elapsed_ms < 100, ("took %.1fms"):format(elapsed_ms))
+        assert_true(
+          "MuleBuild delayed start notification",
+          find_notification(notifications, "Maven build started") ~= nil,
+          "missing start notification"
+        )
+        assert_true(
+          "MuleBuild delayed completion notification",
+          find_notification(notifications, "Maven build complete") ~= nil,
+          "missing completion notification"
+        )
+      end)
+
+      with_fixture_buffer(main_xml, function()
+        config.with({
+          executables = {
+            maven = config.fixture_bin_root() .. "/mvn-fail",
+          },
+        }, function()
+          local notifications = run_async_command("MuleBuild", function(current)
+            return find_notification(current, "Maven build failed; see quickfix for details") ~= nil
+          end)
+          local failed = find_notification(notifications, "Maven build failed; see quickfix for details")
+          assert_true("MuleBuild async failure notification", failed ~= nil, "missing failure notification")
+          assert_equal("MuleBuild async failure level", failed.level, vim.log.levels.ERROR)
+          assert_equal("MuleBuild async failure quickfix", vim.fn.getqflist({ title = 1 }).title, "Mule Maven Build")
+        end)
       end)
 
       with_fixture_buffer(munit_xml, function()
-        local notifications = run_command("MuleTest")
+        local notifications = run_async_command("MuleTest", function(current)
+          return find_notification(current, "MUnit run complete") ~= nil
+        end)
         local completed = find_notification(notifications, "MUnit run complete")
         assert_true("MuleTest notification", completed ~= nil, "missing success notification")
         assert_equal("MuleTest level", completed.level, vim.log.levels.INFO)
@@ -382,20 +457,24 @@ local function commands()
 
       with_fixture_buffer(munit_xml, function()
         vim.api.nvim_win_set_cursor(0, { 2, 0 })
-        local notifications = run_command("MuleTestNearest")
+        local notifications = run_async_command("MuleTestNearest", function(current)
+          return find_notification(current, "MUnit test complete: api-test#api-main-test") ~= nil
+        end)
         local completed = find_notification(notifications, "MUnit test complete: api-test#api-main-test")
         assert_true("MuleTestNearest selector", completed ~= nil, "missing nearest-selector notification")
         assert_equal("MuleTestNearest level", completed.level, vim.log.levels.INFO)
       end)
 
       with_fixture_buffer(dwl, function()
-        local notifications = run_command("MuleDwValidate")
+        local notifications = run_async_command("MuleDwValidate", function(current)
+          return find_notification(current, "DataWeave validation complete") ~= nil
+        end)
         local validated = find_notification(notifications, "DataWeave validation complete")
         assert_true("MuleDwValidate notification", validated ~= nil, "missing validate notification")
         assert_equal("MuleDwValidate level", validated.level, vim.log.levels.INFO)
 
-        local outputs, run_notifications = with_output_windows(function()
-          return run_command("MuleDwRun")
+        local run_notifications, outputs = run_async_command("MuleDwRun", function(_, existing_windows)
+          return has_new_window(existing_windows)
         end)
         assert_true("MuleDwRun output window", #outputs > 0, "expected output window")
         assert_true(
@@ -403,7 +482,8 @@ local function commands()
           table.concat(outputs[1].lines, "\n"):find("dw run ok:", 1, true) ~= nil,
           "missing DataWeave output"
         )
-        assert_equal("MuleDwRun notifications", #run_notifications, 0)
+        local started = find_notification(run_notifications, "DataWeave run started")
+        assert_true("MuleDwRun start notification", started ~= nil, "missing run start notification")
       end)
 
       with_fixture_buffer(main_xml, function()
@@ -444,9 +524,12 @@ local function commands()
       end)
 
       with_fixture_buffer(main_xml, function()
-        local outputs, notifications = with_output_windows(function()
-          return run_command("MuleStatus runtime-mgr:application:describe demo --output=json")
-        end)
+        local notifications, outputs = run_async_command(
+          "MuleStatus runtime-mgr:application:describe demo --output=json",
+          function(current)
+            return find_notification(current, "Anypoint command complete") ~= nil
+          end
+        )
         local completed = find_notification(notifications, "Anypoint command complete")
         assert_true("MuleStatus notification", completed ~= nil, "missing status notification")
         assert_equal("MuleStatus level", completed.level, vim.log.levels.INFO)
@@ -469,15 +552,41 @@ local function commands()
         )
       end)
 
+      with_fixture_buffer(main_xml, function()
+        local notifications, outputs, elapsed_ms = run_async_command("MuleStatus fixture-delay", function(current)
+          return find_notification(current, "Anypoint command complete") ~= nil
+        end)
+        assert_true("MuleStatus delayed immediate return", elapsed_ms < 100, ("took %.1fms"):format(elapsed_ms))
+        assert_true(
+          "MuleStatus delayed start notification",
+          find_notification(notifications, "Anypoint command started") ~= nil,
+          "missing start notification"
+        )
+        assert_true(
+          "MuleStatus delayed completion notification",
+          find_notification(notifications, "Anypoint command complete") ~= nil,
+          "missing completion notification"
+        )
+        assert_true("MuleStatus delayed output window", #outputs > 0, "expected output window")
+        assert_true(
+          "MuleStatus delayed output",
+          table.concat(outputs[1].lines, "\n"):find("application started", 1, true) ~= nil,
+          "missing delayed output"
+        )
+      end)
+
       for _, case in ipairs({
         { args = "fixture-null", output = "null" },
         { args = "fixture-boolean", output = "true" },
         { args = "fixture-number", output = "42" },
       }) do
         with_fixture_buffer(main_xml, function()
-          local outputs, notifications = with_output_windows(function()
-            return run_command(("MuleStatus %s --output=json"):format(case.args))
-          end)
+          local notifications, outputs = run_async_command(
+            ("MuleStatus %s --output=json"):format(case.args),
+            function(current)
+              return find_notification(current, "Anypoint command complete") ~= nil
+            end
+          )
           local completed = find_notification(notifications, "Anypoint command complete")
           assert_true("MuleStatus scalar notification", completed ~= nil, "missing scalar status notification")
           assert_true("MuleStatus scalar output window", #outputs > 0, "expected scalar output window")
@@ -573,6 +682,46 @@ local function maven_build()
   local ok, err = maven.build({ path = not_mule_xml })
   assert_equal("maven non-Mule refusal", ok, false)
   assert_equal("maven non-Mule message", err, "No Mule project detected")
+
+  config.with({
+    executables = {
+      maven = {},
+    },
+  }, function()
+    local callback_count = 0
+    local callback_ok
+    local callback_err
+    local system_obj, start_err = maven.build_async({ path = mule_root }, function(async_ok, async_err)
+      callback_count = callback_count + 1
+      callback_ok = async_ok
+      callback_err = async_err
+    end)
+    assert_equal("maven async missing system object", system_obj, nil)
+    assert_true("maven async missing start error", type(start_err) == "string", "missing start error")
+    assert_equal("maven async missing callback count", callback_count, 1)
+    assert_equal("maven async missing callback result", callback_ok, false)
+    assert_equal("maven async missing callback error", callback_err, start_err)
+  end)
+
+  config.with({
+    executables = {
+      maven = config.fixture_bin_root() .. "/missing-mvn",
+    },
+  }, function()
+    local callback_count = 0
+    local callback_ok
+    local callback_err
+    local system_obj, start_err = maven.build_async({ path = mule_root }, function(async_ok, async_err)
+      callback_count = callback_count + 1
+      callback_ok = async_ok
+      callback_err = async_err
+    end)
+    assert_equal("maven async start-error system object", system_obj, nil)
+    assert_true("maven async start-error message", type(start_err) == "string", "missing start error")
+    assert_equal("maven async start-error callback count", callback_count, 1)
+    assert_equal("maven async start-error callback result", callback_ok, false)
+    assert_equal("maven async start-error callback error", callback_err, start_err)
+  end)
   cleanup_fixture_buffers()
 end
 

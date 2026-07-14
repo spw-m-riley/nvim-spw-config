@@ -628,6 +628,16 @@ Command		Meaning ~
 			and show the output; JSON parsing supports
 			`--output json`, `--output=json`, and `-o json`
 
+`MuleBuild`, `MuleTest`, `MuleTestNearest`, `MuleDwValidate`, `MuleDwRun`, and
+`MuleStatus` run their external CLI work in the background. They notify when
+the job starts and report completion asynchronously; quickfix entries and
+output windows appear only after the command completes.
+
+Starting another external Mule command while one is already active is allowed
+and unmanaged. In particular, overlapping Maven commands for the same project
+can contend for build output such as `target/`. OneBeer does not currently
+provide cancellation, progress reporting, queues, or per-project locks.
+
 APIKit navigation:
 
 - place the cursor on a generated APIKit `<flow>` declaration and run

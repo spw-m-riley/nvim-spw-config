@@ -49,43 +49,53 @@ end
 ---@param ctx vim.api.keyset.user_command.callback_args
 local function build(ctx)
   local args = command_args(ctx)
-  local ok, result = require("onebeer.mule.jobs.maven").build({
+  local system_obj = require("onebeer.mule.jobs.maven").build_async({
     args = #args > 0 and args or nil,
     quickfix = true,
-  })
+  }, function(ok, result)
+    if ok then
+      vim.notify("Maven build complete", vim.log.levels.INFO, { title = title })
+      return
+    end
 
-  if ok then
-    vim.notify("Maven build complete", vim.log.levels.INFO, { title = title })
+    if type(result) == "string" then
+      vim.notify(result, vim.log.levels.WARN, { title = title })
+      return
+    end
+
+    vim.notify("Maven build failed; see quickfix for details", vim.log.levels.ERROR, { title = title })
+  end)
+  if system_obj == nil then
     return
   end
 
-  if type(result) == "string" then
-    vim.notify(result, vim.log.levels.WARN, { title = title })
-    return
-  end
-
-  vim.notify("Maven build failed; see quickfix for details", vim.log.levels.ERROR, { title = title })
+  vim.notify("Maven build started", vim.log.levels.INFO, { title = title })
 end
 
 ---@param ctx vim.api.keyset.user_command.callback_args
 local function test(ctx)
   local selector = vim.trim(ctx.args)
-  local ok, result = require("onebeer.mule.jobs.munit").run({
+  local system_obj = require("onebeer.mule.jobs.munit").run_async({
     quickfix = true,
     selector = selector ~= "" and selector or nil,
-  })
+  }, function(ok, result)
+    if ok then
+      vim.notify("MUnit run complete", vim.log.levels.INFO, { title = title })
+      return
+    end
 
-  if ok then
-    vim.notify("MUnit run complete", vim.log.levels.INFO, { title = title })
+    if type(result) == "string" then
+      vim.notify(result, vim.log.levels.WARN, { title = title })
+      return
+    end
+
+    vim.notify("MUnit run failed; see quickfix for details", vim.log.levels.ERROR, { title = title })
+  end)
+  if system_obj == nil then
     return
   end
 
-  if type(result) == "string" then
-    vim.notify(result, vim.log.levels.WARN, { title = title })
-    return
-  end
-
-  vim.notify("MUnit run failed; see quickfix for details", vim.log.levels.ERROR, { title = title })
+  vim.notify("MUnit run started", vim.log.levels.INFO, { title = title })
 end
 
 local function test_nearest()
@@ -98,23 +108,28 @@ local function test_nearest()
   end
 
   local selector = require("onebeer.mule.jobs.munit").selector(nearest)
-  local ok, result = require("onebeer.mule.jobs.munit").run({
+  local system_obj = require("onebeer.mule.jobs.munit").run_async({
     path = path,
     quickfix = true,
     selector = selector,
-  })
+  }, function(ok, result)
+    if ok then
+      vim.notify(("MUnit test complete: %s"):format(selector), vim.log.levels.INFO, { title = title })
+      return
+    end
 
-  if ok then
-    vim.notify(("MUnit test complete: %s"):format(selector), vim.log.levels.INFO, { title = title })
+    if type(result) == "string" then
+      vim.notify(result, vim.log.levels.WARN, { title = title })
+      return
+    end
+
+    vim.notify(("MUnit test failed: %s"):format(selector), vim.log.levels.ERROR, { title = title })
+  end)
+  if system_obj == nil then
     return
   end
 
-  if type(result) == "string" then
-    vim.notify(result, vim.log.levels.WARN, { title = title })
-    return
-  end
-
-  vim.notify(("MUnit test failed: %s"):format(selector), vim.log.levels.ERROR, { title = title })
+  vim.notify(("MUnit test started: %s"):format(selector), vim.log.levels.INFO, { title = title })
 end
 
 ---@param value any
@@ -166,18 +181,24 @@ local function dw_validate()
     return
   end
 
-  local ok, result = require("onebeer.mule.jobs.dataweave").validate_file(path)
-  if ok then
-    vim.notify("DataWeave validation complete", vim.log.levels.INFO, { title = title })
+  local system_obj = require("onebeer.mule.jobs.dataweave").validate_file_async(path, function(ok, result)
+    if ok then
+      vim.notify("DataWeave validation complete", vim.log.levels.INFO, { title = title })
+      return
+    end
+
+    if type(result) == "string" then
+      vim.notify(result, vim.log.levels.WARN, { title = title })
+      return
+    end
+
+    vim.notify("DataWeave validation failed; see quickfix for details", vim.log.levels.ERROR, { title = title })
+  end)
+  if system_obj == nil then
     return
   end
 
-  if type(result) == "string" then
-    vim.notify(result, vim.log.levels.WARN, { title = title })
-    return
-  end
-
-  vim.notify("DataWeave validation failed; see quickfix for details", vim.log.levels.ERROR, { title = title })
+  vim.notify("DataWeave validation started", vim.log.levels.INFO, { title = title })
 end
 
 local function dw_run()
@@ -187,23 +208,29 @@ local function dw_run()
     return
   end
 
-  local ok, result = require("onebeer.mule.jobs.dataweave").run_file(path)
-  if ok then
-    local output, err = render_output(result.stdout)
-    if output == nil then
-      vim.notify(err, vim.log.levels.ERROR, { title = title })
+  local system_obj = require("onebeer.mule.jobs.dataweave").run_file_async(path, function(ok, result)
+    if ok then
+      local output, output_err = render_output(result.stdout)
+      if output == nil then
+        vim.notify(output_err, vim.log.levels.ERROR, { title = title })
+        return
+      end
+      open_output("DataWeave Output", output)
       return
     end
-    open_output("DataWeave Output", output)
+
+    if type(result) == "string" then
+      vim.notify(result, vim.log.levels.WARN, { title = title })
+      return
+    end
+
+    vim.notify("DataWeave run failed; see quickfix for details", vim.log.levels.ERROR, { title = title })
+  end)
+  if system_obj == nil then
     return
   end
 
-  if type(result) == "string" then
-    vim.notify(result, vim.log.levels.WARN, { title = title })
-    return
-  end
-
-  vim.notify("DataWeave run failed; see quickfix for details", vim.log.levels.ERROR, { title = title })
+  vim.notify("DataWeave run started", vim.log.levels.INFO, { title = title })
 end
 
 local function dw_repl()
@@ -286,19 +313,33 @@ local function anypoint_status(ctx)
     return
   end
 
-  local ok, result = require("onebeer.mule.jobs.anypoint").run(args, { json = wants_json(args) })
-  if ok then
-    local output, err = render_output(result)
-    if output == nil then
-      vim.notify(err, vim.log.levels.ERROR, { title = title })
-      return
+  local system_obj = require("onebeer.mule.jobs.anypoint").run_async(
+    args,
+    { json = wants_json(args) },
+    function(ok, result)
+      if ok then
+        local output, output_err = render_output(result)
+        if output == nil then
+          vim.notify(output_err, vim.log.levels.ERROR, { title = title })
+          return
+        end
+        vim.notify("Anypoint command complete", vim.log.levels.INFO, { title = title })
+        open_output("Anypoint Output", output)
+        return
+      end
+
+      vim.notify(
+        result.message,
+        result.kind == "auth" and vim.log.levels.ERROR or vim.log.levels.WARN,
+        { title = title }
+      )
     end
-    vim.notify("Anypoint command complete", vim.log.levels.INFO, { title = title })
-    open_output("Anypoint Output", output)
+  )
+  if system_obj == nil then
     return
   end
 
-  vim.notify(result.message, result.kind == "auth" and vim.log.levels.ERROR or vim.log.levels.WARN, { title = title })
+  vim.notify("Anypoint command started", vim.log.levels.INFO, { title = title })
 end
 
 ---@return nil

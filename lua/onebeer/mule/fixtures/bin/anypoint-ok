@@ -1,5 +1,10 @@
 #!/bin/sh
 case "$*" in
+  *fixture-delay*)
+    sleep 0.25
+    ;;
+esac
+case "$*" in
   *fixture-null*)
     printf '%s\n' 'null'
     ;;

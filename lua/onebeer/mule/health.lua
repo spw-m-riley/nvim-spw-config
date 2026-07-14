@@ -4,6 +4,7 @@ local M = {}
 local catalog = require("onebeer.mule.catalog")
 local config = require("onebeer.mule.config")
 local detect = require("onebeer.mule.detect")
+local lsp_settings = require("onebeer.settings.lsp")
 
 ---@param name string
 ---@return boolean
@@ -114,6 +115,18 @@ local function check_current_mule_catalog()
   vim.health.info("No active project-local LemMinX client has the Mule XML catalog configured yet.")
 end
 
+local function check_lemminx()
+  local path = lsp_settings.resolve_executable("lemminx")
+  if path ~= nil then
+    vim.health.ok(("LemMinX (`%s`) is available"):format(path))
+    return
+  end
+
+  vim.health.info(
+    "LemMinX (`lemminx`) is optional. Install it to enable XML/XSD validation for Mule XML catalog support."
+  )
+end
+
 ---@return nil
 function M.check()
   vim.health.start("MuleSoft Tooling")
@@ -131,7 +144,7 @@ function M.check()
     config.command_name("dw") or "dw",
     "Install DataWeave CLI to enable `dw run`, `dw validate`, and `dw repl` wrappers."
   )
-  optional("LemMinX", "lemminx", "Install LemMinX to enable XML/XSD validation for Mule XML catalog support.")
+  check_lemminx()
   optional(
     "Anypoint CLI v4",
     config.command_name("anypoint") or "anypoint-cli-v4",
