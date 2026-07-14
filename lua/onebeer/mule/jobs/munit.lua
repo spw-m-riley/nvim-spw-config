@@ -14,8 +14,24 @@ local process = require("onebeer.mule.jobs.process")
 
 ---@param path string
 ---@return string
-local function suite_name(path)
+local function fallback_suite_name(path)
   return vim.fn.fnamemodify(path, ":t:r")
+end
+
+---@param path string
+---@return string
+function M.suite_selector(path)
+  local project = detect.project(path)
+  if project == nil then
+    return fallback_suite_name(path)
+  end
+
+  local relative = vim.fs.relpath(project.munit_dir, path)
+  if relative == nil or vim.startswith(relative, "..") then
+    return fallback_suite_name(path)
+  end
+
+  return relative:gsub("\\", "/"):gsub("%.xml$", "")
 end
 
 ---@param path string
@@ -33,7 +49,7 @@ function M.discover_file(path)
         line = line_number,
         name = name,
         path = path,
-        suite = suite_name(path),
+        suite = M.suite_selector(path),
       }
     end
   end

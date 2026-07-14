@@ -478,14 +478,14 @@ local function foundation()
   local index = assert(indexer.build(main_xml), "expected Mule index")
   assert_equal("index root", index.root, mule_root)
   assert_equal("Mule XML file count", #index.files.mule, 2)
-  assert_equal("MUnit file count", #index.files.munit, 1)
+  assert_equal("MUnit file count", #index.files.munit, 2)
   assert_equal("DataWeave file count", #index.files.dataweave, 1)
   assert_equal("flow count", #index.flows, 5)
   assert_equal("subflow count", #index.subflows, 1)
   assert_equal("config count", #index.configs, 4)
   assert_equal("APIKit config count", #index.apikit_configs, 3)
   assert_equal("DataWeave resource count", #index.dataweave_resources, 1)
-  assert_equal("MUnit suite count", #index.munit_suites, 1)
+  assert_equal("MUnit suite count", #index.munit_suites, 2)
   assert_equal("MUnit test count", #index.munit_suites[1].tests, 1)
 end
 
@@ -532,12 +532,20 @@ local function munit_runner()
   local surefire = require("onebeer.mule.parsers.surefire")
   local mule_root = fixture_path("projects/basic-mule")
   local munit_xml = mule_root .. "/src/test/munit/api-test.xml"
+  local nested_munit_xml = mule_root .. "/src/test/munit/nested/api-secondary-test.xml"
 
   local tests = munit.discover(munit_xml)
-  assert_equal("MUnit discovery count", #tests, 1)
+  assert_equal("MUnit discovery count", #tests, 2)
   assert_equal("MUnit discovery name", tests[1].name, "api-main-test")
   assert_equal("MUnit nearest name", munit.nearest(munit_xml, 2).name, "api-main-test")
   assert_equal("MUnit selector", munit.selector(tests[1]), "api-test#api-main-test")
+  assert_equal("MUnit top-level suite selector", munit.suite_selector(munit_xml), "api-test")
+  assert_equal("MUnit nested suite selector", munit.suite_selector(nested_munit_xml), "nested/api-secondary-test")
+  assert_equal(
+    "MUnit nested selector",
+    munit.selector(munit.discover_file(nested_munit_xml)[1]),
+    "nested/api-secondary-test#api-main-test"
+  )
 
   local expected = {
     ["TEST-passed.xml"] = "passed",
@@ -955,6 +963,7 @@ local function neotest_adapter()
   local adapter = neotest.adapter()
   local mule_root = fixture_path("projects/basic-mule")
   local munit_xml = mule_root .. "/src/test/munit/api-test.xml"
+  local nested_munit_xml = mule_root .. "/src/test/munit/nested/api-secondary-test.xml"
   local not_mule_xml = fixture_path("projects/not-mule/random.xml")
 
   assert_equal("Neotest adapter name", adapter.name, "mule-munit")
@@ -980,15 +989,52 @@ local function neotest_adapter()
     "missing selector in child id"
   )
 
-  local test = require("onebeer.mule.jobs.munit").discover_file(munit_xml)[1]
+  local file_spec = adapter.build_spec({ tree = {
+    data = function()
+      return tree:data()
+    end,
+  } })
+  assert_equal("Neotest file cwd", file_spec.cwd, mule_root)
+  assert_equal("Neotest file selector", file_spec.command[#file_spec.command], "-Dmunit.test=api-test")
+  assert_true(
+    "Neotest file selector has no nil",
+    file_spec.command[#file_spec.command]:find("nil#", 1, true) == nil,
+    "file selector includes nil"
+  )
+
   local spec = adapter.build_spec({ tree = {
     data = function()
-      return test
+      return discovered_test
     end,
   } })
   assert_equal("Neotest cwd", spec.cwd, mule_root)
-  assert_equal("Neotest DAP honesty", spec.context.strategy_supported, false)
   assert_equal("Neotest command selector", spec.command[#spec.command], "-Dmunit.test=api-test#api-main-test")
+
+  local fallback_spec = adapter.build_spec({ file = munit_xml })
+  assert_equal("Neotest fallback file selector", fallback_spec.command[#fallback_spec.command], "-Dmunit.test=api-test")
+
+  local nested_tree = assert(adapter.discover_positions(nested_munit_xml), "missing nested MUnit position tree")
+  local nested_spec = adapter.build_spec({ tree = {
+    data = function()
+      return nested_tree:data()
+    end,
+  } })
+  assert_equal(
+    "Neotest nested file selector",
+    nested_spec.command[#nested_spec.command],
+    "-Dmunit.test=nested/api-secondary-test"
+  )
+  assert_equal(
+    "Neotest incomplete position",
+    adapter.build_spec({
+      tree = {
+        data = function()
+          return { name = "api-main-test", path = munit_xml, type = "test" }
+        end,
+      },
+    }),
+    nil
+  )
 
   local configured_maven = { config.fixture_bin_root() .. "/mvn-ok", "--batch-mode" }
   local configured_spec = config.with({
@@ -998,7 +1044,7 @@ local function neotest_adapter()
   }, function()
     return adapter.build_spec({ tree = {
       data = function()
-        return test
+        return discovered_test
       end,
     } })
   end)
@@ -1018,34 +1064,130 @@ local function neotest_adapter()
   }, function()
     return adapter.build_spec({ tree = {
       data = function()
-        return test
+        return discovered_test
       end,
     } })
   end)
   assert_equal("Neotest missing maven command", missing_maven_spec, nil)
 
+  local previous_dap = vim.g.onebeer_mule_enable_experimental_dap
+  vim.g.onebeer_mule_enable_experimental_dap = false
+  local dap_spec = adapter.build_spec({
+    strategy = "dap",
+    tree = {
+      data = function()
+        return discovered_test
+      end,
+    },
+  })
+  vim.g.onebeer_mule_enable_experimental_dap = previous_dap
+  assert_equal("Neotest unsupported DAP spec", dap_spec, nil)
+
   with_surefire_reports(mule_root, {
     { fixture = "surefire/TEST-passed.xml", name = "TEST-api-test.xml" },
     { fixture = "surefire/TEST-secondary-suite.xml", name = "TEST-secondary-suite.xml" },
   }, function(report_paths)
-    local results = neotest.result_map(report_paths)
+    local results, diagnostics = neotest.result_map(report_paths)
     local passed_id = munit_xml .. "::api-test#api-main-test"
-    local failed_id = mule_root .. "/src/test/munit/api-secondary-test.xml::api-secondary-test#api-main-test"
+    local failed_id = nested_munit_xml .. "::nested/api-secondary-test#api-main-test"
     assert_equal("Neotest plain result key", results["api-main-test"], nil)
     assert_equal("Neotest passed result", results[passed_id].status, "passed")
     assert_equal("Neotest failed result", results[failed_id].status, "failed")
     assert_equal("Neotest failed message", results[failed_id].errors[1].message, "payload mismatch")
+    assert_equal("Neotest result diagnostics", diagnostics, {})
+    assert_true("Neotest passed source exists", vim.uv.fs_stat(munit_xml) ~= nil, "missing top-level source")
+    assert_true("Neotest nested source exists", vim.uv.fs_stat(nested_munit_xml) ~= nil, "missing nested source")
   end)
+
+  local unmapped_results, unmapped_diagnostics = neotest.result_map({
+    fixture_path("surefire/TEST-passed.xml"),
+  })
+  assert_equal("Neotest unmapped fallback status", unmapped_results["api-test#api-main-test"].status, "passed")
+  assert_equal(
+    "Neotest unmapped fallback diagnostic",
+    unmapped_diagnostics,
+    { "Unmapped MUnit Surefire result: api-test#api-main-test" }
+  )
+
+  local ambiguous_results, ambiguous_diagnostics = neotest.result_map({
+    fixture_path("surefire/TEST-passed.xml"),
+    fixture_path("surefire/TEST-failed.xml"),
+  })
+  assert_equal("Neotest ambiguous fallback omitted", ambiguous_results, {})
+  assert_equal("Neotest ambiguous fallback diagnostic", ambiguous_diagnostics, {
+    "Ambiguous MUnit Surefire result omitted: api-test#api-main-test",
+    "Ambiguous MUnit Surefire result omitted: api-test#api-main-test",
+  })
 end
 
 local function dap_feasibility()
   local dap = require("onebeer.mule.integrations.dap")
+  local munit_xml = fixture_path("projects/basic-mule/src/test/munit/api-test.xml")
+  local not_mule_xml = fixture_path("projects/not-mule/random.xml")
   local previous = vim.g.onebeer_mule_enable_experimental_dap
   vim.g.onebeer_mule_enable_experimental_dap = false
   local ok, err = dap.setup()
   vim.g.onebeer_mule_enable_experimental_dap = previous
   assert_equal("DAP disabled", ok, false)
   assert_equal("DAP disabled message", err, "Mule DAP is disabled until a JDWP smoke test proves support")
+
+  local previous_dap = package.loaded.dap
+  local previous_neotest = package.loaded.neotest
+  local keymap_ok, keymap_err = pcall(function()
+    package.loaded.dap = { adapters = {} }
+    vim.g.onebeer_mule_enable_experimental_dap = true
+
+    ok, err = dap.can_debug()
+    assert_equal("DAP missing Java adapter", ok, false)
+    assert_equal(
+      "DAP missing Java adapter message",
+      err,
+      "A registered nvim-dap Java adapter is required for Mule/MUnit JDWP debugging"
+    )
+    local can_debug = dap.guard(munit_xml)
+    assert_equal("DAP MUnit guard", can_debug, false)
+    can_debug = dap.guard(not_mule_xml)
+    assert_equal("DAP non-Mule guard", can_debug, true)
+
+    local spec = require("onebeer.plugins.neotest")
+    local debug_keymap
+    for _, keymap in ipairs(spec.keys) do
+      if keymap[1] == "<leader>td" then
+        debug_keymap = keymap[2]
+        break
+      end
+    end
+    assert_true("Neotest debug keymap", type(debug_keymap) == "function", "missing <leader>td callback")
+
+    local run_count = 0
+    package.loaded.neotest = {
+      run = {
+        run = function()
+          run_count = run_count + 1
+        end,
+      },
+    }
+
+    local notifications = with_notifications(function()
+      with_fixture_buffer(munit_xml, debug_keymap)
+    end)
+    assert_equal("Mule DAP keymap run count", run_count, 0)
+    assert_equal("Mule DAP keymap notification count", #notifications, 1)
+    assert_equal(
+      "Mule DAP keymap reason",
+      notifications[1].message,
+      "A registered nvim-dap Java adapter is required for Mule/MUnit JDWP debugging"
+    )
+
+    with_fixture_buffer(not_mule_xml, debug_keymap)
+    assert_equal("Non-Mule DAP keymap run count", run_count, 1)
+  end)
+  package.loaded.dap = previous_dap
+  package.loaded.neotest = previous_neotest
+  vim.g.onebeer_mule_enable_experimental_dap = previous
+  if not keymap_ok then
+    error(keymap_err, 0)
+  end
 end
 
 local function deliberate_fail()

@@ -29,6 +29,12 @@ return {
     {
       "<leader>td",
       function()
+        local dap = require("onebeer.mule.integrations.dap")
+        local can_debug, reason = dap.guard(vim.api.nvim_buf_get_name(0))
+        if not can_debug then
+          vim.notify(reason, vim.log.levels.WARN, { title = "Mule DAP" })
+          return
+        end
         require("neotest").run.run({ strategy = "dap" })
       end,
       desc = "[T]est [D]ebug nearest",

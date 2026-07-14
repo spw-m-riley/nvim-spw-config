@@ -538,8 +538,9 @@ Adapter notes:
 - Go adapter runs with `-count=1 -timeout=60s`.
 - Jest adapter uses `npm test --` with `CI=true`.
 - Vitest and plenary adapters are enabled.
-- Mule MUnit XML suites are available through the guarded OneBeer adapter once a
-  Mule project is detected.
+- Mule MUnit XML file runs select the suite relative to `src/test/munit`;
+  nearest-test runs select that suite and test name once a Mule project is
+  detected.
 - discovery is disabled and concurrent runs are enabled.
 
 Debugging via `nvim-dap`                       *onebeer-debugging*
@@ -558,8 +559,8 @@ A few debugging notes:
 - Node debugging uses the `pwa-node` adapter via `js-debug-adapter`.
 - DAP UI opens automatically on session start and closes on exit.
 - virtual text is enabled for DAP sessions.
-- Mule DAP support is intentionally gated and does not register unless the
-  experimental toggle is enabled after a JDWP smoke test proves local support.
+- Mule DAP support is intentionally unavailable until the experimental toggle,
+  Java, nvim-dap, and a registered Java adapter prove JDWP support locally.
 
 Sessions and diagnostics lists              *onebeer-sessions*
 
@@ -638,6 +639,8 @@ APIKit navigation:
 External tool ownership:
 
 - Java and Maven own build/test execution.
+- Neotest runs a MUnit XML file as its suite path relative to `src/test/munit`;
+  nearest-test runs use that suite plus the MUnit test name.
 - `dw` owns DataWeave validation, run, and REPL behavior.
 - LemMinX owns XML/XSD validation once a local catalog exists. Catalog generation
   refreshes the active project-local LemMinX client; without one, the next client
@@ -654,7 +657,8 @@ Known non-goals:
 - no Maven artifact XSD extraction or remote/private schema fetching from
   `MuleGenerateCatalog`
 - no extraction or bundling of closed Anypoint Code Builder or Mule DX tooling
-- no implied Mule DAP support until JDWP feasibility is proven locally
+- no Mule DAP support until the explicit experimental toggle, Java, nvim-dap,
+  and a registered Java adapter prove JDWP feasibility locally
 
 Developer validation entrypoints:
 

@@ -1,5 +1,5 @@
 <testsuite tests="1" failures="1" errors="0" skipped="0">
-  <testcase classname="api-secondary-test" name="api-main-test" time="0.1">
+  <testcase classname="nested/api-secondary-test" name="api-main-test" time="0.1">
     <failure message="payload mismatch">expected true</failure>
   </testcase>
 </testsuite>
