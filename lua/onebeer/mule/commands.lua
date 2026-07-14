@@ -117,8 +117,31 @@ local function test_nearest()
   vim.notify(("MUnit test failed: %s"):format(selector), vim.log.levels.ERROR, { title = title })
 end
 
+---@param value any
+---@return string|nil, string|nil
+local function render_output(value)
+  if value == nil or value == "" then
+    return "(no output)", nil
+  end
+  if value == vim.NIL then
+    return "null", nil
+  end
+  if type(value) == "string" then
+    return value, nil
+  end
+  if type(value) == "number" or type(value) == "boolean" then
+    return tostring(value), nil
+  end
+  if type(value) == "table" then
+    return vim.inspect(value), nil
+  end
+  return nil, ("Unsupported Mule command output type: %s"):format(type(value))
+end
+
+---@param title_text string
+---@param output string
 local function open_output(title_text, output)
-  local lines = vim.split(output ~= "" and output or "(no output)", "\n", { plain = true })
+  local lines = vim.split(output, "\n", { plain = true })
   local buf = vim.api.nvim_create_buf(false, true)
   vim.bo[buf].bufhidden = "wipe"
   vim.bo[buf].filetype = "dataweave-output"
@@ -166,7 +189,12 @@ local function dw_run()
 
   local ok, result = require("onebeer.mule.jobs.dataweave").run_file(path)
   if ok then
-    open_output("DataWeave Output", result.stdout or "")
+    local output, err = render_output(result.stdout)
+    if output == nil then
+      vim.notify(err, vim.log.levels.ERROR, { title = title })
+      return
+    end
+    open_output("DataWeave Output", output)
     return
   end
 
@@ -229,12 +257,13 @@ local function anypoint_status(ctx)
 
   local ok, result = require("onebeer.mule.jobs.anypoint").run(args, { json = wants_json(args) })
   if ok then
-    vim.notify("Anypoint command complete", vim.log.levels.INFO, { title = title })
-    if type(result) == "table" then
-      open_output("Anypoint Output", vim.inspect(result))
-    else
-      open_output("Anypoint Output", result)
+    local output, err = render_output(result)
+    if output == nil then
+      vim.notify(err, vim.log.levels.ERROR, { title = title })
+      return
     end
+    vim.notify("Anypoint command complete", vim.log.levels.INFO, { title = title })
+    open_output("Anypoint Output", output)
     return
   end
 

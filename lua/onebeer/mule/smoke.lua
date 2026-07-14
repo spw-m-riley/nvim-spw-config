@@ -259,6 +259,8 @@ local function commands()
   local command_scratch = fixture_path("scratch/commands")
   local captured_args_path = command_scratch .. "/maven-args.txt"
   local capture_maven = command_scratch .. "/mvn-capture"
+  local catalog_blocker = command_scratch .. "/catalog-blocker"
+  local blocked_catalog = catalog_blocker .. "/catalog.xml"
 
   cleanup_project_artifacts(mule_root)
   vim.fn.delete(no_xsd_root, "rf")
@@ -269,6 +271,11 @@ local function commands()
     "failed to create commands scratch parent"
   )
   assert_true("commands scratch mkdir", vim.fn.mkdir(command_scratch, "p") ~= 0, "failed to create commands scratch")
+  assert_true(
+    "commands catalog blocker",
+    vim.fn.writefile({ "blocker" }, catalog_blocker) == 0,
+    "failed to create catalog blocker"
+  )
   assert_true("commands capture script write", vim.fn.writefile({
     "#!/bin/sh",
     ("capture_path='%s'"):format(captured_args_path),
@@ -361,6 +368,25 @@ local function commands()
         assert_true("MuleGenerateCatalog non-empty", catalog_content:find("<uri ", 1, true) ~= nil, "missing uri row")
       end)
 
+      local catalog = require("onebeer.mule.catalog")
+      local original_generate = catalog.generate
+      catalog.generate = function(startpath, mappings, _, opts)
+        return original_generate(startpath, mappings, blocked_catalog, opts)
+      end
+      local generated_ok, generated_err = pcall(function()
+        with_fixture_buffer(main_xml, function()
+          local notifications = run_command("MuleGenerateCatalog")
+          local failed = find_notification(notifications, blocked_catalog)
+          assert_true("MuleGenerateCatalog blocked notification", failed ~= nil, "missing blocked catalog notification")
+          assert_equal("MuleGenerateCatalog blocked level", failed.level, vim.log.levels.ERROR)
+          assert_equal("MuleGenerateCatalog blocked output", vim.uv.fs_stat(blocked_catalog), nil)
+        end)
+      end)
+      catalog.generate = original_generate
+      if not generated_ok then
+        error(generated_err, 0)
+      end
+
       with_fixture_buffer(no_xsd_xml, function()
         local notifications = run_command("MuleGenerateCatalog")
         local warned = find_notification(notifications, "No Mule XML schema mappings found")
@@ -394,6 +420,22 @@ local function commands()
           "unexpected raw JSON output"
         )
       end)
+
+      for _, case in ipairs({
+        { args = "fixture-null", output = "null" },
+        { args = "fixture-boolean", output = "true" },
+        { args = "fixture-number", output = "42" },
+      }) do
+        with_fixture_buffer(main_xml, function()
+          local outputs, notifications = with_output_windows(function()
+            return run_command(("MuleStatus %s --output=json"):format(case.args))
+          end)
+          local completed = find_notification(notifications, "Anypoint command complete")
+          assert_true("MuleStatus scalar notification", completed ~= nil, "missing scalar status notification")
+          assert_true("MuleStatus scalar output window", #outputs > 0, "expected scalar output window")
+          assert_equal("MuleStatus scalar output", table.concat(outputs[1].lines, "\n"), case.output)
+        end)
+      end
 
       with_fixture_buffer(not_mule_xml, function()
         local notifications = run_command("MuleBuild")
@@ -660,6 +702,8 @@ local function lemminx_catalog()
   local generated_catalog = scratch .. "/catalog.xml"
   local explicit_catalog = scratch .. "/explicit-catalog.xml"
   local empty_catalog = scratch .. "/empty-catalog.xml"
+  local blocked_parent = scratch .. "/blocked-parent"
+  local blocked_catalog = blocked_parent .. "/catalog.xml"
   vim.fn.delete(scratch, "rf")
   assert_true("lemminx scratch mkdir", vim.fn.mkdir(scratch, "p") ~= 0, "failed to create scratch")
 
@@ -710,6 +754,20 @@ local function lemminx_catalog()
   )
   assert_equal("Explicit empty catalog not written", vim.uv.fs_stat(empty_catalog), nil)
 
+  assert_true(
+    "blocked catalog parent",
+    vim.fn.writefile({ "blocker" }, blocked_parent) == 0,
+    "failed to create blocker"
+  )
+  output, err = catalog.generate(api_xml, nil, blocked_catalog)
+  assert_equal("Blocked catalog output", output, nil)
+  assert_true(
+    "Blocked catalog error",
+    err ~= nil and err:find(blocked_catalog, 1, true) ~= nil,
+    "missing blocked catalog path"
+  )
+  assert_equal("Blocked catalog not written", vim.uv.fs_stat(blocked_catalog), nil)
+
   local no_xsd_root = scratch .. "/no-xsd-mule"
   local copy_result = vim.fn.system({ "cp", "-R", mule_root, no_xsd_root })
   assert_equal("No-XSD fixture copy status", vim.v.shell_error, 0)
@@ -733,12 +791,14 @@ local function lemminx_catalog()
 
   local project = assert(detect.project(api_xml), "expected Mule project")
   local project_catalog = catalog.default_path(project)
-  catalog.write(project_catalog, {
+  local written, write_err = catalog.write(project_catalog, {
     {
       path = fixture_path("xsd/mule-core.xsd"),
       uri = "http://www.mulesoft.org/schema/mule/core/current/mule.xsd",
     },
   })
+  assert_equal("Direct catalog write", written, true)
+  assert_equal("Direct catalog write error", write_err, nil)
   local settings = lemminx.settings(vim.fn.bufadd(api_xml))
   assert_equal(
     "LemMinX catalog setting",
@@ -747,6 +807,7 @@ local function lemminx_catalog()
   )
 
   vim.fn.delete(project_catalog, "rf")
+  vim.fn.delete(blocked_parent, "rf")
   vim.fn.delete(scratch, "rf")
   cleanup_project_artifacts(mule_root)
   cleanup_fixture_buffers()
@@ -763,6 +824,18 @@ local function anypoint_cli()
     local ok, result = anypoint.run({ "runtime-mgr:application:describe", "demo", "--output", "json" }, { json = true })
     assert_equal("Anypoint JSON ok", ok, true)
     assert_equal("Anypoint JSON status", result.status, "STARTED")
+
+    ok, result = anypoint.run({ "fixture-null", "--output", "json" }, { json = true })
+    assert_equal("Anypoint null ok", ok, true)
+    assert_true("Anypoint null value", result == vim.NIL, "expected vim.NIL")
+
+    ok, result = anypoint.run({ "fixture-boolean", "--output", "json" }, { json = true })
+    assert_equal("Anypoint boolean ok", ok, true)
+    assert_equal("Anypoint boolean value", result, true)
+
+    ok, result = anypoint.run({ "fixture-number", "--output", "json" }, { json = true })
+    assert_equal("Anypoint number ok", ok, true)
+    assert_equal("Anypoint number value", result, 42)
   end)
 
   config.with({

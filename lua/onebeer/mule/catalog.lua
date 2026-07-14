@@ -68,9 +68,13 @@ end
 
 ---@param output string
 ---@param mappings onebeer.mule.CatalogMapping[]
----@return nil
+---@return boolean, string|nil
 function M.write(output, mappings)
-  vim.fn.mkdir(vim.fn.fnamemodify(output, ":h"), "p")
+  local parent = vim.fn.fnamemodify(output, ":h")
+  local mkdir_ok, mkdir_result = pcall(vim.fn.mkdir, parent, "p")
+  if not mkdir_ok or mkdir_result == 0 or vim.fn.isdirectory(parent) ~= 1 then
+    return false, ("Failed to create catalog directory for %s"):format(output)
+  end
 
   local lines = {
     '<?xml version="1.0" encoding="UTF-8"?>',
@@ -84,7 +88,11 @@ function M.write(output, mappings)
   end
   lines[#lines + 1] = "</catalog>"
 
-  vim.fn.writefile(lines, output)
+  local write_ok, write_result = pcall(vim.fn.writefile, lines, output)
+  if not write_ok or write_result ~= 0 then
+    return false, ("Failed to write Mule XML catalog to %s"):format(output)
+  end
+  return true, nil
 end
 
 ---@param startpath? string
@@ -105,7 +113,10 @@ function M.generate(startpath, mappings, output, opts)
   end
 
   local catalog_path = output or M.default_path(project)
-  M.write(catalog_path, resolved_mappings)
+  local written, err = M.write(catalog_path, resolved_mappings)
+  if not written then
+    return nil, err
+  end
   return catalog_path, nil
 end
 

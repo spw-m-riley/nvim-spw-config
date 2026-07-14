@@ -1,5 +1,14 @@
 #!/bin/sh
 case "$*" in
+  *fixture-null*)
+    printf '%s\n' 'null'
+    ;;
+  *fixture-boolean*)
+    printf '%s\n' 'true'
+    ;;
+  *fixture-number*)
+    printf '%s\n' '42'
+    ;;
   *--output\ json*|*--output=json*|*-o\ json*|*-o=json*)
     printf '%s\n' '{"status":"STARTED"}'
     ;;
