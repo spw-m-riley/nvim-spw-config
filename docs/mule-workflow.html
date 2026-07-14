@@ -366,6 +366,8 @@
           The implementation ships with fixture-backed smoke stages so you can verify each surface without a real
           MuleSoft tenant.
         </p>
+        <pre><code>nvim --headless "+lua require('onebeer.mule.smoke').run('all')" +qa</code></pre>
+        <p>Run the aggregate gate before considering a Mule workflow change complete. Use individual stages to narrow a failure:</p>
         <pre><code>nvim --headless "+lua require('onebeer.mule.smoke').run('harness')" +qa
 nvim --headless "+lua require('onebeer.mule.smoke').run('foundation')" +qa
 nvim --headless "+lua require('onebeer.mule.smoke').run('maven-build')" +qa
@@ -375,7 +377,8 @@ nvim --headless "+lua require('onebeer.mule.smoke').run('lemminx-catalog')" +qa
 nvim --headless "+lua require('onebeer.mule.smoke').run('apikit-navigation')" +qa
 nvim --headless "+lua require('onebeer.mule.smoke').run('anypoint-cli')" +qa
 nvim --headless "+lua require('onebeer.mule.smoke').run('neotest-adapter')" +qa
-nvim --headless "+lua require('onebeer.mule.smoke').run('dap-feasibility')" +qa</code></pre>
+nvim --headless "+lua require('onebeer.mule.smoke').run('dap-feasibility')" +qa
+nvim --headless "+lua require('onebeer.mule.smoke').run('commands')" +qa</code></pre>
         <div class="callout">
           <strong>Full repo checks:</strong> use <code>stylua --check .</code>, <code>selene .</code>,
           <code>nvim --headless "+helptags doc" +qa</code>, and <code>nvim --headless "+checkhealth onebeer" +qa</code>

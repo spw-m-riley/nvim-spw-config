@@ -254,6 +254,7 @@ When working on the config itself, use this validation matrix:
 | Core | `stylua --check .` | formatting drift |
 | Core | `nvim --headless "+lua print(vim.inspect(vim.pack.get(nil, { info = false })))" +qa` | vim.pack plugin state / lockfile view |
 | Core | `nvim --headless "+checkhealth onebeer" +qa` | repo-owned dependency and language-tooling readiness |
+| Mule workflow | `nvim --headless "+lua require('onebeer.mule.smoke').run('all')" +qa` | fixture-backed Mule integrations and user commands |
 | Interactive | `nvim` (real TTY) | dashboard, native statusline, and inline-completion / command-driven AI behavior |
 | Core | `nvim --headless "+checkhealth vim.lsp" +qa` | Neovim LSP client state |
 | Verified add-on | `nvim --headless "+checkhealth mason" +qa` | Mason registry and external runtime availability |

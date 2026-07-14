@@ -657,6 +657,13 @@ Known non-goals:
 Developer validation entrypoints:
 
 >
+nvim --headless "+lua require('onebeer.mule.smoke').run('all')" +qa
+<
+
+Run the aggregate gate before a Mule workflow change is considered complete.
+Use individual stages below for focused debugging:
+
+>
 nvim --headless "+lua require('onebeer.mule.smoke').run('harness')" +qa
 nvim --headless "+lua require('onebeer.mule.smoke').run('foundation')" +qa
 nvim --headless "+lua require('onebeer.mule.smoke').run('maven-build')" +qa
@@ -667,6 +674,7 @@ nvim --headless "+lua require('onebeer.mule.smoke').run('apikit-navigation')" +q
 nvim --headless "+lua require('onebeer.mule.smoke').run('anypoint-cli')" +qa
 nvim --headless "+lua require('onebeer.mule.smoke').run('neotest-adapter')" +qa
 nvim --headless "+lua require('onebeer.mule.smoke').run('dap-feasibility')" +qa
+nvim --headless "+lua require('onebeer.mule.smoke').run('commands')" +qa
 <
 
 ==============================================================================

@@ -129,20 +129,26 @@ end
 ---@param fn fun(bufnr: integer)
 ---@return any
 local function with_fixture_buffer(path, fn)
+  local previous_win = vim.api.nvim_get_current_win()
   local previous_buf = vim.api.nvim_get_current_buf()
   local existing_buf = vim.fn.bufnr(path)
   local created = existing_buf == -1
+  local scratch_buf = vim.api.nvim_create_buf(false, true)
 
+  vim.api.nvim_win_set_buf(previous_win, scratch_buf)
   vim.cmd.edit(vim.fn.fnameescape(path))
   local buf = vim.api.nvim_get_current_buf()
 
   local ok, result = pcall(fn, buf)
 
-  if vim.api.nvim_buf_is_valid(previous_buf) and vim.api.nvim_get_current_buf() ~= previous_buf then
-    pcall(vim.api.nvim_set_current_buf, previous_buf)
+  if vim.api.nvim_win_is_valid(previous_win) and vim.api.nvim_buf_is_valid(previous_buf) then
+    pcall(vim.api.nvim_win_set_buf, previous_win, previous_buf)
   end
   if created and vim.api.nvim_buf_is_valid(buf) then
     pcall(vim.api.nvim_buf_delete, buf, { force = true })
+  end
+  if vim.api.nvim_buf_is_valid(scratch_buf) then
+    pcall(vim.api.nvim_buf_delete, scratch_buf, { force = true })
   end
 
   if not ok then
@@ -199,6 +205,18 @@ end
 local function cleanup_project_artifacts(root)
   vim.fn.delete(root .. "/target", "rf")
   vim.fn.delete(root .. "/.onebeer", "rf")
+end
+
+local function cleanup_fixture_buffers()
+  local root = config.fixture_root() .. "/"
+  for _, buf in ipairs(vim.api.nvim_list_bufs()) do
+    if vim.api.nvim_buf_is_valid(buf) and vim.api.nvim_get_current_buf() ~= buf then
+      local name = vim.api.nvim_buf_get_name(buf)
+      if vim.startswith(name, root) then
+        pcall(vim.api.nvim_buf_delete, buf, { force = true })
+      end
+    end
+  end
 end
 
 local mule_command_names = {
@@ -464,6 +482,7 @@ local function maven_build()
   local ok, err = maven.build({ path = not_mule_xml })
   assert_equal("maven non-Mule refusal", ok, false)
   assert_equal("maven non-Mule message", err, "No Mule project detected")
+  cleanup_fixture_buffers()
 end
 
 local function munit_runner()
@@ -512,6 +531,7 @@ local function munit_runner()
     assert_equal("MUnit quickfix title", qf.title, "Mule MUnit")
     assert_equal("MUnit quickfix count", #qf.items, 1)
   end)
+  cleanup_fixture_buffers()
 end
 
 local function dataweave_cli()
@@ -572,6 +592,7 @@ local function dataweave_cli()
       ("DataWeave CLI `%s` is not executable"):format(config.fixture_bin_root() .. "/missing-dw")
     )
   end)
+  cleanup_fixture_buffers()
 end
 
 local function apikit_navigation()
@@ -727,6 +748,8 @@ local function lemminx_catalog()
 
   vim.fn.delete(project_catalog, "rf")
   vim.fn.delete(scratch, "rf")
+  cleanup_project_artifacts(mule_root)
+  cleanup_fixture_buffers()
 end
 
 local function anypoint_cli()
@@ -875,6 +898,51 @@ local function deliberate_fail()
   error("deliberate smoke failure", 0)
 end
 
+local function sorted_ids(ids)
+  table.sort(ids)
+  return ids
+end
+
+local function stage_snapshot()
+  local fixture_root = config.fixture_root()
+  local artifact_paths = {
+    fixture_root .. "/scratch",
+    fixture_root .. "/projects/basic-mule/.onebeer",
+    fixture_root .. "/projects/basic-mule/target",
+  }
+  local artifacts = {}
+  for _, path in ipairs(artifact_paths) do
+    artifacts[path] = vim.uv.fs_stat(path) ~= nil
+  end
+
+  local buffers = {}
+  for _, buf in ipairs(vim.api.nvim_list_bufs()) do
+    if vim.api.nvim_buf_is_valid(buf) then
+      buffers[#buffers + 1] = buf
+    end
+  end
+
+  return {
+    artifacts = artifacts,
+    buffers = sorted_ids(buffers),
+    current_buf = vim.api.nvim_get_current_buf(),
+    current_win = vim.api.nvim_get_current_win(),
+    notify = vim.notify,
+    windows = sorted_ids(vim.api.nvim_list_wins()),
+  }
+end
+
+---@param name string
+---@param before table
+local function assert_stage_isolated(name, before)
+  assert_equal(name .. " artifact state", stage_snapshot().artifacts, before.artifacts)
+  assert_equal(name .. " buffer state", stage_snapshot().buffers, before.buffers)
+  assert_equal(name .. " current buffer", vim.api.nvim_get_current_buf(), before.current_buf)
+  assert_equal(name .. " current window", vim.api.nvim_get_current_win(), before.current_win)
+  assert_true(name .. " notify state", vim.notify == before.notify, "vim.notify was not restored")
+  assert_equal(name .. " window state", stage_snapshot().windows, before.windows)
+end
+
 local stages = {
   commands = commands,
   foundation = foundation,
@@ -890,16 +958,45 @@ local stages = {
   ["neotest-adapter"] = neotest_adapter,
 }
 
----@param stage? string
----@return nil
-function M.run(stage)
-  local name = stage or "harness"
+local success_stages = {
+  "harness",
+  "foundation",
+  "maven-build",
+  "munit-runner",
+  "dataweave-cli",
+  "lemminx-catalog",
+  "apikit-navigation",
+  "anypoint-cli",
+  "neotest-adapter",
+  "dap-feasibility",
+  "commands",
+}
+
+---@param name string
+local function run_stage(name)
   local runner = stages[name]
   if runner == nil then
     error(("Unknown Mule smoke stage: %s"):format(name), 0)
   end
+  runner()
+end
 
-  local ok, err = pcall(runner)
+---@param stage? string
+---@return nil
+function M.run(stage)
+  local name = stage or "harness"
+  local ok, err = pcall(function()
+    if name ~= "all" then
+      run_stage(name)
+      return
+    end
+
+    for _, stage_name in ipairs(success_stages) do
+      local before = stage_snapshot()
+      run_stage(stage_name)
+      assert_stage_isolated(stage_name, before)
+    end
+  end)
   if ok then
     return
   end
