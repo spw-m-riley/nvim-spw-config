@@ -206,17 +206,14 @@ function M.remote(opts)
   end
   local count = vim.v.count
   local register = vim.v.register
-  vim.api.nvim_feedkeys(vim.keycode("<Esc>"), "nx", false)
 
   local target = character_target(opts)
   if target == nil then
     return
   end
-  M.move(target)
 
   local motion = read_motion()
   if motion == nil then
-    restore()
     return
   end
 
@@ -230,17 +227,20 @@ function M.remote(opts)
   command[#command + 1] = operator
   command[#command + 1] = motion
 
-  local ok, err = pcall(vim.cmd.normal, { vim.keycode(table.concat(command)), bang = true })
-  if not ok then
-    restore()
-    error(err)
-  end
+  vim.schedule(function()
+    M.move(target)
+    local ok, err = pcall(vim.cmd.normal, { vim.keycode(table.concat(command)), bang = true })
+    if not ok then
+      restore()
+      error(err)
+    end
 
-  if vim.api.nvim_get_mode().mode:sub(1, 1) == "i" then
-    vim.api.nvim_create_autocmd("InsertLeave", { once = true, callback = restore })
-  else
-    restore()
-  end
+    if vim.api.nvim_get_mode().mode:sub(1, 1) == "i" then
+      vim.api.nvim_create_autocmd("InsertLeave", { once = true, callback = restore })
+    else
+      restore()
+    end
+  end)
 end
 
 ---@param opts? { char?: string, input?: fun(): string? }
