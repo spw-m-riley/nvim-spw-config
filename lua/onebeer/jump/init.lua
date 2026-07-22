@@ -311,7 +311,7 @@ function M.setup()
   utils.map({ "n", "x", "o" }, "S", M.treesitter, { desc = "OneBeer Treesitter Jump" })
   utils.map("o", "r", M.remote, { desc = "OneBeer Remote", expr = true })
   utils.map({ "o", "x" }, "R", M.treesitter_search, { desc = "OneBeer Treesitter Search" })
-  utils.map("c", "<C-s>", M.search_command, { desc = "Choose or toggle OneBeer Search Labels", expr = true })
+  utils.map("c", "<C-s>", M.search_command, { desc = "Toggle OneBeer Search Labels", expr = true })
 end
 
 return M
