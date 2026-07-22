@@ -115,4 +115,106 @@ function M.search(pattern, opts)
   return targets
 end
 
+---@param node TSNode
+---@param buf integer
+---@param win integer
+---@return onebeer.jump.Target
+local function node_target(node, buf, win)
+  local start_row, start_col, end_row, end_col = node:range()
+  return {
+    buf = buf,
+    win = win,
+    row = start_row + 1,
+    col = start_col,
+    end_row = end_row + 1,
+    end_col = end_col,
+    node = node,
+  }
+end
+
+---@param win integer
+---@param buf integer
+---@param first integer
+---@param last integer
+---@return onebeer.jump.Target[]
+local function window_treesitter_targets(win, buf, first, last)
+  local ok, parser = pcall(vim.treesitter.get_parser, buf)
+  if not ok or parser == nil then
+    return {}
+  end
+
+  local items = {}
+  local seen = {}
+
+  local function visit(node)
+    local start_row, start_col, end_row, end_col = node:range()
+    if end_row < first - 1 or start_row > last - 1 then
+      return
+    end
+
+    if node:named() and node:named_child_count() == 0 and start_row >= first - 1 and start_row <= last - 1 then
+      local key = table.concat({ start_row, start_col, end_row, end_col }, ":")
+      if not seen[key] then
+        seen[key] = true
+        items[#items + 1] = node_target(node, buf, win)
+      end
+    end
+
+    for child in node:iter_children() do
+      visit(child)
+    end
+  end
+
+  for _, tree in ipairs(parser:parse()) do
+    visit(tree:root())
+  end
+  return items
+end
+
+---@param opts? { windows?: integer[] }
+---@return onebeer.jump.Target[]
+function M.treesitter(opts)
+  local items = {}
+  for _, win in ipairs(normal_windows(opts and opts.windows)) do
+    local buf = vim.api.nvim_win_get_buf(win)
+    local first, last = visible_rows(win)
+    vim.list_extend(items, window_treesitter_targets(win, buf, first, last))
+  end
+  return items
+end
+
+---@param match string
+---@param opts? { windows?: integer[] }
+---@return onebeer.jump.Target[]
+function M.treesitter_search(match, opts)
+  local items = {}
+  local seen = {}
+
+  for _, target in ipairs(M.characters(match, opts)) do
+    local ok, parser = pcall(vim.treesitter.get_parser, target.buf)
+    if ok and parser then
+      parser:parse()
+      local node = vim.treesitter.get_node({
+        bufnr = target.buf,
+        pos = { target.row - 1, target.col },
+        ignore_injections = false,
+      })
+      if node then
+        while node and not node:named() do
+          node = node:parent()
+        end
+        if node then
+          local start_row, start_col, end_row, end_col = node:range()
+          local key = table.concat({ target.win, start_row, start_col, end_row, end_col }, ":")
+          if not seen[key] then
+            seen[key] = true
+            items[#items + 1] = node_target(node, target.buf, target.win)
+          end
+        end
+      end
+    end
+  end
+  return items
+end
+
 return M
