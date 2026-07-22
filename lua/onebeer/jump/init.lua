@@ -7,6 +7,15 @@ local M = {}
 
 local search_labels_enabled = true
 
+---@return integer[]?
+local function motion_windows()
+  local mode = vim.fn.mode(1)
+  if mode:find("^no") or mode:find("^[vV\22]") then
+    return { vim.api.nvim_get_current_win() }
+  end
+  return nil
+end
+
 ---@param value string?
 ---@return boolean
 local function is_cancel(value)
@@ -126,7 +135,7 @@ local function pick(items, input)
   return target
 end
 
----@param opts? { char?: string, input?: fun(): string? }
+---@param opts? { char?: string, input?: fun(): string?, windows?: integer[] }
 ---@return onebeer.jump.Target?
 local function character_target(opts)
   opts = opts or {}
@@ -134,10 +143,10 @@ local function character_target(opts)
   if is_cancel(char) then
     return nil
   end
-  return pick(targets.characters(char), opts.input)
+  return pick(targets.characters(char, { windows = opts.windows or motion_windows() }), opts.input)
 end
 
----@param opts? { char?: string, input?: fun(): string? }
+---@param opts? { char?: string, input?: fun(): string?, windows?: integer[] }
 ---@return onebeer.jump.Target?
 function M.jump(opts)
   local target = character_target(opts)
@@ -150,6 +159,10 @@ end
 ---@param target onebeer.jump.Target
 function M.select_node(target)
   assert(target.end_row and target.end_col, "Treesitter target is missing its end position")
+  local mode = vim.fn.mode(1)
+  if mode:find("^[vV\22]") then
+    vim.cmd.normal({ args = { vim.keycode("<Esc>") }, bang = true })
+  end
   M.move(target)
 
   local end_row = target.end_row
@@ -169,14 +182,14 @@ end
 ---@param opts? { input?: fun(): string? }
 function M.treesitter(opts)
   opts = opts or {}
-  local items = type(targets.treesitter) == "function" and targets.treesitter() or {}
+  local items = type(targets.treesitter) == "function" and targets.treesitter({ windows = motion_windows() }) or {}
   local target = pick(items, opts.input)
   if target then
-    M.move(target)
+    M.select_node(target)
   end
 end
 
----@param opts? { char?: string, input?: fun(): string? }
+---@param opts? { char?: string, input?: fun(): string?, windows?: integer[] }
 ---@return string
 function M.remote(opts)
   local operator = vim.v.operator
@@ -252,7 +265,9 @@ function M.treesitter_search(opts)
   if is_cancel(char) then
     return
   end
-  local items = type(targets.treesitter_search) == "function" and targets.treesitter_search(char) or {}
+  local items = type(targets.treesitter_search) == "function"
+      and targets.treesitter_search(char, { windows = motion_windows() })
+    or {}
   local target = pick(items, opts.input)
   if target then
     M.select_node(target)
@@ -273,12 +288,30 @@ function M.toggle_search()
   return search_labels_enabled
 end
 
+---@return string
+function M.search_command()
+  local search = require("onebeer.jump.search")
+  if not search_labels_enabled then
+    search_labels_enabled = true
+    search.update()
+    return ""
+  end
+
+  local result = search.choose()
+  if result ~= nil then
+    return result
+  end
+
+  M.toggle_search()
+  return ""
+end
+
 function M.setup()
   utils.map({ "n", "x", "o" }, "s", M.jump, { desc = "OneBeer Jump" })
   utils.map({ "n", "x", "o" }, "S", M.treesitter, { desc = "OneBeer Treesitter Jump" })
   utils.map("o", "r", M.remote, { desc = "OneBeer Remote", expr = true })
   utils.map({ "o", "x" }, "R", M.treesitter_search, { desc = "OneBeer Treesitter Search" })
-  utils.map("c", "<C-s>", M.toggle_search, { desc = "Toggle OneBeer Search Labels" })
+  utils.map("c", "<C-s>", M.search_command, { desc = "Choose or toggle OneBeer Search Labels", expr = true })
 end
 
 return M

@@ -390,7 +390,9 @@ Motion helpers that cut down on travel:
 
 - OneBeer Jump maps `s` for labelled jumps, `S` for Treesitter jumps, `r` for
   remote operator motions, and `R` for Treesitter search. Native `/` and `?`
-  searches show live labels and `<C-s>` toggles those labels.
+  searches show live labels; press `<C-s>` followed by a label to jump. Press
+  `<C-s>` again while choosing, or when no labels are visible, to disable them;
+  pressing `<C-s>` while disabled enables them again.
 - `precognition.nvim` shows motion hints for `w`, `b`, `e`, `%`, `gg`, `G`,
   `{`, and `}` and is toggled with `<leader>p`.
 - `zp` peeks folded text in a rounded floating preview.

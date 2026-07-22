@@ -27,6 +27,22 @@ local function feed(keys)
   vim.api.nvim_feedkeys(vim.keycode(keys), "xt", false)
 end
 
+local function two_window_targets()
+  scratch({ "one x two" })
+  local first_win = vim.api.nvim_get_current_win()
+  vim.cmd.vsplit()
+  local second_buf = vim.api.nvim_create_buf(false, true)
+  local second_win = vim.api.nvim_get_current_win()
+  vim.api.nvim_win_set_buf(second_win, second_buf)
+  vim.api.nvim_buf_set_lines(second_buf, 0, -1, false, { "one x two" })
+
+  local items = require("onebeer.jump.targets").characters("x")
+  local origin_win = items[1].win == first_win and second_win or first_win
+  local remote_win = origin_win == first_win and second_win or first_win
+  vim.api.nvim_set_current_win(origin_win)
+  return origin_win, vim.api.nvim_win_get_buf(origin_win), remote_win, vim.api.nvim_win_get_buf(remote_win)
+end
+
 check("fixed-width labels", function()
   local generated = require("onebeer.jump.labels").generate(5, "ab")
   return #generated == 5 and #generated[1] == #generated[5] and generated[1] ~= generated[2]
@@ -83,12 +99,35 @@ check("operator-pending motion", function()
   return vim.api.nvim_get_current_line() == "x two x three" and vim.api.nvim_get_mode().mode == "n"
 end)
 
+check("cross-window operator motion", function()
+  local origin_win, origin_buf, remote_win, remote_buf = two_window_targets()
+  require("onebeer.jump").setup()
+  feed("dsxa")
+  local ok = vim.api.nvim_get_current_win() == origin_win
+    and vim.api.nvim_buf_get_lines(origin_buf, 0, 1, false)[1] == "x two"
+    and vim.api.nvim_buf_get_lines(remote_buf, 0, 1, false)[1] == "one x two"
+  vim.api.nvim_win_close(remote_win, true)
+  return ok
+end)
+
 check("visual motion", function()
   scratch({ "one x two x three" })
   require("onebeer.jump").setup()
   feed("vsxa")
   local ok = vim.api.nvim_get_mode().mode == "v" and vim.api.nvim_win_get_cursor(0)[2] == 4
   feed("<Esc>")
+  return ok
+end)
+
+check("cross-window visual motion", function()
+  local origin_win, _, remote_win = two_window_targets()
+  require("onebeer.jump").setup()
+  feed("vsxa")
+  local ok = vim.api.nvim_get_current_win() == origin_win
+    and vim.api.nvim_get_mode().mode == "v"
+    and vim.api.nvim_win_get_cursor(origin_win)[2] == 4
+  feed("<Esc>")
+  vim.api.nvim_win_close(remote_win, true)
   return ok
 end)
 
@@ -107,14 +146,9 @@ check("Treesitter node selection", function()
   if not pcall(vim.treesitter.start, 0, "lua") then
     return false
   end
-  local items = require("onebeer.jump.targets").treesitter_search("argument", {
-    windows = { vim.api.nvim_get_current_win() },
-  })
-  if #items ~= 1 then
-    return false
-  end
-  require("onebeer.jump").select_node(items[1])
-  local ok = vim.api.nvim_get_mode().mode == "v" and vim.api.nvim_win_get_cursor(0)[2] == items[1].end_col - 1
+  require("onebeer.jump").setup()
+  feed("Sd")
+  local ok = vim.api.nvim_get_mode().mode == "v" and vim.api.nvim_win_get_cursor(0)[2] == 26
   feed("<Esc>")
   return ok
 end)

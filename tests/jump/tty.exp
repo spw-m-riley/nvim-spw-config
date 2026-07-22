@@ -31,6 +31,7 @@ send -- ":OneBeerTtyReset treesitter\r"
 after 100
 send -- "Sd"
 after 200
+send -- "\033"
 send -- ":OneBeerTtyCheck treesitter\r"
 
 send -- ":OneBeerTtyReset treesitter_search\r"
@@ -44,12 +45,14 @@ send -- ":OneBeerTtyReset search\r"
 after 100
 send -- "/alpha"
 after 200
-send -- "\033"
+send -- "\023s"
+after 200
 send -- ":OneBeerTtyCheck forward_search\r"
 
 send -- "?alpha"
 after 200
-send -- "\033"
+send -- "\023s"
+after 200
 send -- ":OneBeerTtyCheck backward_search\r"
 
 send -- ":OneBeerTtyFinish\r"

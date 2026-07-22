@@ -123,7 +123,7 @@ Linting runs through [nvim-lint](https://github.com/mfussenegger/nvim-lint) with
 ### Navigation
 
 - **[fzf-lua](https://github.com/ibhagwan/fzf-lua)** — fuzzy everything: files, buffers, LSP symbols, references, git log, frecency.
-- **OneBeer Jump** — local, public-API labelled jumps across windows, Treesitter targets, remote operators, and `/` / `?` search labels.
+- **OneBeer Jump** — local, public-API labelled jumps across windows, Treesitter targets, remote operators, and actionable `/` / `?` search labels.
 - **[waystone.nvim](https://github.com/matt-riley/waystone.nvim)** — persistent slot-based marks scoped per git repo. Jump between your hot files and cursor positions.
 - **[mini.files](https://github.com/echasnovski/mini.files)** — file explorer in a floating window.
 

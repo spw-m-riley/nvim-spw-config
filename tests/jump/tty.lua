@@ -31,6 +31,8 @@ vim.api.nvim_create_autocmd("CursorMoved", {
     local col = vim.api.nvim_win_get_cursor(0)[2]
     if mode == "v" and scenario == "visual" and col == 4 then
       seen.visual = true
+    elseif mode == "v" and scenario == "treesitter" and col == 15 then
+      seen.treesitter = true
     elseif mode == "v" and scenario == "treesitter_search" and col == 15 then
       seen.treesitter_search = true
     end
@@ -40,9 +42,7 @@ vim.api.nvim_create_autocmd("CursorMoved", {
 vim.api.nvim_create_autocmd("CmdlineChanged", {
   callback = function()
     local command = vim.fn.getcmdtype()
-    if (command == "/" or command == "?")
-      and #vim.api.nvim_buf_get_extmarks(0, render.namespace(), 0, -1, {}) == 2
-    then
+    if (command == "/" or command == "?") and #vim.api.nvim_buf_get_extmarks(0, render.namespace(), 0, -1, {}) == 2 then
       seen[command] = true
     end
   end,
@@ -71,24 +71,31 @@ vim.api.nvim_create_user_command("OneBeerTtyCheck", function(ctx)
     local remote_ok = vim.wait(1000, function()
       return vim.fn.getreg("0") == "x"
     end) and vim.deep_equal(vim.api.nvim_win_get_cursor(0), { 1, 0 })
-    check(
-      name .. " " .. vim.inspect({
-        cursor = vim.api.nvim_win_get_cursor(0),
-        line = vim.api.nvim_get_current_line(),
-        register = vim.fn.getreg("0"),
-      }),
-      remote_ok
-    )
+    check(name .. " " .. vim.inspect({
+      cursor = vim.api.nvim_win_get_cursor(0),
+      line = vim.api.nvim_get_current_line(),
+      register = vim.fn.getreg("0"),
+    }), remote_ok)
   elseif name == "visual" then
     check(name, seen.visual == true)
   elseif name == "treesitter" then
-    check(name, vim.api.nvim_win_get_cursor(0)[2] == 15)
+    check(name, seen.treesitter == true)
   elseif name == "treesitter_search" then
     check(name, seen.treesitter_search == true or vim.api.nvim_win_get_cursor(0)[2] == 15)
   elseif name == "forward_search" then
-    check(name, seen["/"] == true and #vim.api.nvim_buf_get_extmarks(0, render.namespace(), 0, -1, {}) == 0)
+    check(
+      name,
+      seen["/"] == true
+        and vim.api.nvim_win_get_cursor(0)[1] == 2
+        and #vim.api.nvim_buf_get_extmarks(0, render.namespace(), 0, -1, {}) == 0
+    )
   elseif name == "backward_search" then
-    check(name, seen["?"] == true and #vim.api.nvim_buf_get_extmarks(0, render.namespace(), 0, -1, {}) == 0)
+    check(
+      name,
+      seen["?"] == true
+        and vim.api.nvim_win_get_cursor(0)[1] == 1
+        and #vim.api.nvim_buf_get_extmarks(0, render.namespace(), 0, -1, {}) == 0
+    )
   end
 end, { nargs = 1 })
 
