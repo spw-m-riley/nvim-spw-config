@@ -107,9 +107,7 @@ function M.search(pattern, opts)
           end_row = first + offset - 1,
           end_col = byte_offset + end_col,
         }
-        if not is_cursor(target) then
-          targets[#targets + 1] = target
-        end
+        targets[#targets + 1] = target
         byte_offset = byte_offset + math.max(end_col, start_col + 1)
       end
     end
