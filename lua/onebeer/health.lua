@@ -614,15 +614,15 @@ end
 ---@return nil
 function M.check()
   vim.health.start("Neovim Version")
-  if vim.fn.has("nvim-0.11.0") == 1 then
+  if vim.fn.has("nvim-0.13.0") == 1 then
     local version = first_non_empty_line(vim.api.nvim_exec2("version", { output = true }).output)
     if version then
-      vim.health.ok(("%s (requires >= 0.11.0)"):format(version))
+      vim.health.ok(("%s (requires >= 0.13.0)"):format(version))
     else
-      vim.health.ok("Using Neovim >= 0.11.0")
+      vim.health.ok("Using Neovim >= 0.13.0")
     end
   else
-    vim.health.report_error("Neovim >= 0.11.0 is required")
+    vim.health.report_error("Neovim >= 0.13.0 is required")
   end
 
   vim.health.start("OneBeer Config")

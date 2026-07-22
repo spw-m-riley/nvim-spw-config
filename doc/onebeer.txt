@@ -103,7 +103,7 @@ INSTALLATION AND FIRST RUN                  *onebeer-install*
 
 Core requirements:
 
-- Neovim 0.12.0 or newer
+- Neovim 0.13.0 or newer
 - `git`, `rg`, `fzf`, `gh`
 - a Nerd Font
 
@@ -388,8 +388,9 @@ Key		Meaning ~
 
 Motion helpers that cut down on travel:
 
-- `flash.nvim` maps `s` for jump, `S` for Treesitter jump, `r` for remote
-  flash in operator-pending mode, and `R` for Treesitter search.
+- OneBeer Jump maps `s` for labelled jumps, `S` for Treesitter jumps, `r` for
+  remote operator motions, and `R` for Treesitter search. Native `/` and `?`
+  searches show live labels and `<C-s>` toggles those labels.
 - `precognition.nvim` shows motion hints for `w`, `b`, `e`, `%`, `gg`, `G`,
   `{`, and `}` and is toggled with `<leader>p`.
 - `zp` peeks folded text in a rounded floating preview.

@@ -123,7 +123,7 @@ Linting runs through [nvim-lint](https://github.com/mfussenegger/nvim-lint) with
 ### Navigation
 
 - **[fzf-lua](https://github.com/ibhagwan/fzf-lua)** — fuzzy everything: files, buffers, LSP symbols, references, git log, frecency.
-- **[flash.nvim](https://github.com/folke/flash.nvim)** — jump anywhere on screen in a keystroke or two.
+- **OneBeer Jump** — local, public-API labelled jumps across windows, Treesitter targets, remote operators, and `/` / `?` search labels.
 - **[waystone.nvim](https://github.com/matt-riley/waystone.nvim)** — persistent slot-based marks scoped per git repo. Jump between your hot files and cursor positions.
 - **[mini.files](https://github.com/echasnovski/mini.files)** — file explorer in a floating window.
 
@@ -204,7 +204,7 @@ There are also two JSON conversion tools:
 
 ### Requirements
 
-- Neovim >= 0.12.0
+- Neovim >= 0.13.0
 - `git`, `ripgrep` (`rg`), `fzf`, `gh` ([GitHub CLI](https://cli.github.com/))
 - A [Nerd Font](https://www.nerdfonts.com/) — the config is set up with MonoLisa Nerd Font but any will work
 
