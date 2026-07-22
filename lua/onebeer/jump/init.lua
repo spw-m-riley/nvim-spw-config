@@ -22,6 +22,34 @@ local function read_key()
   return vim.fn.getcharstr()
 end
 
+---@return string?
+local function read_motion()
+  local parts = {}
+  local key = read_key()
+  if is_cancel(key) then
+    return nil
+  end
+
+  while key:match("^%d$") do
+    parts[#parts + 1] = key
+    key = read_key()
+    if is_cancel(key) then
+      return nil
+    end
+  end
+
+  parts[#parts + 1] = key
+  local prefixes = { a = true, f = true, F = true, g = true, i = true, t = true, T = true, ["["] = true, ["]"] = true }
+  if prefixes[key] then
+    local suffix = read_key()
+    if is_cancel(suffix) then
+      return nil
+    end
+    parts[#parts + 1] = suffix
+  end
+  return table.concat(parts)
+end
+
 ---@param items onebeer.jump.Target[]
 local function assign_labels(items)
   local generated = labels.generate(#items)
@@ -142,7 +170,69 @@ end
 
 ---@param opts? { char?: string, input?: fun(): string? }
 function M.remote(opts)
-  M.jump(opts)
+  local operator = vim.v.operator
+  if operator == "" then
+    M.jump(opts)
+    return
+  end
+
+  local origin = {
+    buf = vim.api.nvim_get_current_buf(),
+    cursor = vim.api.nvim_win_get_cursor(0),
+    view = vim.fn.winsaveview(),
+    win = vim.api.nvim_get_current_win(),
+  }
+  local function restore()
+    if not vim.api.nvim_win_is_valid(origin.win) or not vim.api.nvim_buf_is_valid(origin.buf) then
+      return
+    end
+    vim.api.nvim_set_current_win(origin.win)
+    if vim.api.nvim_win_get_buf(origin.win) ~= origin.buf then
+      vim.api.nvim_win_set_buf(origin.win, origin.buf)
+    end
+    local line_count = vim.api.nvim_buf_line_count(origin.buf)
+    local row = math.min(origin.cursor[1], line_count)
+    local line = vim.api.nvim_buf_get_lines(origin.buf, row - 1, row, false)[1] or ""
+    vim.api.nvim_win_set_cursor(origin.win, { row, math.min(origin.cursor[2], #line) })
+    vim.fn.winrestview(origin.view)
+  end
+  local count = vim.v.count
+  local register = vim.v.register
+  vim.cmd.normal({ vim.keycode("<Esc>"), bang = true })
+
+  local target = character_target(opts)
+  if target == nil then
+    return
+  end
+  M.move(target)
+
+  local motion = read_motion()
+  if motion == nil then
+    restore()
+    return
+  end
+
+  local command = {}
+  if register ~= "" and register ~= '"' then
+    command[#command + 1] = '"' .. register
+  end
+  if count > 0 then
+    command[#command + 1] = tostring(count)
+  end
+  command[#command + 1] = operator
+  command[#command + 1] = motion
+
+  local ok, err = pcall(vim.cmd.normal, { vim.keycode(table.concat(command)), bang = true })
+  if not ok then
+    restore()
+    error(err)
+  end
+
+  if vim.api.nvim_get_mode().mode:sub(1, 1) == "i" then
+    vim.api.nvim_create_autocmd("InsertLeave", { once = true, callback = restore })
+  else
+    restore()
+  end
 end
 
 ---@param opts? { char?: string, input?: fun(): string? }
