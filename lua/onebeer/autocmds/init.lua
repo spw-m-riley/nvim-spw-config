@@ -49,6 +49,7 @@ end
 local lspGrp = create_group("OneBeerLsp")
 local ynkGrp = create_group("OneBeerHighlightYank")
 local filetypeGrp = create_group("OneBeerFiletype")
+local jumpSearchGrp = create_group("OneBeerJumpSearch")
 
 create_autocmd("FileType", {
   pattern = { "terraform-vars" },
@@ -115,6 +116,27 @@ create_autocmd("TextYankPost", {
   group = ynkGrp,
   callback = function()
     vim.highlight.on_yank({ higroup = "IncSearch", timeout = 150 })
+  end,
+})
+
+create_autocmd("CmdlineChanged", {
+  group = jumpSearchGrp,
+  callback = function()
+    require("onebeer.jump.search").update()
+  end,
+})
+
+create_autocmd("CmdlineLeavePre", {
+  group = jumpSearchGrp,
+  callback = function()
+    require("onebeer.jump.search").clear()
+  end,
+})
+
+create_autocmd({ "WinResized", "WinScrolled" }, {
+  group = jumpSearchGrp,
+  callback = function()
+    require("onebeer.jump.search").update()
   end,
 })
 
