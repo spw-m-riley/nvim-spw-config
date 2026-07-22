@@ -206,7 +206,7 @@ function M.remote(opts)
   end
   local count = vim.v.count
   local register = vim.v.register
-  vim.cmd.normal({ vim.keycode("<Esc>"), bang = true })
+  vim.api.nvim_feedkeys(vim.keycode("<Esc>"), "nx", false)
 
   local target = character_target(opts)
   if target == nil then

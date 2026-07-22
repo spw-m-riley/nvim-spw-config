@@ -34,8 +34,13 @@ local ok, err = xpcall(function()
   assert_true("operator jump", vim.api.nvim_get_current_line() == "x two x three")
 
   scratch({ "one x two" })
-  feed("yrxaiw")
-  assert_true("remote yank", vim.fn.getreg('"') == "x")
+  vim.defer_fn(function()
+    vim.api.nvim_input("xaiw")
+  end, 20)
+  vim.api.nvim_input("yr")
+  assert_true("remote yank", vim.wait(1000, function()
+    return vim.fn.getreg("0") == "x"
+  end))
   assert_true("remote restore", vim.deep_equal(vim.api.nvim_win_get_cursor(0), { 1, 0 }))
 
   scratch({ "one x two x three" })

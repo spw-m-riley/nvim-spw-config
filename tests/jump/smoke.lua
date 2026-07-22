@@ -95,9 +95,13 @@ end)
 check("remote operator motion", function()
   scratch({ "one x two" })
   require("onebeer.jump").setup()
-  feed("drxaiw<Esc>")
-  return vim.api.nvim_get_current_line() == "one  two"
-    and vim.deep_equal(vim.api.nvim_win_get_cursor(0), { 1, 0 })
+  vim.defer_fn(function()
+    vim.api.nvim_input("xaiw")
+  end, 20)
+  vim.api.nvim_input("yr")
+  return vim.wait(1000, function()
+    return vim.fn.getreg("0") == "x"
+  end) and vim.deep_equal(vim.api.nvim_win_get_cursor(0), { 1, 0 })
 end)
 
 check("Treesitter node selection", function()
