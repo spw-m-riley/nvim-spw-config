@@ -12,14 +12,16 @@ function M.clear()
   render.clear()
 end
 
-function M.update()
-  local command = vim.fn.getcmdtype()
+---@param command? string
+---@param pattern? string
+function M.update(command, pattern)
+  command = command or vim.fn.getcmdtype()
   if not enabled() or (command ~= "/" and command ~= "?") then
     M.clear()
     return
   end
 
-  local pattern = vim.fn.getcmdline()
+  pattern = pattern or vim.fn.getcmdline()
   if pattern == "" then
     M.clear()
     return
