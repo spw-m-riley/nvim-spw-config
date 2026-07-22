@@ -162,7 +162,7 @@ function M.select_node(target)
     end_col = math.max(0, end_col - 1)
   end
 
-  vim.cmd.normal({ "v", bang = true })
+  vim.cmd.normal({ args = { "v" }, bang = true })
   vim.api.nvim_win_set_cursor(target.win, { end_row, end_col })
 end
 
@@ -230,7 +230,7 @@ function M.remote(opts)
 
   vim.schedule(function()
     M.move(target)
-    local ok, err = pcall(vim.cmd.normal, { vim.keycode(table.concat(command)), bang = true })
+    local ok, err = pcall(vim.cmd.normal, { args = { vim.keycode(table.concat(command)) }, bang = true })
     if not ok then
       restore()
       error(err)
