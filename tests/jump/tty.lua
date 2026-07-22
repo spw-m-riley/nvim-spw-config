@@ -1,76 +1,93 @@
-dofile(vim.fn.getcwd() .. "/tests/jump/minimal_init.lua")
 dofile(vim.fn.getcwd() .. "/lua/onebeer/autocmds/init.lua")
 
 local jump = require("onebeer.jump")
 local render = require("onebeer.jump.render")
 
-local function assert_true(name, condition)
-  if not condition then
-    error(name, 0)
-  end
-end
+local failures = {}
+local seen = {}
+local scenario = ""
 
-local function scratch(lines)
+local function reset(lines)
   local buf = vim.api.nvim_create_buf(false, true)
   vim.api.nvim_win_set_buf(0, buf)
   vim.api.nvim_buf_set_lines(buf, 0, -1, false, lines)
   vim.api.nvim_win_set_cursor(0, { 1, 0 })
-  return buf
+  vim.fn.setreg('"', "")
+  vim.fn.setreg("0", "")
+  render.clear()
 end
 
-local function feed(keys)
-  vim.api.nvim_feedkeys(vim.keycode(keys), "xt", false)
+local function check(name, condition)
+  if not condition then
+    failures[#failures + 1] = name
+  end
 end
 
-local ok, err = xpcall(function()
-  jump.setup()
+jump.setup()
 
-  scratch({ "one x two x three" })
-  feed("sxa")
-  assert_true("normal jump", vim.api.nvim_win_get_cursor(0)[2] == 4)
+vim.api.nvim_create_autocmd("CursorMoved", {
+  callback = function()
+    local mode = vim.api.nvim_get_mode().mode
+    local col = vim.api.nvim_win_get_cursor(0)[2]
+    if mode == "v" and scenario == "visual" and col == 4 then
+      seen.visual = true
+    elseif mode == "v" and scenario == "treesitter_search" and col == 16 then
+      seen.treesitter_search = true
+    end
+  end,
+})
 
-  scratch({ "one x two x three" })
-  feed("dsxa")
-  assert_true("operator jump", vim.api.nvim_get_current_line() == "x two x three")
+vim.api.nvim_create_autocmd("CmdlineChanged", {
+  callback = function()
+    local command = vim.fn.getcmdtype()
+    if (command == "/" or command == "?")
+      and #vim.api.nvim_buf_get_extmarks(0, render.namespace(), 0, -1, {}) == 2
+    then
+      seen[command] = true
+    end
+  end,
+})
 
-  scratch({ "one x two" })
-  feed("yrxaiw")
-  assert_true("remote yank", vim.wait(1000, function()
-    return vim.fn.getreg("0") == "x"
-  end))
-  assert_true("remote restore", vim.deep_equal(vim.api.nvim_win_get_cursor(0), { 1, 0 }))
+vim.api.nvim_create_user_command("OneBeerTtyReset", function(ctx)
+  scenario = ctx.args
+  if scenario == "treesitter" or scenario == "treesitter_search" then
+    reset({ "local x = call(z)" })
+    vim.bo.filetype = "lua"
+    vim.treesitter.start(0, "lua")
+  elseif scenario == "search" then
+    reset({ "alpha beta", "alphabet" })
+  else
+    reset({ "one x two x three" })
+  end
+end, { nargs = 1 })
 
-  scratch({ "one x two x three" })
-  feed("vsxa")
-  assert_true("visual jump", vim.api.nvim_get_mode().mode == "v" and vim.api.nvim_win_get_cursor(0)[2] == 4)
-  feed("<Esc>")
+vim.api.nvim_create_user_command("OneBeerTtyCheck", function(ctx)
+  local name = ctx.args
+  if name == "normal" then
+    check(name, vim.api.nvim_win_get_cursor(0)[2] == 4)
+  elseif name == "operator" then
+    check(name, vim.api.nvim_get_current_line() == "x two x three")
+  elseif name == "remote" then
+    check(name, vim.fn.getreg("0") == "x" and vim.deep_equal(vim.api.nvim_win_get_cursor(0), { 1, 0 }))
+  elseif name == "visual" then
+    check(name, seen.visual == true)
+  elseif name == "treesitter" then
+    check(name, vim.api.nvim_win_get_cursor(0)[2] == 15)
+  elseif name == "treesitter_search" then
+    check(name, seen.treesitter_search == true)
+  elseif name == "forward_search" then
+    check(name, seen["/"] == true and #vim.api.nvim_buf_get_extmarks(0, render.namespace(), 0, -1, {}) == 0)
+  elseif name == "backward_search" then
+    check(name, seen["?"] == true and #vim.api.nvim_buf_get_extmarks(0, render.namespace(), 0, -1, {}) == 0)
+  end
+end, { nargs = 1 })
 
-  local buf = scratch({ "alpha beta", "alphabet" })
-  vim.api.nvim_input("/alpha")
-  assert_true("forward search entered", vim.wait(500, function()
-    return vim.fn.getcmdtype() == "/"
-  end))
-  assert_true("forward search labels", #vim.api.nvim_buf_get_extmarks(buf, render.namespace(), 0, -1, {}) == 2)
-  vim.api.nvim_input(vim.keycode("<Esc>"))
-  assert_true("forward cleanup", vim.wait(500, function()
-    return #vim.api.nvim_buf_get_extmarks(buf, render.namespace(), 0, -1, {}) == 0
-  end))
-
-  vim.api.nvim_input("?alpha")
-  assert_true("backward search entered", vim.wait(500, function()
-    return vim.fn.getcmdtype() == "?"
-  end))
-  assert_true("backward search labels", #vim.api.nvim_buf_get_extmarks(buf, render.namespace(), 0, -1, {}) == 2)
-  vim.api.nvim_input(vim.keycode("<Esc>"))
-  assert_true("backward cleanup", vim.wait(500, function()
-    return #vim.api.nvim_buf_get_extmarks(buf, render.namespace(), 0, -1, {}) == 0
-  end))
-end, debug.traceback)
-
-if not ok then
-  vim.api.nvim_err_writeln(err)
-  vim.cmd.cquit()
-end
-
-print("TTY_PASS=1")
-vim.cmd.qa({ bang = true })
+vim.api.nvim_create_user_command("OneBeerTtyFinish", function()
+  if #failures > 0 then
+    vim.api.nvim_err_writeln("TTY failures: " .. table.concat(failures, ", "))
+    vim.cmd.cquit()
+    return
+  end
+  print("TTY_PASS=8")
+  vim.cmd.qa({ bang = true })
+end, {})

@@ -1,0 +1,58 @@
+set timeout 15
+spawn nvim -u tests/jump/minimal_init.lua -c "lua dofile('tests/jump/tty.lua')"
+
+after 400
+send -- ":OneBeerTtyReset normal\r"
+after 100
+send -- "sxa"
+after 200
+send -- ":OneBeerTtyCheck normal\r"
+
+send -- ":OneBeerTtyReset operator\r"
+after 100
+send -- "dsxa"
+after 200
+send -- ":OneBeerTtyCheck operator\r"
+
+send -- ":OneBeerTtyReset remote\r"
+after 100
+send -- "yrxaiw"
+after 300
+send -- ":OneBeerTtyCheck remote\r"
+
+send -- ":OneBeerTtyReset visual\r"
+after 100
+send -- "vsxa"
+after 200
+send -- "\033"
+send -- ":OneBeerTtyCheck visual\r"
+
+send -- ":OneBeerTtyReset treesitter\r"
+after 100
+send -- "Sf"
+after 200
+send -- ":OneBeerTtyCheck treesitter\r"
+
+send -- ":OneBeerTtyReset treesitter_search\r"
+after 100
+send -- "vRza"
+after 200
+send -- "\033"
+send -- ":OneBeerTtyCheck treesitter_search\r"
+
+send -- ":OneBeerTtyReset search\r"
+after 100
+send -- "/alpha"
+after 200
+send -- "\033"
+send -- ":OneBeerTtyCheck forward_search\r"
+
+send -- "?alpha"
+after 200
+send -- "\033"
+send -- ":OneBeerTtyCheck backward_search\r"
+
+send -- ":OneBeerTtyFinish\r"
+expect eof
+catch wait result
+exit [lindex $result 3]
