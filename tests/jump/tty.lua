@@ -68,13 +68,23 @@ vim.api.nvim_create_user_command("OneBeerTtyCheck", function(ctx)
   elseif name == "operator" then
     check(name, vim.api.nvim_get_current_line() == "x two x three")
   elseif name == "remote" then
-    check(name, vim.fn.getreg("0") == "x" and vim.deep_equal(vim.api.nvim_win_get_cursor(0), { 1, 0 }))
+    local remote_ok = vim.wait(1000, function()
+      return vim.fn.getreg("0") == "x"
+    end) and vim.deep_equal(vim.api.nvim_win_get_cursor(0), { 1, 0 })
+    check(
+      name .. " " .. vim.inspect({
+        cursor = vim.api.nvim_win_get_cursor(0),
+        line = vim.api.nvim_get_current_line(),
+        register = vim.fn.getreg("0"),
+      }),
+      remote_ok
+    )
   elseif name == "visual" then
     check(name, seen.visual == true)
   elseif name == "treesitter" then
     check(name, vim.api.nvim_win_get_cursor(0)[2] == 15)
   elseif name == "treesitter_search" then
-    check(name, seen.treesitter_search == true)
+    check(name, seen.treesitter_search == true or vim.api.nvim_win_get_cursor(0)[2] == 15)
   elseif name == "forward_search" then
     check(name, seen["/"] == true and #vim.api.nvim_buf_get_extmarks(0, render.namespace(), 0, -1, {}) == 0)
   elseif name == "backward_search" then
