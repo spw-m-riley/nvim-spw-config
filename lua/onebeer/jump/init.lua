@@ -127,16 +127,24 @@ local function pick(items, input)
 end
 
 ---@param opts? { char?: string, input?: fun(): string? }
-function M.jump(opts)
+---@return onebeer.jump.Target?
+local function character_target(opts)
   opts = opts or {}
   local char = opts.char or read_key()
   if is_cancel(char) then
-    return
+    return nil
   end
-  local target = pick(targets.characters(char), opts.input)
+  return pick(targets.characters(char), opts.input)
+end
+
+---@param opts? { char?: string, input?: fun(): string? }
+---@return onebeer.jump.Target?
+function M.jump(opts)
+  local target = character_target(opts)
   if target then
     M.move(target)
   end
+  return target
 end
 
 ---@param target onebeer.jump.Target
