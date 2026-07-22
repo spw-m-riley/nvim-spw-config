@@ -31,7 +31,7 @@ vim.api.nvim_create_autocmd("CursorMoved", {
     local col = vim.api.nvim_win_get_cursor(0)[2]
     if mode == "v" and scenario == "visual" and col == 4 then
       seen.visual = true
-    elseif mode == "v" and scenario == "treesitter_search" and col == 16 then
+    elseif mode == "v" and scenario == "treesitter_search" and col == 15 then
       seen.treesitter_search = true
     end
   end,

@@ -29,7 +29,7 @@ send -- ":OneBeerTtyCheck visual\r"
 
 send -- ":OneBeerTtyReset treesitter\r"
 after 100
-send -- "Sf"
+send -- "Sd"
 after 200
 send -- ":OneBeerTtyCheck treesitter\r"
 

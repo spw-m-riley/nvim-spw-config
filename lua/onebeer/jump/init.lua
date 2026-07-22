@@ -177,11 +177,12 @@ function M.treesitter(opts)
 end
 
 ---@param opts? { char?: string, input?: fun(): string? }
+---@return string
 function M.remote(opts)
   local operator = vim.v.operator
   if operator == "" then
     M.jump(opts)
-    return
+    return ""
   end
 
   local origin = {
@@ -209,12 +210,12 @@ function M.remote(opts)
 
   local target = character_target(opts)
   if target == nil then
-    return
+    return vim.keycode("<Esc>")
   end
 
   local motion = read_motion()
   if motion == nil then
-    return
+    return vim.keycode("<Esc>")
   end
 
   local command = {}
@@ -241,6 +242,7 @@ function M.remote(opts)
       restore()
     end
   end)
+  return vim.keycode("<Esc>")
 end
 
 ---@param opts? { char?: string, input?: fun(): string? }
@@ -274,7 +276,7 @@ end
 function M.setup()
   utils.map({ "n", "x", "o" }, "s", M.jump, { desc = "OneBeer Jump" })
   utils.map({ "n", "x", "o" }, "S", M.treesitter, { desc = "OneBeer Treesitter Jump" })
-  utils.map("o", "r", M.remote, { desc = "OneBeer Remote" })
+  utils.map("o", "r", M.remote, { desc = "OneBeer Remote", expr = true })
   utils.map({ "o", "x" }, "R", M.treesitter_search, { desc = "OneBeer Treesitter Search" })
   utils.map("c", "<C-s>", M.toggle_search, { desc = "Toggle OneBeer Search Labels" })
 end
