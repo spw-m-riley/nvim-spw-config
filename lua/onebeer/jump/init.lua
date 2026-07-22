@@ -99,16 +99,24 @@ local function pick(items, input)
 end
 
 ---@param opts? { char?: string, input?: fun(): string? }
-function M.jump(opts)
+---@return onebeer.jump.Target?
+local function character_target(opts)
   opts = opts or {}
   local char = opts.char or read_key()
   if is_cancel(char) then
-    return
+    return nil
   end
-  local target = pick(targets.characters(char), opts.input)
+  return pick(targets.characters(char), opts.input)
+end
+
+---@param opts? { char?: string, input?: fun(): string? }
+---@return onebeer.jump.Target?
+function M.jump(opts)
+  local target = character_target(opts)
   if target then
     M.move(target)
   end
+  return target
 end
 
 ---@param target onebeer.jump.Target
@@ -142,7 +150,31 @@ end
 
 ---@param opts? { char?: string, input?: fun(): string? }
 function M.remote(opts)
-  M.jump(opts)
+  local operator = vim.v.operator
+  if operator == "" then
+    M.jump(opts)
+    return
+  end
+
+  local count = vim.v.count
+  local register = vim.v.register
+  vim.api.nvim_feedkeys(vim.keycode("<Esc>"), "nx", false)
+
+  local target = character_target(opts)
+  if target == nil then
+    return
+  end
+  M.move(target)
+
+  local replay = {}
+  if register ~= "" and register ~= '"' then
+    replay[#replay + 1] = '"' .. register
+  end
+  if count > 0 then
+    replay[#replay + 1] = tostring(count)
+  end
+  replay[#replay + 1] = operator
+  vim.api.nvim_feedkeys(vim.keycode(table.concat(replay)), "ni", false)
 end
 
 ---@param opts? { char?: string, input?: fun(): string? }
