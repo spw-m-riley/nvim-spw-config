@@ -63,6 +63,27 @@ local function check_node_floor()
   )
 end
 
+---@param client vim.lsp.Client
+---@param project_root string
+---@return boolean
+local function client_has_root(client, project_root)
+  local root = client.config and client.config.root_dir or nil
+  return type(root) == "string" and vim.fs.normalize(root) == project_root
+end
+
+---@param client vim.lsp.Client
+---@param normalized_catalog string
+---@return boolean
+local function client_has_catalog(client, normalized_catalog)
+  local catalogs = client.settings and client.settings.xml and client.settings.xml.catalogs or {}
+  for _, configured_path in ipairs(catalogs) do
+    if vim.fs.normalize(configured_path) == normalized_catalog then
+      return true
+    end
+  end
+  return false
+end
+
 ---@param path string
 ---@param catalog_path string
 ---@return boolean
@@ -75,17 +96,10 @@ local function active_lemminx_has_catalog(path, catalog_path)
   local project_root = vim.fs.normalize(project.root)
   local normalized_catalog = vim.fs.normalize(catalog_path)
   for _, client in ipairs(vim.lsp.get_clients({ name = "lemminx" })) do
-    local root = client.config and client.config.root_dir or nil
-    local catalogs = client.settings and client.settings.xml and client.settings.xml.catalogs or {}
-    if type(root) == "string" and vim.fs.normalize(root) == project_root then
-      for _, configured_path in ipairs(catalogs) do
-        if vim.fs.normalize(configured_path) == normalized_catalog then
-          return true
-        end
-      end
+    if client_has_root(client, project_root) and client_has_catalog(client, normalized_catalog) then
+      return true
     end
   end
-
   return false
 end
 

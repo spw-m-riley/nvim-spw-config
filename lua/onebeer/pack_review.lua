@@ -101,64 +101,76 @@ local function shorten_detail_lines(lines)
   return shortened
 end
 
+---@param details string[]
+local function trim_detail_edges(details)
+  while #details > 0 and vim.trim(details[1]) == "" do
+    table.remove(details, 1)
+  end
+  while #details > 0 and vim.trim(details[#details]) == "" do
+    table.remove(details, #details)
+  end
+end
+
+---@param rows onebeer.PackReviewRow[]
+---@param current table|nil
+---@return table|nil
+local function flush_review_row(rows, current)
+  if current == nil then
+    return nil
+  end
+  trim_detail_edges(current.details)
+  local details = shorten_detail_lines(current.details)
+  local summary = summarize_details(details)
+  if not current.active then
+    summary = summary ~= "" and ("not active - " .. summary) or "not active"
+  end
+  rows[#rows + 1] = {
+    id = current.name,
+    name = current.name,
+    status = current.group,
+    summary = summary ~= "" and summary or nil,
+    details = details,
+  }
+  return nil
+end
+
+---@param rows onebeer.PackReviewRow[]
+---@param current table|nil
+---@param current_group string
+---@param line string
+---@return table|nil, string
+local function consume_review_line(rows, current, current_group, line)
+  local group = line:match("^# (%S+)")
+  if group then
+    return flush_review_row(rows, current), group
+  end
+  local plugin_header = line:match("^## .+")
+  if plugin_header then
+    local name, active = parse_plugin_header(plugin_header)
+    return flush_review_row(rows, current) or {
+      name = name,
+      active = active,
+      group = current_group,
+      details = {},
+    },
+      current_group
+  end
+  if current ~= nil then
+    current.details[#current.details + 1] = line
+  end
+  return current, current_group
+end
+
 ---@param lines string[]
 ---@return onebeer.PackReviewRow[]
 local function parse_review_lines(lines)
   local rows = {}
   local current_group = "Update"
   local current = nil
-
-  local function flush_current()
-    if current == nil then
-      return
-    end
-
-    while #current.details > 0 and vim.trim(current.details[1]) == "" do
-      table.remove(current.details, 1)
-    end
-    while #current.details > 0 and vim.trim(current.details[#current.details]) == "" do
-      table.remove(current.details, #current.details)
-    end
-
-    local details = shorten_detail_lines(current.details)
-    local summary = summarize_details(details)
-    if not current.active then
-      summary = summary ~= "" and ("not active - " .. summary) or "not active"
-    end
-
-    rows[#rows + 1] = {
-      id = current.name,
-      name = current.name,
-      status = current.group,
-      summary = summary ~= "" and summary or nil,
-      details = details,
-    }
-    current = nil
-  end
-
   for _, line in ipairs(lines) do
-    local group = line:match("^# (%S+)")
-    if group then
-      flush_current()
-      current_group = group
-    else
-      local plugin_header = line:match("^## .+")
-      if plugin_header then
-        flush_current()
-        local name, active = parse_plugin_header(plugin_header)
-        current = {
-          name = name,
-          active = active,
-          group = current_group,
-          details = {},
-        }
-      elseif current ~= nil then
-        current.details[#current.details + 1] = line
-      end
-    end
+    current, current_group = consume_review_line(rows, current, current_group, line)
   end
-
-  flush_current()
+  flush_review_row(rows, current)
   return rows
 end
 
@@ -387,35 +399,41 @@ end
 
 -- Discovery final-payload decoding seam (future decoder lane owns this).
 ---@param result vim.SystemCompleted
+---@return string
+local function discovery_error(result)
+  return vim.trim(result.stderr ~= "" and result.stderr or result.stdout or "headless discovery failed")
+end
+
+---@param payload string|nil
+---@return table|nil, string|nil
+local function decode_discovery_payload(payload)
+  if payload == nil or payload == "" then
+    return nil, "headless discovery produced no review payload"
+  end
+  local ok, decoded = pcall(vim.json.decode, payload)
+  if not ok or type(decoded) ~= "table" then
+    return nil, "failed to decode headless discovery payload"
+  end
+  if decoded.ok ~= true then
+    return nil, tostring(decoded.error or "headless discovery failed")
+  end
+  return decoded, nil
+end
+
+---@param result vim.SystemCompleted
 ---@return { ok: boolean, rows?: onebeer.PackReviewRow[], raw_lines?: string[], error?: string }
 local function decode_discovery_result(result)
   local payload = extract_payload(result.stdout or "")
   if result.code ~= 0 and payload == nil then
-    return {
-      ok = false,
-      error = vim.trim(result.stderr ~= "" and result.stderr or result.stdout or "headless discovery failed"),
-    }
+    return { ok = false, error = discovery_error(result) }
   end
 
-  if payload == nil or payload == "" then
-    return { ok = false, error = "headless discovery produced no review payload" }
+  local decoded, error = decode_discovery_payload(payload)
+  if error then
+    return { ok = false, error = error }
   end
-
-  local ok, decoded = pcall(vim.json.decode, payload)
-  if not ok or type(decoded) ~= "table" then
-    return { ok = false, error = "failed to decode headless discovery payload" }
-  end
-
-  if decoded.ok ~= true then
-    return { ok = false, error = tostring(decoded.error or "headless discovery failed") }
-  end
-
   local raw_lines = decoded.raw_lines or {}
-  return {
-    ok = true,
-    raw_lines = raw_lines,
-    rows = parse_review_lines(raw_lines),
-  }
+  return { ok = true, raw_lines = raw_lines, rows = parse_review_lines(raw_lines) }
 end
 
 -- Apply-progress subscription seam (future apply lane owns lifecycle wiring).
@@ -452,32 +470,55 @@ local function normalize_apply_progress_text(text)
 end
 
 ---@param event table
+---@return table
+local function progress_data(event)
+  return type(event) == "table" and (event.data or event) or {}
+end
+
+---@param text string|nil
+---@return string|nil
+local function active_progress_row(text)
+  if text == nil then
+    return nil
+  end
+  local row = vim.trim(text:match("%(%d+/%d+%)%s*%-%s*(.+)$") or "")
+  return row ~= "" and row or nil
+end
+
+---@param status string|nil
+---@return "running"|"success"|"failed"
+local function progress_status(status)
+  if status == "success" then
+    return "success"
+  end
+  if status ~= nil and status ~= "running" then
+    return "failed"
+  end
+  return "running"
+end
+
+---@param percent any
+---@return integer|nil
+local function progress_percent(percent)
+  if type(percent) ~= "number" then
+    return nil
+  end
+  return math.max(0, math.min(100, math.floor(percent)))
+end
+
+---@param event table
 ---@return { percent?: integer, text?: string, active_row_id?: string, status: "running"|"success"|"failed" }|nil
 normalize_apply_progress_event = function(event)
-  local data = type(event) == "table" and (event.data or event) or {}
+  local data = progress_data(event)
   if data.source ~= nil and data.source ~= apply_progress_source then
     return nil
   end
-
   local text = normalize_apply_progress_text(data.text)
-  local active_row_id = text and vim.trim(text:match("%(%d+/%d+%)%s*%-%s*(.+)$") or "") or nil
-  if active_row_id == "" then
-    active_row_id = nil
-  end
-
-  local status = "running"
-  if data.status == "success" then
-    status = "success"
-  elseif data.status ~= nil and data.status ~= "running" then
-    status = "failed"
-  end
-
-  local percent = type(data.percent) == "number" and math.max(0, math.min(100, math.floor(data.percent))) or nil
   return {
-    percent = percent,
+    percent = progress_percent(data.percent),
     text = text,
-    active_row_id = active_row_id,
-    status = status,
+    active_row_id = active_progress_row(text),
+    status = progress_status(data.status),
   }
 end
 
@@ -593,41 +634,65 @@ local function start_apply_progress_subscription(ctx, handlers)
 end
 
 -- Apply row-state seam (future row-progress lane owns mutations).
+---@param row onebeer.PackReviewRow
+---@return onebeer.PackReviewRow
+local function mark_success_row(row)
+  local next_row = vim.tbl_deep_extend("force", {}, row)
+  if next_row.status == "Update" or next_row.status == "Queued" or next_row.status == "Applying" then
+    next_row.status = "Done"
+  end
+  return next_row
+end
+
+---@param row onebeer.PackReviewRow
+---@param is_active boolean
+---@return onebeer.PackReviewRow
+local function mark_failed_row(row, is_active)
+  local next_row = vim.tbl_deep_extend("force", {}, row)
+  if is_active or next_row.status == "Applying" then
+    next_row.status = "Error"
+  elseif next_row.status == "Update" then
+    next_row.status = "Queued"
+  end
+  return next_row
+end
+
+---@param row onebeer.PackReviewRow
+---@param is_active boolean
+---@param has_active_row boolean
+---@return onebeer.PackReviewRow
+local function mark_running_row(row, is_active, has_active_row)
+  local next_row = vim.tbl_deep_extend("force", {}, row)
+  if next_row.status == "Update" then
+    next_row.status = "Queued"
+  end
+  if has_active_row then
+    if is_active then
+      next_row.status = "Applying"
+    elseif next_row.status == "Applying" then
+      next_row.status = "Done"
+    end
+  end
+  return next_row
+end
+
 ---@param rows onebeer.PackReviewRow[]
 ---@param event { active_row_id?: string, status: "running"|"success"|"failed" }
 ---@return onebeer.PackReviewRow[]
 local function update_rows_from_progress_event(rows, event)
   local updated_rows = {}
   local active_row_id = event.active_row_id
+  local has_active_row = active_row_id ~= nil
 
   for i, row in ipairs(rows) do
-    local next_row = vim.tbl_deep_extend("force", {}, row)
-    local is_active = active_row_id ~= nil and (next_row.id == active_row_id or next_row.name == active_row_id)
-
+    local is_active = has_active_row and (row.id == active_row_id or row.name == active_row_id)
     if event.status == "success" then
-      if next_row.status == "Update" or next_row.status == "Queued" or next_row.status == "Applying" then
-        next_row.status = "Done"
-      end
+      updated_rows[i] = mark_success_row(row)
     elseif event.status == "failed" then
-      if is_active or next_row.status == "Applying" then
-        next_row.status = "Error"
-      elseif next_row.status == "Update" then
-        next_row.status = "Queued"
-      end
+      updated_rows[i] = mark_failed_row(row, is_active)
     else
-      if next_row.status == "Update" then
-        next_row.status = "Queued"
-      end
-      if active_row_id ~= nil then
-        if is_active then
-          next_row.status = "Applying"
-        elseif next_row.status == "Applying" then
-          next_row.status = "Done"
-        end
-      end
+      updated_rows[i] = mark_running_row(row, is_active, has_active_row)
     end
-
-    updated_rows[i] = next_row
   end
 
   return updated_rows

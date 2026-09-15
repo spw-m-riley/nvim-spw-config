@@ -35,6 +35,16 @@ local function parse_location(line)
 end
 
 ---@param result vim.SystemCompleted
+---@return table
+local function fallback_item(result)
+  local message = vim.trim((result.stderr ~= "" and result.stderr) or result.stdout or ("exit code " .. result.code))
+  return {
+    text = message ~= "" and message or "Maven command failed",
+    type = "E",
+  }
+end
+
+---@param result vim.SystemCompleted
 ---@return table[]
 function M.quickfix_items(result)
   local items = {}
@@ -44,18 +54,10 @@ function M.quickfix_items(result)
       items[#items + 1] = item
     end
   end
-
   if #items > 0 then
     return items
   end
-
-  local message = vim.trim((result.stderr ~= "" and result.stderr) or result.stdout or ("exit code " .. result.code))
-  return {
-    {
-      text = message ~= "" and message or "Maven command failed",
-      type = "E",
-    },
-  }
+  return { fallback_item(result) }
 end
 
 return M

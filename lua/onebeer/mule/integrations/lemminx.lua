@@ -84,10 +84,25 @@ function M.apply(client, path)
   return true
 end
 
+---@param client vim.lsp.Client
+---@param root string
+---@param path string
+---@return boolean
+local function refresh_client(client, root, path)
+  local client_root = client.config and client.config.root_dir or nil
+  if type(client_root) ~= "string" or vim.fs.normalize(client_root) ~= root then
+    return false
+  end
+  return M.apply(client, path)
+end
+
 ---@param path string
 ---@return integer
 function M.refresh(path)
-  local project = detect.is_mule_xml(path) and detect.project(path) or nil
+  if not detect.is_mule_xml(path) then
+    return 0
+  end
+  local project = detect.project(path)
   if project == nil then
     return 0
   end
@@ -95,12 +110,10 @@ function M.refresh(path)
   local root = vim.fs.normalize(project.root)
   local refreshed = 0
   for _, client in ipairs(vim.lsp.get_clients({ name = "lemminx" })) do
-    local client_root = client.config and client.config.root_dir or nil
-    if type(client_root) == "string" and vim.fs.normalize(client_root) == root and M.apply(client, path) then
+    if refresh_client(client, root, path) then
       refreshed = refreshed + 1
     end
   end
-
   return refreshed
 end
 

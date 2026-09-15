@@ -159,67 +159,105 @@ local function load(name)
 end
 
 ---@param registry onebeer.PackRegistry
----@param raw onebeer.PluginSpec
----@return string|nil
-local function register_in_registry(registry, raw)
-  local enabled = raw.enabled
-  if enabled ~= nil and not (type(enabled) == "function" and enabled() or enabled) then
-    return nil
-  end
-
-  local src = raw.src or raw[1]
-  if type(src) ~= "string" then
-    return nil
-  end
-
-  local name = raw.name or repo_name(raw)
-  if type(name) ~= "string" or name == "" then
-    return nil
-  end
-
-  ---@type onebeer.PackSpec
+---@param name string
+---@return onebeer.PackSpec
+local function registry_spec(registry, name)
   local spec = registry.specs[name]
-    or {
-      name = name,
-      dependencies = {},
-      lazy = true,
-      priority = 0,
-      keys = {},
-      main = "",
-      src = "",
-    }
-
-  if registry.specs[name] == nil then
-    table.insert(registry.ordered, name)
+  if spec then
+    return spec
   end
 
+  spec = {
+    name = name,
+    dependencies = {},
+    lazy = true,
+    priority = 0,
+    keys = {},
+    main = "",
+    src = "",
+  }
+  registry.specs[name] = spec
+  table.insert(registry.ordered, name)
+  return spec
+end
+
+---@param spec onebeer.PackSpec
+---@param name string
+---@param raw onebeer.PluginSpec
+---@param src string
+local function apply_registry_fields(spec, name, raw, src)
   spec.src = src:match("^https?://") and src or ("https://github.com/" .. src)
   -- Preserve an earlier explicit pin when the same plugin is later referenced as an unpinned dependency.
   spec.version = pinned_version(raw) or spec.version
   spec.main = default_main(name, raw)
-  if raw.lazy ~= nil then
-    spec.lazy = raw.lazy
-  end
+  spec.lazy = raw.lazy ~= nil and raw.lazy or spec.lazy
   spec.priority = raw.priority or spec.priority
-  spec.event = raw.event or spec.event
-  spec.ft = raw.ft or spec.ft
-  spec.cmd = raw.cmd or spec.cmd
-  spec.keys = raw.keys or spec.keys
-  spec.init = raw.init or spec.init
-  spec.opts = raw.opts or spec.opts
-  spec.config = raw.config or spec.config
-  spec.build = raw.build or spec.build
+  for _, field in ipairs({ "event", "ft", "cmd", "keys", "init", "opts", "config", "build" }) do
+    spec[field] = raw[field] or spec[field]
+  end
+end
 
-  registry.specs[name] = spec
+local register_in_registry
 
-  for _, dep in ipairs(as_list(raw.dependencies)) do
+---@param raw onebeer.PluginSpec
+---@return boolean
+local function plugin_enabled(raw)
+  if raw.enabled == nil then
+    return true
+  end
+  if type(raw.enabled) == "function" then
+    return raw.enabled()
+  end
+  return raw.enabled
+end
+
+---@param raw onebeer.PluginSpec
+---@return string|nil, string|nil
+local function plugin_identity(raw)
+  if not plugin_enabled(raw) then
+    return nil, nil
+  end
+  local src = raw.src
+  if src == nil then
+    src = raw[1]
+  end
+  if type(src) ~= "string" then
+    return nil, nil
+  end
+  local name = raw.name
+  if name == nil then
+    name = repo_name(raw)
+  end
+  if type(name) ~= "string" or name == "" then
+    return nil, nil
+  end
+  return name, src
+end
+
+---@param registry onebeer.PackRegistry
+---@param spec onebeer.PackSpec
+---@param dependencies onebeer.PluginSpec[]
+local function register_dependencies(registry, spec, dependencies)
+  for _, dep in ipairs(dependencies) do
     local dep_name = type(dep) == "string" and register_in_registry(registry, { dep })
       or register_in_registry(registry, dep)
     if dep_name ~= nil and not vim.tbl_contains(spec.dependencies, dep_name) then
       table.insert(spec.dependencies, dep_name)
     end
   end
+end
 
+---@param registry onebeer.PackRegistry
+---@param raw onebeer.PluginSpec
+---@return string|nil
+register_in_registry = function(registry, raw)
+  local name, src = plugin_identity(raw)
+  if name == nil or src == nil then
+    return nil
+  end
+  local spec = registry_spec(registry, name)
+  apply_registry_fields(spec, name, raw, src)
+  register_dependencies(registry, spec, as_list(raw.dependencies))
   return name
 end
 
@@ -368,21 +406,14 @@ local function pluralize(count, singular, plural)
   return count == 1 and singular or plural
 end
 
----@param ctx vim.api.keyset.user_command.callback_args
-local function run_pack_sync(ctx)
-  local registry, err = collect_registry()
-  if registry == nil then
-    vim.notify(err or "Failed to collect Pack plugin specs", vim.log.levels.ERROR, { title = "Pack" })
-    return
-  end
-
-  local desired_names = vim.deepcopy(registry.ordered)
-  local current_names = pack_plugin_names()
+---@param desired_names string[]
+---@param current_names string[]
+---@return string[], string[]
+local function name_changes(desired_names, current_names)
   local desired_set = name_set(desired_names)
   local current_set = name_set(current_names)
   local added_names = {}
   local removed_names = {}
-
   for _, name in ipairs(desired_names) do
     if not current_set[name] then
       added_names[#added_names + 1] = name
@@ -393,7 +424,39 @@ local function run_pack_sync(ctx)
       removed_names[#removed_names + 1] = name
     end
   end
+  return added_names, removed_names
+end
 
+---@param added_names string[]
+---@param removed_names string[]
+local function notify_sync_changes(added_names, removed_names)
+  if #added_names == 0 and #removed_names == 0 then
+    return
+  end
+  local summary = {}
+  if #added_names > 0 then
+    summary[#summary + 1] = ("installed %d %s"):format(#added_names, pluralize(#added_names, "plugin", "plugins"))
+  end
+  if #removed_names > 0 then
+    summary[#summary + 1] = ("removed %d %s"):format(#removed_names, pluralize(#removed_names, "plugin", "plugins"))
+  end
+  vim.notify(
+    ("Pack sync reconciled config: %s. Restart to fully apply add/remove changes."):format(table.concat(summary, ", ")),
+    vim.log.levels.INFO,
+    { title = "Pack" }
+  )
+end
+
+---@param ctx vim.api.keyset.user_command.callback_args
+local function run_pack_sync(ctx)
+  local registry, err = collect_registry()
+  if registry == nil then
+    vim.notify(err or "Failed to collect Pack plugin specs", vim.log.levels.ERROR, { title = "Pack" })
+    return
+  end
+
+  local desired_names = vim.deepcopy(registry.ordered)
+  local added_names, removed_names = name_changes(desired_names, pack_plugin_names())
   local ok_add, add_err = pcall(vim.pack.add, registry_pack_specs(registry), { load = false, confirm = false })
   if not ok_add then
     vim.notify(add_err, vim.log.levels.ERROR, { title = "Pack" })
@@ -408,33 +471,15 @@ local function run_pack_sync(ctx)
     end
   end
 
-  if #added_names > 0 or #removed_names > 0 then
-    local summary = {}
-    if #added_names > 0 then
-      summary[#summary + 1] = ("installed %d %s"):format(#added_names, pluralize(#added_names, "plugin", "plugins"))
-    end
-    if #removed_names > 0 then
-      summary[#summary + 1] = ("removed %d %s"):format(#removed_names, pluralize(#removed_names, "plugin", "plugins"))
-    end
-    vim.notify(
-      ("Pack sync reconciled config: %s. Restart to fully apply add/remove changes."):format(
-        table.concat(summary, ", ")
-      ),
-      vim.log.levels.INFO,
-      { title = "Pack" }
-    )
-  end
-
+  notify_sync_changes(added_names, removed_names)
   if #desired_names == 0 then
     vim.notify("Pack sync complete. No configured plugins remain.", vim.log.levels.INFO, { title = "Pack" })
     return
   end
-
   if ctx.bang then
     vim.pack.update(desired_names, { force = true })
     return
   end
-
   require("onebeer.pack_review").open_update(desired_names)
 end
 

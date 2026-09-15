@@ -43,6 +43,41 @@ local function is_cursor(target)
 end
 
 ---@param match string
+---@param buf integer
+---@param win integer
+---@param row integer
+---@param line string
+---@param targets onebeer.jump.Target[]
+local function append_character_targets(match, buf, win, row, line, targets)
+  local start = 1
+  while true do
+    local found = line:find(match, start, true)
+    if found == nil then
+      return
+    end
+    local target = { buf = buf, win = win, row = row, col = found - 1 }
+    if not is_cursor(target) then
+      targets[#targets + 1] = target
+    end
+    start = found + math.max(1, #match)
+  end
+end
+
+---@param match string
+---@param buf integer
+---@param win integer
+---@param first integer
+---@param last integer
+---@return onebeer.jump.Target[]
+local function window_character_targets(match, buf, win, first, last)
+  local targets = {}
+  for offset, line in ipairs(vim.api.nvim_buf_get_lines(buf, first - 1, last, false)) do
+    append_character_targets(match, buf, win, first + offset - 1, line, targets)
+  end
+  return targets
+end
+
+---@param match string
 ---@param opts? { windows?: integer[] }
 ---@return onebeer.jump.Target[]
 function M.characters(match, opts)
@@ -54,21 +89,48 @@ function M.characters(match, opts)
   for _, win in ipairs(normal_windows(opts and opts.windows)) do
     local buf = vim.api.nvim_win_get_buf(win)
     local first, last = visible_rows(win)
-    local lines = vim.api.nvim_buf_get_lines(buf, first - 1, last, false)
-    for offset, line in ipairs(lines) do
-      local start = 1
-      while true do
-        local found = line:find(match, start, true)
-        if found == nil then
-          break
-        end
-        local target = { buf = buf, win = win, row = first + offset - 1, col = found - 1 }
-        if not is_cursor(target) then
-          targets[#targets + 1] = target
-        end
-        start = found + math.max(1, #match)
-      end
+    vim.list_extend(targets, window_character_targets(match, buf, win, first, last))
+  end
+  return targets
+end
+
+---@param regex userdata
+---@param buf integer
+---@param win integer
+---@param row integer
+---@param line string
+---@return onebeer.jump.Target[]
+local function search_targets_in_line(regex, buf, win, row, line)
+  local targets = {}
+  local byte_offset = 0
+  while byte_offset <= #line do
+    local start_col, end_col = regex:match_str(line:sub(byte_offset + 1))
+    if start_col == nil then
+      break
     end
+    targets[#targets + 1] = {
+      buf = buf,
+      win = win,
+      row = row,
+      col = byte_offset + start_col,
+      end_row = row,
+      end_col = byte_offset + end_col,
+    }
+    byte_offset = byte_offset + math.max(end_col, start_col + 1)
+  end
+  return targets
+end
+
+---@param regex userdata
+---@param buf integer
+---@param win integer
+---@param first integer
+---@param last integer
+---@return onebeer.jump.Target[]
+local function window_search_targets(regex, buf, win, first, last)
+  local targets = {}
+  for offset, line in ipairs(vim.api.nvim_buf_get_lines(buf, first - 1, last, false)) do
+    vim.list_extend(targets, search_targets_in_line(regex, buf, win, first + offset - 1, line))
   end
   return targets
 end
@@ -90,27 +152,7 @@ function M.search(pattern, opts)
   for _, win in ipairs(normal_windows(opts and opts.windows)) do
     local buf = vim.api.nvim_win_get_buf(win)
     local first, last = visible_rows(win)
-    local lines = vim.api.nvim_buf_get_lines(buf, first - 1, last, false)
-    for offset, line in ipairs(lines) do
-      local byte_offset = 0
-      while byte_offset <= #line do
-        local start_col, end_col = regex:match_str(line:sub(byte_offset + 1))
-        if start_col == nil then
-          break
-        end
-        local col = byte_offset + start_col
-        local target = {
-          buf = buf,
-          win = win,
-          row = first + offset - 1,
-          col = col,
-          end_row = first + offset - 1,
-          end_col = byte_offset + end_col,
-        }
-        targets[#targets + 1] = target
-        byte_offset = byte_offset + math.max(end_col, start_col + 1)
-      end
-    end
+    vim.list_extend(targets, window_search_targets(regex, buf, win, first, last))
   end
   return targets
 end
@@ -183,36 +225,45 @@ function M.treesitter(opts)
   return items
 end
 
+---@param target onebeer.jump.Target
+---@param seen table<string, boolean>
+---@param items onebeer.jump.Target[]
+local function append_treesitter_match(target, seen, items)
+  local ok, parser = pcall(vim.treesitter.get_parser, target.buf)
+  if not ok or not parser then
+    return
+  end
+
+  parser:parse()
+  local node = vim.treesitter.get_node({
+    bufnr = target.buf,
+    pos = { target.row - 1, target.col },
+    ignore_injections = false,
+  })
+  while node and not node:named() do
+    node = node:parent()
+  end
+  if not node then
+    return
+  end
+
+  local start_row, start_col, end_row, end_col = node:range()
+  local key = table.concat({ target.win, start_row, start_col, end_row, end_col }, ":")
+  if seen[key] then
+    return
+  end
+  seen[key] = true
+  items[#items + 1] = node_target(node, target.buf, target.win)
+end
+
 ---@param match string
 ---@param opts? { windows?: integer[] }
 ---@return onebeer.jump.Target[]
 function M.treesitter_search(match, opts)
   local items = {}
   local seen = {}
-
   for _, target in ipairs(M.characters(match, opts)) do
-    local ok, parser = pcall(vim.treesitter.get_parser, target.buf)
-    if ok and parser then
-      parser:parse()
-      local node = vim.treesitter.get_node({
-        bufnr = target.buf,
-        pos = { target.row - 1, target.col },
-        ignore_injections = false,
-      })
-      if node then
-        while node and not node:named() do
-          node = node:parent()
-        end
-        if node then
-          local start_row, start_col, end_row, end_col = node:range()
-          local key = table.concat({ target.win, start_row, start_col, end_row, end_col }, ":")
-          if not seen[key] then
-            seen[key] = true
-            items[#items + 1] = node_target(node, target.buf, target.win)
-          end
-        end
-      end
-    end
+    append_treesitter_match(target, seen, items)
   end
   return items
 end

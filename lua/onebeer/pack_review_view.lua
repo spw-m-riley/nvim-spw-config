@@ -323,6 +323,13 @@ local function prune_expanded(ctx)
   end
 end
 
+---@param row onebeer.PackReviewRow
+---@return string[]
+local function row_details(row)
+  local details = to_lines(row.details)
+  return #details > 0 and details or { "(no details)" }
+end
+
 ---@param ctx onebeer.PackReviewCtx
 ---@param row onebeer.PackReviewRow
 ---@param index integer
@@ -336,16 +343,10 @@ local function append_row(ctx, row, index, lines)
   lines[#lines + 1] = table.concat({ " ", marker, " ", row.name, status, summary })
   ctx.line_to_row[#lines] = key
 
-  if not expanded then
-    return
-  end
-
-  local details = to_lines(row.details)
-  if #details == 0 then
-    details = { "(no details)" }
-  end
-  for _, line in ipairs(details) do
-    lines[#lines + 1] = "    " .. line
+  if expanded then
+    for _, line in ipairs(row_details(row)) do
+      lines[#lines + 1] = "    " .. line
+    end
   end
 end
 
@@ -360,25 +361,44 @@ end
 ---@param progress onebeer.PackReviewProgress
 ---@param width integer|nil
 ---@return string
-local function progress_line_text(progress, width)
-  if progress.indeterminate then
-    local indicator = progress.spinner and spinner_icon or "•"
-    local text = progress.current or "Waiting for progress updates..."
-    if width ~= nil then
-      text = truncate_text(text, math.max(0, width - 4))
-    end
-    return table.concat({ " ", indicator, " ", text })
+local function indeterminate_progress_line(progress, width)
+  local indicator = progress.spinner and spinner_icon or "•"
+  local text = progress.current or "Waiting for progress updates..."
+  if width ~= nil then
+    text = truncate_text(text, math.max(0, width - 4))
   end
+  return table.concat({ " ", indicator, " ", text })
+end
 
+---@param progress onebeer.PackReviewProgress
+---@param width integer|nil
+---@return string
+local function determinate_progress_line(progress, width)
   local percent = progress.percent or 0
   local filled = math.floor((percent / 100) * progress_bar_width + 0.5)
   local bar = string.rep("=", filled) .. string.rep("-", progress_bar_width - filled)
   local current = progress.current and (" " .. progress.current) or ""
   local line = (" [%s] %3d%%"):format(bar, percent) .. current
-  if width ~= nil then
-    line = truncate_text(line, math.max(0, width - 2))
+  return " " .. (width and truncate_text(line, math.max(0, width - 2)) or line)
+end
+
+---@param progress onebeer.PackReviewProgress
+---@param width integer|nil
+---@return string
+local function progress_line_text(progress, width)
+  if progress.indeterminate then
+    return indeterminate_progress_line(progress, width)
   end
-  return " " .. line
+  return determinate_progress_line(progress, width)
+end
+
+---@param value integer|nil
+---@return integer|nil
+local function zero_based(value)
+  if value == nil then
+    return nil
+  end
+  return value - 1
 end
 
 ---@param progress_text string
@@ -386,23 +406,26 @@ end
 ---@return { bar_start: integer, bar_end: integer, percent_start: integer|nil, percent_end: integer|nil, current_start: integer|nil }|nil
 local function progress_highlight_columns(progress_text, progress)
   local open_bracket = progress_text:find("[", 1, true)
-  local close_bracket = open_bracket and progress_text:find("]", open_bracket, true) or nil
-  if not open_bracket or not close_bracket then
+  if open_bracket == nil then
+    return nil
+  end
+  local close_bracket = progress_text:find("]", open_bracket, true)
+  if close_bracket == nil then
     return nil
   end
 
   local percent_start, percent_end = progress_text:find("%d+%%", close_bracket + 1)
   local current_start
-  if progress.current then
+  if progress.current ~= nil then
     current_start = progress_text:find(progress.current, close_bracket + 1, true)
   end
 
   return {
     bar_start = open_bracket,
     bar_end = close_bracket - 1,
-    percent_start = percent_start and (percent_start - 1) or nil,
-    percent_end = percent_end or nil,
-    current_start = current_start and (current_start - 1) or nil,
+    percent_start = zero_based(percent_start),
+    percent_end = percent_end,
+    current_start = zero_based(current_start),
   }
 end
 
@@ -511,6 +534,174 @@ local function refresh_layout(ctx)
 end
 
 ---@param ctx onebeer.PackReviewCtx
+---@param progress_text string
+---@param header onebeer.PackReviewHeaderMeta
+---@param progress onebeer.PackReviewProgress
+local function highlight_indeterminate_progress(ctx, progress_text, header, progress)
+  local indicator_width = #(progress.spinner and spinner_icon or "•")
+  highlight_range(ctx.buf, header.progress_line, 1, 1 + indicator_width, "OneBeerPackReviewProgressSpinner")
+  local current_start = indicator_width + 2
+  if #progress_text >= current_start then
+    highlight_range(ctx.buf, header.progress_line, current_start, #progress_text, "OneBeerPackReviewHeaderCurrent")
+  end
+end
+
+---@param ctx onebeer.PackReviewCtx
+---@param progress_text string
+---@param header onebeer.PackReviewHeaderMeta
+---@param progress onebeer.PackReviewProgress
+local function highlight_determinate_progress(ctx, progress_text, header, progress)
+  local columns = progress_highlight_columns(progress_text, progress)
+  if columns == nil then
+    return
+  end
+  local fill = math.floor(((progress.percent or 0) / 100) * progress_bar_width + 0.5)
+  if fill > 0 then
+    highlight_range(
+      ctx.buf,
+      header.progress_line,
+      columns.bar_start,
+      math.min(columns.bar_start + fill, columns.bar_end),
+      "OneBeerPackReviewProgressBarFill"
+    )
+  end
+  if fill < progress_bar_width then
+    highlight_range(
+      ctx.buf,
+      header.progress_line,
+      columns.bar_start + fill,
+      columns.bar_end,
+      "OneBeerPackReviewProgressBarTrack"
+    )
+  end
+  if columns.percent_start and columns.percent_end then
+    highlight_range(
+      ctx.buf,
+      header.progress_line,
+      columns.percent_start,
+      columns.percent_end,
+      "OneBeerPackReviewProgressPercent"
+    )
+  end
+  if columns.current_start and #progress_text >= columns.current_start then
+    highlight_range(
+      ctx.buf,
+      header.progress_line,
+      columns.current_start,
+      #progress_text,
+      "OneBeerPackReviewHeaderCurrent"
+    )
+  end
+end
+
+---@param ctx onebeer.PackReviewCtx
+---@param lines string[]
+---@param header onebeer.PackReviewHeaderMeta
+local function highlight_progress(ctx, lines, header)
+  local progress = ctx.state.progress
+  local progress_text = lines[header.progress_line]
+  if progress.indeterminate then
+    highlight_indeterminate_progress(ctx, progress_text, header, progress)
+    return
+  end
+  highlight_determinate_progress(ctx, progress_text, header, progress)
+end
+
+---@param ctx onebeer.PackReviewCtx
+---@param lines string[]
+---@param header onebeer.PackReviewHeaderMeta
+local function highlight_messages(ctx, lines, header)
+  for line_nr = header.message_start, header.message_end do
+    local line = lines[line_nr]
+    if vim.trim(line) ~= "" then
+      highlight_range(ctx.buf, line_nr, 1, #line, "OneBeerPackReviewMessage")
+    end
+  end
+end
+
+---@param ctx onebeer.PackReviewCtx
+---@param line_nr integer
+---@param line string
+local function highlight_row_line(ctx, line_nr, line)
+  highlight_range(ctx.buf, line_nr, 1, 4, "OneBeerPackReviewRowToggle")
+  local name_start = 4
+  local status_start = line:find(" [", 1, true)
+  local summary_start = line:find(" - ", 1, true)
+  local row_status = line:match("%[(.-)%]")
+  local name_end = status_start and (status_start - 1) or (summary_start and (summary_start - 1) or #line)
+  highlight_range(ctx.buf, line_nr, name_start, name_end, row_name_highlight(row_status))
+  if status_start then
+    local status_end = line:find("]", status_start, true)
+    if status_end then
+      highlight_range(ctx.buf, line_nr, status_start - 1, status_end, status_highlight(row_status))
+    end
+  end
+  if summary_start then
+    highlight_range(ctx.buf, line_nr, summary_start - 1, #line, summary_highlight(row_status))
+  end
+end
+
+---@param ctx onebeer.PackReviewCtx
+---@param lines string[]
+---@param line_nr integer
+---@param line string
+local function highlight_detail_line(ctx, lines, line_nr, line)
+  local detail_value_hl = "OneBeerPackReviewDetailValue"
+  for prev = line_nr - 1, 1, -1 do
+    local prev_line = lines[prev]
+    if prev_line and is_row_line(prev_line) then
+      if prev_line:match("%[Same%]") then
+        detail_value_hl = "OneBeerPackReviewDetailMuted"
+      end
+      break
+    end
+  end
+  highlight_labeled_detail(ctx.buf, line_nr, line, "Path:", "OneBeerPackReviewDetailLabel", detail_value_hl)
+  highlight_labeled_detail(ctx.buf, line_nr, line, "Source:", "OneBeerPackReviewDetailLabel", detail_value_hl)
+  highlight_labeled_detail(ctx.buf, line_nr, line, "Revision before:", "OneBeerPackReviewDetailLabel", detail_value_hl)
+  highlight_labeled_detail(ctx.buf, line_nr, line, "Revision after:", "OneBeerPackReviewDetailLabel", detail_value_hl)
+  highlight_labeled_detail(ctx.buf, line_nr, line, "Revision:", "OneBeerPackReviewDetailLabel", detail_value_hl)
+  if line:match("^    [><] ") then
+    highlight_range(ctx.buf, line_nr, 4, #line, status_highlight("Update"))
+  elseif line:match("^    %(no details%)") then
+    highlight_range(ctx.buf, line_nr, 4, #line, "OneBeerPackReviewSummarySame")
+  elseif detail_value_hl == "OneBeerPackReviewDetailMuted" then
+    highlight_range(ctx.buf, line_nr, 4, #line, detail_value_hl)
+  end
+end
+
+---@param ctx onebeer.PackReviewCtx
+---@param lines string[]
+local function highlight_rows(ctx, lines)
+  for line_nr = 1, #lines do
+    local line = lines[line_nr]
+    if is_row_line(line) then
+      highlight_row_line(ctx, line_nr, line)
+    elseif line:match("^    ") then
+      highlight_detail_line(ctx, lines, line_nr, line)
+    end
+  end
+end
+
+---@param ctx onebeer.PackReviewCtx
+local function set_window_title(ctx)
+  local title = string.format(" %s ", ctx.state.title or "Pack review")
+  if not vim.api.nvim_win_is_valid(ctx.win) then
+    return
+  end
+  pcall(vim.api.nvim_set_option_value, "title", true, { win = ctx.win })
+  pcall(vim.api.nvim_set_option_value, "winbar", "", { win = ctx.win })
+  pcall(
+    vim.api.nvim_win_set_config,
+    ctx.win,
+    vim.tbl_deep_extend("force", {
+      title = title,
+      title_pos = "center",
+    }, vim.api.nvim_win_get_config(ctx.win))
+  )
+end
+
+---@param ctx onebeer.PackReviewCtx
 local function render(ctx)
   if not vim.api.nvim_buf_is_valid(ctx.buf) then
     return
@@ -543,138 +734,14 @@ local function render(ctx)
 
   highlight_range(ctx.buf, header.title_line, 1, #lines[header.title_line], "OneBeerPackReviewHeaderTitle")
   highlight_range(ctx.buf, header.phase_line, 1, #lines[header.phase_line], phase_highlight(state.phase))
-  local progress_text = lines[header.progress_line]
-  if state.progress.indeterminate then
-    local indicator_width = #(state.progress.spinner and spinner_icon or "•")
-    highlight_range(ctx.buf, header.progress_line, 1, 1 + indicator_width, "OneBeerPackReviewProgressSpinner")
-    local current_start = indicator_width + 2
-    if #progress_text >= current_start then
-      highlight_range(ctx.buf, header.progress_line, current_start, #progress_text, "OneBeerPackReviewHeaderCurrent")
-    end
-  else
-    local columns = progress_highlight_columns(progress_text, state.progress)
-    if columns ~= nil then
-      local fill = math.floor(((state.progress.percent or 0) / 100) * progress_bar_width + 0.5)
-      if fill > 0 then
-        highlight_range(
-          ctx.buf,
-          header.progress_line,
-          columns.bar_start,
-          math.min(columns.bar_start + fill, columns.bar_end),
-          "OneBeerPackReviewProgressBarFill"
-        )
-      end
-      if fill < progress_bar_width then
-        highlight_range(
-          ctx.buf,
-          header.progress_line,
-          columns.bar_start + fill,
-          columns.bar_end,
-          "OneBeerPackReviewProgressBarTrack"
-        )
-      end
-      if columns.percent_start and columns.percent_end then
-        highlight_range(
-          ctx.buf,
-          header.progress_line,
-          columns.percent_start,
-          columns.percent_end,
-          "OneBeerPackReviewProgressPercent"
-        )
-      end
-      if columns.current_start and #progress_text >= columns.current_start then
-        highlight_range(
-          ctx.buf,
-          header.progress_line,
-          columns.current_start,
-          #progress_text,
-          "OneBeerPackReviewHeaderCurrent"
-        )
-      end
-    end
-  end
+  highlight_progress(ctx, lines, header)
 
-  for line_nr = header.message_start, header.message_end do
-    local line = lines[line_nr]
-    if vim.trim(line) ~= "" then
-      highlight_range(ctx.buf, line_nr, 1, #line, "OneBeerPackReviewMessage")
-    end
-  end
-
-  for line_nr = 1, #lines do
-    local line = lines[line_nr]
-    if is_row_line(line) then
-      highlight_range(ctx.buf, line_nr, 1, 4, "OneBeerPackReviewRowToggle")
-      local name_start = 4
-      local status_start = line:find(" [", 1, true)
-      local summary_start = line:find(" - ", 1, true)
-      local row_status = line:match("%[(.-)%]")
-      local name_end = status_start and (status_start - 1) or (summary_start and (summary_start - 1) or #line)
-      highlight_range(ctx.buf, line_nr, name_start, name_end, row_name_highlight(row_status))
-      if status_start then
-        local status_end = line:find("]", status_start, true)
-        if status_end then
-          highlight_range(ctx.buf, line_nr, status_start - 1, status_end, status_highlight(row_status))
-        end
-      end
-      if summary_start then
-        highlight_range(ctx.buf, line_nr, summary_start - 1, #line, summary_highlight(row_status))
-      end
-    elseif line:match("^    ") then
-      local detail_value_hl = "OneBeerPackReviewDetailValue"
-      for prev = line_nr - 1, 1, -1 do
-        local prev_line = lines[prev]
-        if prev_line and is_row_line(prev_line) then
-          if prev_line:match("%[Same%]") then
-            detail_value_hl = "OneBeerPackReviewDetailMuted"
-          end
-          break
-        end
-      end
-      highlight_labeled_detail(ctx.buf, line_nr, line, "Path:", "OneBeerPackReviewDetailLabel", detail_value_hl)
-      highlight_labeled_detail(ctx.buf, line_nr, line, "Source:", "OneBeerPackReviewDetailLabel", detail_value_hl)
-      highlight_labeled_detail(
-        ctx.buf,
-        line_nr,
-        line,
-        "Revision before:",
-        "OneBeerPackReviewDetailLabel",
-        detail_value_hl
-      )
-      highlight_labeled_detail(
-        ctx.buf,
-        line_nr,
-        line,
-        "Revision after:",
-        "OneBeerPackReviewDetailLabel",
-        detail_value_hl
-      )
-      highlight_labeled_detail(ctx.buf, line_nr, line, "Revision:", "OneBeerPackReviewDetailLabel", detail_value_hl)
-      if line:match("^    [><] ") then
-        highlight_range(ctx.buf, line_nr, 4, #line, status_highlight("Update"))
-      elseif line:match("^    %(no details%)") then
-        highlight_range(ctx.buf, line_nr, 4, #line, "OneBeerPackReviewSummarySame")
-      elseif detail_value_hl == "OneBeerPackReviewDetailMuted" then
-        highlight_range(ctx.buf, line_nr, 4, #line, detail_value_hl)
-      end
-    end
-  end
+  highlight_messages(ctx, lines, header)
+  highlight_rows(ctx, lines)
 
   highlight_action_line(ctx.buf, #lines)
 
-  local title = string.format(" %s ", state.title or "Pack review")
-  if vim.api.nvim_win_is_valid(ctx.win) then
-    pcall(vim.api.nvim_set_option_value, "title", true, { win = ctx.win })
-    pcall(vim.api.nvim_set_option_value, "winbar", "", { win = ctx.win })
-    pcall(
-      vim.api.nvim_win_set_config,
-      ctx.win,
-      vim.tbl_deep_extend("force", {
-        title = title,
-        title_pos = "center",
-      }, vim.api.nvim_win_get_config(ctx.win))
-    )
-  end
+  set_window_title(ctx)
 end
 
 ---@param ctx onebeer.PackReviewCtx
@@ -807,29 +874,34 @@ end
 
 ---@param ctx onebeer.PackReviewCtx
 ---@param state onebeer.PackReviewState
+---@return onebeer.PackReviewState
+local function merged_state(ctx, state)
+  local result = vim.tbl_deep_extend("force", {}, ctx.state or {}, state)
+  if state.rows ~= nil then
+    result.rows = state.rows
+  end
+  if state.message ~= nil then
+    result.message = state.message
+  end
+  if state.phase ~= nil and state.progress == nil then
+    result.progress = nil
+  end
+  return result
+end
+
+---@param ctx onebeer.PackReviewCtx
+---@param state onebeer.PackReviewState
 function M.update(ctx, state)
-  if not (ctx and vim.api.nvim_buf_is_valid(ctx.buf)) then
+  if ctx == nil or not vim.api.nvim_buf_is_valid(ctx.buf) then
     return
   end
 
-  local merged_state = vim.tbl_deep_extend("force", {}, ctx.state or {}, state)
-  if state.rows ~= nil then
-    merged_state.rows = state.rows
-  end
-  if state.message ~= nil then
-    merged_state.message = state.message
-  end
-  if state.phase ~= nil and state.progress == nil then
-    merged_state.progress = nil
-  end
-
-  ctx.state = normalize_state(merged_state)
+  ctx.state = normalize_state(merged_state(ctx, state))
   local layout_needs_refresh = should_refresh_layout(ctx)
   if layout_needs_refresh then
     ctx.layout = nil
   end
   render(ctx)
-
   if layout_needs_refresh then
     refresh_layout(ctx)
   end

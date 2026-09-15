@@ -110,6 +110,56 @@ local function munit_positions(path)
   return positions
 end
 
+---@param report_path string
+---@param projects table<string, table<string, string>>
+---@return table[]
+---@return table<string, integer>
+local function report_entries(report_path, projects)
+  local project = detect.project(report_path)
+  local suite_path_map
+  if project then
+    suite_path_map = projects[project.root]
+    if suite_path_map == nil then
+      suite_path_map = suite_paths(project)
+      projects[project.root] = suite_path_map
+    end
+  end
+
+  local entries = {}
+  local fallback_counts = {}
+  for _, result in ipairs(surefire.parse_file(report_path)) do
+    local selector = selector_id(result)
+    local path = suite_path_map and suite_path_map[result.classname] or nil
+    entries[#entries + 1] = { path = path, result = result, selector = selector }
+    if path == nil then
+      fallback_counts[selector] = (fallback_counts[selector] or 0) + 1
+    end
+  end
+  return entries, fallback_counts
+end
+
+---@param entry table
+---@param fallback_counts table<string, integer>
+---@param results table<string, table>
+---@param diagnostics string[]
+local function add_result_entry(entry, fallback_counts, results, diagnostics)
+  local id
+  if entry.path then
+    id = result_id(entry.path, entry.selector)
+  elseif fallback_counts[entry.selector] == 1 then
+    id = entry.selector
+    diagnostics[#diagnostics + 1] = ("Unmapped MUnit Surefire result: %s"):format(entry.selector)
+  else
+    diagnostics[#diagnostics + 1] = ("Ambiguous MUnit Surefire result omitted: %s"):format(entry.selector)
+  end
+  if id then
+    results[id] = {
+      errors = entry.result.message and { { message = entry.result.message } } or nil,
+      status = entry.result.status,
+    }
+  end
+end
+
 ---@param report_paths string[]
 ---@return table<string, table>
 ---@return string[]
@@ -121,47 +171,14 @@ function M.result_map(report_paths)
   local fallback_counts = {}
 
   for _, report_path in ipairs(report_paths) do
-    local project = detect.project(report_path)
-    local suite_path_map
-    if project then
-      suite_path_map = projects[project.root]
-      if suite_path_map == nil then
-        suite_path_map = suite_paths(project)
-        projects[project.root] = suite_path_map
-      end
-    end
-
-    for _, result in ipairs(surefire.parse_file(report_path)) do
-      local selector = selector_id(result)
-      local path = suite_path_map and suite_path_map[result.classname] or nil
-      entries[#entries + 1] = {
-        path = path,
-        result = result,
-        selector = selector,
-      }
-      if path == nil then
-        fallback_counts[selector] = (fallback_counts[selector] or 0) + 1
-      end
+    local report_entries_for_path, report_fallback_counts = report_entries(report_path, projects)
+    vim.list_extend(entries, report_entries_for_path)
+    for selector, count in pairs(report_fallback_counts) do
+      fallback_counts[selector] = (fallback_counts[selector] or 0) + count
     end
   end
-
   for _, entry in ipairs(entries) do
-    local id
-    if entry.path then
-      id = result_id(entry.path, entry.selector)
-    elseif fallback_counts[entry.selector] == 1 then
-      id = entry.selector
-      diagnostics[#diagnostics + 1] = ("Unmapped MUnit Surefire result: %s"):format(entry.selector)
-    else
-      diagnostics[#diagnostics + 1] = ("Ambiguous MUnit Surefire result omitted: %s"):format(entry.selector)
-    end
-
-    if id then
-      results[id] = {
-        errors = entry.result.message and { { message = entry.result.message } } or nil,
-        status = entry.result.status,
-      }
-    end
+    add_result_entry(entry, fallback_counts, results, diagnostics)
   end
   return results, diagnostics
 end

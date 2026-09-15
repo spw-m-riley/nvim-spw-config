@@ -78,53 +78,94 @@ local function attribute(tag, name)
 end
 
 ---@param index onebeer.mule.Index
+---@param tag string|nil
+---@param prefix string
+---@param path string
+---@param line_number integer
+local function index_mule_config(index, tag, prefix, path, line_number)
+  local name = tag and attribute(tag, "name") or nil
+  if name == nil then
+    return
+  end
+  add_entry(index.configs, prefix .. ":" .. name, path, line_number)
+  if prefix ~= "apikit" then
+    return
+  end
+  local api = attribute(tag, "api")
+  if api then
+    index.apikit_configs[#index.apikit_configs + 1] = {
+      name = name,
+      api = api,
+      path = path,
+      line = line_number,
+    }
+  end
+end
+
+---@param index onebeer.mule.Index
+---@param lines string[]
+---@param path string
+---@param line_number integer
+---@return integer
+local function index_mule_line(index, lines, path, line_number)
+  local tag, end_line = opening_tag_at(lines, line_number, "flow")
+  if tag then
+    local name = attribute(tag, "name")
+    if name then
+      add_entry(index.flows, name, path, line_number)
+    end
+    return end_line + 1
+  end
+
+  tag, end_line = opening_tag_at(lines, line_number, "sub%-flow")
+  if tag then
+    local name = attribute(tag, "name")
+    if name then
+      add_entry(index.subflows, name, path, line_number)
+    end
+    return end_line + 1
+  end
+
+  local prefix = lines[line_number]:match("^%s*<([%w_-]+):config[%s/>]")
+    or lines[line_number]:match("^%s*<([%w_-]+):config$")
+  if not prefix then
+    return line_number + 1
+  end
+
+  tag, end_line = opening_tag_at(lines, line_number, prefix .. ":config")
+  index_mule_config(index, tag, prefix, path, line_number)
+  return end_line and end_line + 1 or line_number + 1
+end
+
+---@param index onebeer.mule.Index
 ---@param path string
 local function index_mule_xml(index, path)
   local lines = read_lines(path)
   local line_number = 1
   while line_number <= #lines do
-    local tag, end_line = opening_tag_at(lines, line_number, "flow")
-    if tag then
-      local name = attribute(tag, "name")
-      if name then
-        add_entry(index.flows, name, path, line_number)
-      end
-      line_number = end_line + 1
-    else
-      tag, end_line = opening_tag_at(lines, line_number, "sub%-flow")
-      if tag then
-        local name = attribute(tag, "name")
-        if name then
-          add_entry(index.subflows, name, path, line_number)
-        end
-        line_number = end_line + 1
-      else
-        local prefix = lines[line_number]:match("^%s*<([%w_-]+):config[%s/>]")
-          or lines[line_number]:match("^%s*<([%w_-]+):config$")
-        if prefix then
-          tag, end_line = opening_tag_at(lines, line_number, prefix .. ":config")
-          local name = tag and attribute(tag, "name") or nil
-          if name then
-            add_entry(index.configs, prefix .. ":" .. name, path, line_number)
-            if prefix == "apikit" then
-              local api = attribute(tag, "api")
-              if api then
-                index.apikit_configs[#index.apikit_configs + 1] = {
-                  name = name,
-                  api = api,
-                  path = path,
-                  line = line_number,
-                }
-              end
-            end
-          end
-          line_number = end_line and end_line + 1 or line_number + 1
-        else
-          line_number = line_number + 1
-        end
-      end
-    end
+    line_number = index_mule_line(index, lines, path, line_number)
   end
+end
+
+---@param path string
+---@param lines string[]
+---@param target_line integer
+---@param line_number integer
+---@return onebeer.mule.IndexEntry|nil
+---@return integer
+local function flow_at_line(path, lines, target_line, line_number)
+  local tag, end_line = opening_tag_at(lines, line_number, "flow")
+  if tag == nil then
+    return nil, line_number + 1
+  end
+  if target_line > end_line then
+    return nil, end_line + 1
+  end
+  local name = attribute(tag, "name")
+  if name == nil then
+    return nil, end_line + 1
+  end
+  return { name = name, path = path, line = line_number }, end_line + 1
 end
 
 ---@param path string
@@ -134,24 +175,12 @@ function M.flow_at(path, line)
   local lines = read_lines(path)
   local line_number = 1
   while line_number <= line do
-    local tag, end_line = opening_tag_at(lines, line_number, "flow")
-    if tag then
-      if line <= end_line then
-        local name = attribute(tag, "name")
-        if name then
-          return {
-            name = name,
-            path = path,
-            line = line_number,
-          }
-        end
-      end
-      line_number = end_line + 1
-    else
-      line_number = line_number + 1
+    local flow, next_line = flow_at_line(path, lines, line, line_number)
+    if flow then
+      return flow
     end
+    line_number = next_line
   end
-
   return nil
 end
 

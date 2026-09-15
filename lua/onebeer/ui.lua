@@ -111,34 +111,54 @@ local function pack_counts(bufnr)
   return counts
 end
 
+---@param bufnr integer
+---@return boolean
+local function is_special_buffer(bufnr)
+  local bt = vim.bo[bufnr].buftype
+  local ft = vim.bo[bufnr].filetype
+  return (bt ~= "" and bt ~= "acwrite") or ft == "minifiles" or ft == "snacks_dashboard"
+end
+
+---@param tail string
+---@return string, string
+local function winbar_icon(tail)
+  local icon = " "
+  local icon_hl = "OneBeerWinbarIcon"
+  if not has_devicons then
+    return icon, icon_hl
+  end
+
+  local maybe_icon, maybe_hl = devicons.get_icon(tail, nil, { default = true })
+  if maybe_icon and maybe_icon ~= "" then
+    icon = maybe_icon .. " "
+  end
+  if maybe_hl and maybe_hl ~= "" then
+    icon_hl = maybe_hl
+  end
+  return icon, icon_hl
+end
+
+---@param bufnr integer
+---@return string, string, string, string
+local function winbar_file_parts(bufnr)
+  local full = vim.api.nvim_buf_get_name(bufnr)
+  local path = full == "" and "[No Name]" or vim.fn.fnamemodify(full, ":~:.")
+  local tail = full == "" and "" or vim.fn.fnamemodify(full, ":t")
+  local icon, icon_hl = winbar_icon(tail)
+  local modified = vim.bo[bufnr].modified and "%#OneBeerWinbarModified# ●" or ""
+  local readonly = vim.bo[bufnr].readonly and "%#OneBeerWinbarReadonly# " or ""
+  return path, icon, icon_hl, modified .. readonly
+end
+
 ---Render a styled native winbar with icon + path + state markers.
 ---@return string
 M.winbar = function()
   local bufnr = vim.api.nvim_get_current_buf()
-  local bt = vim.bo[bufnr].buftype
-  local ft = vim.bo[bufnr].filetype
-  if (bt ~= "" and bt ~= "acwrite") or ft == "minifiles" or ft == "snacks_dashboard" then
+  if is_special_buffer(bufnr) then
     return ""
   end
 
-  local full = vim.api.nvim_buf_get_name(bufnr)
-  local path = full == "" and "[No Name]" or vim.fn.fnamemodify(full, ":~:.")
-  local tail = full == "" and "" or vim.fn.fnamemodify(full, ":t")
-  local icon = " "
-  local icon_hl = "OneBeerWinbarIcon"
-
-  if has_devicons then
-    local maybe_icon, maybe_hl = devicons.get_icon(tail, nil, { default = true })
-    if maybe_icon and maybe_icon ~= "" then
-      icon = maybe_icon .. " "
-    end
-    if maybe_hl and maybe_hl ~= "" then
-      icon_hl = maybe_hl
-    end
-  end
-
-  local modified = vim.bo[bufnr].modified and "%#OneBeerWinbarModified# ●" or ""
-  local readonly = vim.bo[bufnr].readonly and "%#OneBeerWinbarReadonly# " or ""
+  local path, icon, icon_hl, markers = winbar_file_parts(bufnr)
   return table.concat({
     "%=",
     "%#",
@@ -147,8 +167,7 @@ M.winbar = function()
     icon,
     "%#OneBeerWinbarPath#",
     M.escape_statusline(path),
-    modified,
-    readonly,
+    markers,
     " %#WinBar#",
   })
 end

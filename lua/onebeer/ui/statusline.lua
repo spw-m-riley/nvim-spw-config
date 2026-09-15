@@ -162,19 +162,19 @@ local function is_special_buffer()
 end
 
 ---@return string
-function M.render()
-  local width = vim.api.nvim_win_get_width(0)
+local function special_statusline()
+  local parts = { " " }
+  local filetype = vim.bo.filetype ~= "" and vim.bo.filetype or vim.bo.buftype
+  add_section(parts, "OneBeerStatuslineMuted", filetype)
+  parts[#parts + 1] = "%="
+  add_section(parts, "OneBeerStatuslineSection", "%l:%c", false)
+  parts[#parts + 1] = "%#StatusLine#"
+  return table.concat(parts)
+end
 
-  if is_special_buffer() then
-    local parts = { " " }
-    local filetype = vim.bo.filetype ~= "" and vim.bo.filetype or vim.bo.buftype
-    add_section(parts, "OneBeerStatuslineMuted", filetype)
-    parts[#parts + 1] = "%="
-    add_section(parts, "OneBeerStatuslineSection", "%l:%c", false)
-    parts[#parts + 1] = "%#StatusLine#"
-    return table.concat(parts)
-  end
-
+---@param width integer
+---@return string
+local function normal_statusline(width)
   local parts = { " " }
   local mode = mode_status()
   local diagnostics_text, diagnostics_hl = diagnostics_status()
@@ -189,9 +189,7 @@ function M.render()
   end
   add_separator(parts)
   add_section(parts, "OneBeerStatuslineSection", file_status(width < 120))
-
   parts[#parts + 1] = "%="
-
   if diagnostics_text ~= "" then
     add_section(parts, diagnostics_hl, diagnostics_text)
   end
@@ -203,12 +201,19 @@ function M.render()
     add_separator(parts)
     add_section(parts, "OneBeerStatuslineInfo", progress, false)
   end
-
   add_separator(parts)
   add_section(parts, "OneBeerStatuslineSection", "%3p%% %l:%c", false)
   parts[#parts + 1] = "%#StatusLine#"
-
   return table.concat(parts)
+end
+
+---@return string
+function M.render()
+  local width = vim.api.nvim_win_get_width(0)
+  if is_special_buffer() then
+    return special_statusline()
+  end
+  return normal_statusline(width)
 end
 
 return M

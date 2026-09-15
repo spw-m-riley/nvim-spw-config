@@ -52,7 +52,7 @@ local filetypeGrp = create_group("OneBeerFiletype")
 local jumpSearchGrp = create_group("OneBeerJumpSearch")
 
 create_autocmd("FileType", {
-  pattern = { "terraform-vars" },
+  pattern = { "svelte", "terraform-vars", "templ" },
   group = filetypeGrp,
   callback = function()
     vim.treesitter.start()

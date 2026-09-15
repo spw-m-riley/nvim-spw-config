@@ -91,6 +91,24 @@ function M.clear()
   end
 end
 
+---@param command string
+---@param pattern string
+local function update_items(command, pattern)
+  local items = targets.search(pattern)
+  if command == "?" then
+    items = vim.fn.reverse(items)
+  end
+  local alphabet = safe_alphabet(pattern, #items)
+  if alphabet == nil then
+    return nil
+  end
+  local generated = #items == 1 and { alphabet:sub(1, 1) } or labels.generate(#items, alphabet)
+  for index, target in ipairs(items) do
+    target.label = generated[index]
+  end
+  return items
+end
+
 ---@param command? string
 ---@param pattern? string
 function M.update(command, pattern)
@@ -106,18 +124,10 @@ function M.update(command, pattern)
     return
   end
 
-  local items = targets.search(pattern)
-  if command == "?" then
-    items = vim.fn.reverse(items)
-  end
-  local alphabet = safe_alphabet(pattern, #items)
-  if alphabet == nil then
+  local items = update_items(command, pattern)
+  if items == nil then
     M.clear()
     return
-  end
-  local generated = #items == 1 and { alphabet:sub(1, 1) } or labels.generate(#items, alphabet)
-  for index, target in ipairs(items) do
-    target.label = generated[index]
   end
   state = items
   render.show(items)

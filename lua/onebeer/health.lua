@@ -111,29 +111,45 @@ local function first_non_empty_line(text)
   return nil
 end
 
+---@param result vim.SystemCompleted
+---@return string|nil
+local function system_result_output(result)
+  local output = result.stdout or ""
+  if result.stderr and result.stderr ~= "" then
+    output = output == "" and result.stderr or (output .. "\n" .. result.stderr)
+  end
+  if output == "" then
+    return nil
+  end
+  return output
+end
+
+---@param cmd string[]
+---@return string|nil
+local function capture_with_vim_system(cmd)
+  local ok, result = pcall(function()
+    return vim.system(cmd, { text = true }):wait(1000)
+  end)
+  if not ok or not result or result.code ~= 0 then
+    return nil
+  end
+  return system_result_output(result)
+end
+
+---@param cmd string[]
+---@return string|nil
+local function capture_with_shell(cmd)
+  local output = vim.fn.system(cmd)
+  return vim.v.shell_error == 0 and output or nil
+end
+
 ---@param cmd string[]
 ---@return string|nil
 local function capture_command_output(cmd)
   if vim.system then
-    local ok, result = pcall(function()
-      return vim.system(cmd, { text = true }):wait(1000)
-    end)
-    if not ok or not result or result.code ~= 0 then
-      return nil
-    end
-
-    local output = result.stdout or ""
-    if result.stderr and result.stderr ~= "" then
-      output = output == "" and result.stderr or (output .. "\n" .. result.stderr)
-    end
-    return output ~= "" and output or nil
+    return capture_with_vim_system(cmd)
   end
-
-  local output = vim.fn.system(cmd)
-  if vim.v.shell_error ~= 0 then
-    return nil
-  end
-  return output
+  return capture_with_shell(cmd)
 end
 
 ---@param name string
@@ -393,10 +409,75 @@ local function resolve_waiters(spec, ok)
   end
 end
 
+---@param spec OneBeerInstallSpec
+---@param ok boolean
+---@param cb? OneBeerInstallDone
+local function mark_install_available(spec, ok, cb)
+  spec.status = ok and "installed" or "failed"
+  resolve_waiters(spec, ok)
+  if cb then
+    cb(ok)
+  end
+end
+
+---@param spec OneBeerInstallSpec
+local ensure_install
+local function start_install(spec)
+  local function run_after_dependencies(ok)
+    if not ok then
+      mark_install_available(spec, false)
+      return
+    end
+    spec.run(function(result_ok)
+      mark_install_available(spec, result_ok)
+    end)
+  end
+
+  local needs = spec.needs or {}
+  if #needs == 0 then
+    run_after_dependencies(true)
+    return
+  end
+
+  local remaining = #needs
+  local failed = false
+  local function on_dependency_finished(ok)
+    failed = failed or not ok
+    remaining = remaining - 1
+    if remaining == 0 then
+      run_after_dependencies(not failed)
+    end
+  end
+  for _, dep in ipairs(needs) do
+    ensure_install(dep, on_dependency_finished)
+  end
+end
+
+---@param spec OneBeerInstallSpec
+---@param cb? OneBeerInstallDone
+---@return boolean
+local function resolve_known_install(spec, cb)
+  if spec.check and spec.check() then
+    mark_install_available(spec, true, cb)
+    return true
+  end
+  if spec.status == "installed" then
+    if cb then
+      cb(true)
+    end
+    return true
+  end
+  if spec.status == "pending" and spec.check and spec.check() then
+    mark_install_available(spec, true, cb)
+    return true
+  end
+  return false
+end
+
 ---@param name string
 ---@param cb? OneBeerInstallDone
 ---@return boolean
-local function ensure_install(name, cb)
+ensure_install = function(name, cb)
   local spec = install_specs[name]
   if not spec then
     if cb then
@@ -404,74 +485,18 @@ local function ensure_install(name, cb)
     end
     return false
   end
-
-  if spec.check and spec.check() then
-    spec.status = "installed"
-    resolve_waiters(spec, true)
-    if cb then
-      cb(true)
-    end
+  if resolve_known_install(spec, cb) then
     return true
   end
-
-  if spec.status == "installed" then
-    if cb then
-      cb(true)
-    end
-    return true
-  end
-
-  if spec.status == "pending" and spec.check and spec.check() then
-    spec.status = "installed"
-    resolve_waiters(spec, true)
-    if cb then
-      cb(true)
-    end
-    return true
-  end
-
   if cb then
     table.insert(spec.waiters, cb)
   end
-
   if spec.status == "installing" then
     return false
   end
 
   spec.status = "installing"
-
-  local function run_after_dependencies(ok)
-    if not ok then
-      spec.status = "failed"
-      resolve_waiters(spec, false)
-      return
-    end
-    spec.run(function(result_ok)
-      spec.status = result_ok and "installed" or "failed"
-      resolve_waiters(spec, result_ok)
-    end)
-  end
-
-  local needs = spec.needs
-  if needs and #needs > 0 then
-    local remaining = #needs
-    local failed = false
-    local function on_dependency_finished(ok)
-      if not ok then
-        failed = true
-      end
-      remaining = remaining - 1
-      if remaining == 0 then
-        run_after_dependencies(not failed)
-      end
-    end
-    for _, dep in ipairs(needs) do
-      ensure_install(dep, on_dependency_finished)
-    end
-  else
-    run_after_dependencies(true)
-  end
-
+  start_install(spec)
   return false
 end
 
@@ -610,21 +635,18 @@ local function check_runtime_executable(name, instruction)
   return false
 end
 
----Run the OneBeer health checks and emit vim.health diagnostics.
----@return nil
-function M.check()
+local function check_neovim_version()
   vim.health.start("Neovim Version")
   if vim.fn.has("nvim-0.13.0") == 1 then
     local version = first_non_empty_line(vim.api.nvim_exec2("version", { output = true }).output)
-    if version then
-      vim.health.ok(("%s (requires >= 0.13.0)"):format(version))
-    else
-      vim.health.ok("Using Neovim >= 0.13.0")
-    end
+    vim.health.ok(version and ("%s (requires >= 0.13.0)"):format(version) or "Using Neovim >= 0.13.0")
   else
     vim.health.report_error("Neovim >= 0.13.0 is required")
   end
+end
 
+---@param missing OneBeerMissingList
+local function check_config_tools(missing)
   vim.health.start("OneBeer Config")
   ---@type OneBeerCommandSpec[]
   local exes = {
@@ -642,12 +664,11 @@ function M.check()
     { name = "quicktype", instruction = "Install quicktype via `npm install -g quicktype`" },
     { name = "mise", instruction = "Install mise via `brew install mise`" },
   }
-
-  ---@type OneBeerMissingList
-  local missing = {}
-
   check_exes(exes, missing)
+end
 
+---@param missing OneBeerMissingList
+local function check_formatters_and_linters(missing)
   vim.health.start("Formatters & Linters")
   check_formatter("stylua", missing)
   check_any_executable(
@@ -676,7 +697,9 @@ function M.check()
   check_formatter("hadolint", missing)
   check_formatter("gitlint", missing)
   check_formatter("actionlint", missing)
+end
 
+local function check_language_tooling()
   vim.health.start("Language Tooling")
   check_runtime_executable(
     "ruff",
@@ -698,6 +721,77 @@ function M.check()
   vim.health.info(
     "Validate Mason-managed servers and attachment separately with `:checkhealth mason`, `:checkhealth vim.lsp`, and `:checkhealth ts-install`."
   )
+end
+
+---@param item OneBeerMissingItem
+local function install_mason_item(item)
+  local registry = get_mason_registry()
+  if not (registry and mason_installable[item.name] and registry.has_package(item.name)) then
+    vim.schedule(function()
+      vim.notify(("Please install %s via :Mason"):format(item.name), vim.log.levels.WARN, { title = "Mason" })
+    end)
+    return
+  end
+
+  local ok, pkg = pcall(registry.get_package, item.name)
+  if not (ok and pkg and not pkg:is_installed()) then
+    return
+  end
+  local success, err = pcall(pkg.install, pkg)
+  if not success then
+    vim.schedule(function()
+      vim.notify(
+        ("Failed to queue Mason install for %s: %s"):format(item.name, err),
+        vim.log.levels.ERROR,
+        { title = "Mason" }
+      )
+    end)
+  end
+end
+
+---@param item OneBeerMissingItem
+local function install_missing_item(item)
+  if item.kind == "external" then
+    ensure_dependency_install(item.name)
+  elseif item.kind == "mason" then
+    install_mason_item(item)
+  end
+end
+
+---@param missing OneBeerMissingList
+---@return boolean
+local function offer_missing_installs(missing)
+  if #missing == 0 then
+    return true
+  end
+  if #vim.api.nvim_list_uis() == 0 then
+    vim.health.info(
+      "Automatic install prompts are skipped in headless sessions; rerun `:checkhealth onebeer` interactively to install missing tools."
+    )
+    return false
+  end
+
+  local lines = { "Install missing dependencies now?" }
+  for _, item in ipairs(missing) do
+    table.insert(lines, item.kind == "mason" and ("- %s (Mason)"):format(item.name) or ("- %s"):format(item.name))
+  end
+  if vim.fn.confirm(table.concat(lines, "\n"), "&Yes\n&No", 2) ~= 1 then
+    return true
+  end
+  for _, item in ipairs(missing) do
+    install_missing_item(item)
+  end
+  return true
+end
+
+---Run the OneBeer health checks and emit vim.health diagnostics.
+---@return nil
+function M.check()
+  check_neovim_version()
+  local missing = {}
+  check_config_tools(missing)
+  check_formatters_and_linters(missing)
+  check_language_tooling()
 
   local ok_mule_health, mule_health = pcall(require, "onebeer.mule.health")
   if ok_mule_health then
@@ -706,55 +800,7 @@ function M.check()
     vim.health.warn("MuleSoft health checks could not be loaded: " .. tostring(mule_health))
   end
 
-  if #missing > 0 then
-    if #vim.api.nvim_list_uis() == 0 then
-      vim.health.info(
-        "Automatic install prompts are skipped in headless sessions; rerun `:checkhealth onebeer` interactively to install missing tools."
-      )
-      return
-    end
-
-    local lines = { "Install missing dependencies now?" }
-    for _, item in ipairs(missing) do
-      if item.kind == "mason" then
-        table.insert(lines, ("- %s (Mason)"):format(item.name))
-      else
-        table.insert(lines, ("- %s"):format(item.name))
-      end
-    end
-
-    local choice = vim.fn.confirm(table.concat(lines, "\n"), "&Yes\n&No", 2)
-    if choice == 1 then
-      for _, item in ipairs(missing) do
-        if item.kind == "external" then
-          ensure_dependency_install(item.name)
-        elseif item.kind == "mason" then
-          local registry = get_mason_registry()
-          if registry and mason_installable[item.name] and registry.has_package(item.name) then
-            local ok, pkg = pcall(registry.get_package, item.name)
-            if ok and pkg and not pkg:is_installed() then
-              local success, err = pcall(function()
-                pkg:install()
-              end)
-              if not success then
-                vim.schedule(function()
-                  vim.notify(
-                    ("Failed to queue Mason install for %s: %s"):format(item.name, err),
-                    vim.log.levels.ERROR,
-                    { title = "Mason" }
-                  )
-                end)
-              end
-            end
-          else
-            vim.schedule(function()
-              vim.notify(("Please install %s via :Mason"):format(item.name), vim.log.levels.WARN, { title = "Mason" })
-            end)
-          end
-        end
-      end
-    end
-  end
+  offer_missing_installs(missing)
 end
 
 return M

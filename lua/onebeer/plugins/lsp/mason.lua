@@ -100,6 +100,13 @@ local servers = {
     end,
   },
   {
+    name = "svelte",
+    ensure = "svelte",
+    is_available = function()
+      return lsp_settings.is_executable("svelteserver")
+    end,
+  },
+  {
     name = "taplo",
     ensure = "taplo",
     is_available = function()

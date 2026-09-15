@@ -67,6 +67,26 @@ function M.generated_flow_at(xml_path, line)
   return flow
 end
 
+---@param stack table[]
+---@param indent integer
+---@param path_segment string
+---@return string
+local function append_raml_path(stack, indent, path_segment)
+  while #stack > 0 and stack[#stack].indent >= indent do
+    stack[#stack] = nil
+  end
+  stack[#stack + 1] = {
+    indent = indent,
+    path = path_segment,
+  }
+  return table.concat(
+    vim.tbl_map(function(item)
+      return item.path
+    end, stack),
+    ""
+  )
+end
+
 ---@param spec_path string
 ---@param route onebeer.mule.ApiKitRoute
 ---@return integer|nil
@@ -88,21 +108,7 @@ local function find_raml_route_line(spec_path, route)
         return route_line
       end
 
-      while #stack > 0 and stack[#stack].indent >= indent do
-        stack[#stack] = nil
-      end
-
-      stack[#stack + 1] = {
-        indent = indent,
-        path = path_segment,
-      }
-
-      local full_path = table.concat(
-        vim.tbl_map(function(item)
-          return item.path
-        end, stack),
-        ""
-      )
+      local full_path = append_raml_path(stack, indent, path_segment)
 
       if full_path == route.path then
         route_line = line_number
@@ -193,25 +199,11 @@ local function route_not_found(method, path, spec_path)
   return ("APIKit route not found in %s: %s %s"):format(spec_path, method:upper(), path)
 end
 
----@param xml_path string
----@param flow_name string
+---@param project onebeer.mule.Project
+---@param index onebeer.mule.Index
+---@param route onebeer.mule.ApiKitRoute
 ---@return table|nil, string|nil
-function M.route_for_flow(xml_path, flow_name)
-  if not detect.is_mule_xml(xml_path) then
-    return nil, "Not a Mule XML buffer"
-  end
-
-  local route = M.parse_flow_name(flow_name)
-  if route == nil then
-    return nil, "Not an APIKit generated flow name"
-  end
-
-  local project = detect.project(xml_path)
-  local index = project and indexer.build(xml_path) or nil
-  if project == nil or index == nil then
-    return nil, "No Mule project detected"
-  end
-
+local function route_from_index(project, index, route)
   for _, config in ipairs(index.apikit_configs) do
     if config.name == route.config then
       local spec_path, spec_err = spec_paths.resolve_api(project, config.api)
@@ -236,8 +228,27 @@ function M.route_for_flow(xml_path, flow_name)
         nil
     end
   end
-
   return nil, ("APIKit config not found: %s"):format(route.config)
+end
+
+---@param xml_path string
+---@param flow_name string
+---@return table|nil, string|nil
+function M.route_for_flow(xml_path, flow_name)
+  if not detect.is_mule_xml(xml_path) then
+    return nil, "Not a Mule XML buffer"
+  end
+  local route = M.parse_flow_name(flow_name)
+  if route == nil then
+    return nil, "Not an APIKit generated flow name"
+  end
+
+  local project = detect.project(xml_path)
+  local index = project and indexer.build(xml_path) or nil
+  if project == nil or index == nil then
+    return nil, "No Mule project detected"
+  end
+  return route_from_index(project, index, route)
 end
 
 return M
