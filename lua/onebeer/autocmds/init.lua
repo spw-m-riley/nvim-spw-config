@@ -52,17 +52,6 @@ local filetypeGrp = create_group("OneBeerFiletype")
 local jumpSearchGrp = create_group("OneBeerJumpSearch")
 
 create_autocmd("FileType", {
-  pattern = { "svelte", "terraform-vars", "templ" },
-  group = filetypeGrp,
-  callback = function()
-    vim.treesitter.start()
-    vim.wo[0][0].foldexpr = "v:lua.vim.treesitter.foldexpr()"
-    vim.wo[0][0].foldmethod = "expr"
-    vim.bo.indentexpr = "v:lua.require'nvim-treesitter'.indentexpr()"
-  end,
-})
-
-create_autocmd("FileType", {
   pattern = { "nvim-pack" },
   group = filetypeGrp,
   callback = function(ev)
@@ -211,7 +200,6 @@ create_autocmd({ "LspAttach" }, {
     -- Enable codelens
     if client and client.server_capabilities.codeLensProvider then
       vim.lsp.codelens.enable(true, { bufnr = ev.buf })
-      vim.lsp.codelens.refresh({ bufnr = ev.buf })
     end
 
     ---Toggle inlay hints for the attached buffer.
