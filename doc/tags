@@ -28,6 +28,7 @@ onebeer-conventions	onebeer.txt	/*onebeer-conventions*
 onebeer-dashboard	onebeer.txt	/*onebeer-dashboard*
 onebeer-debugging	onebeer.txt	/*onebeer-debugging*
 onebeer-development	onebeer.txt	/*onebeer-development*
+onebeer-diagnostics	onebeer.txt	/*onebeer-diagnostics*
 onebeer-files	onebeer.txt	/*onebeer-files*
 onebeer-filetypes	onebeer.txt	/*onebeer-filetypes*
 onebeer-git	onebeer.txt	/*onebeer-git*
@@ -56,7 +57,6 @@ onebeer-octo	onebeer.txt	/*onebeer-octo*
 onebeer-overview	onebeer.txt	/*onebeer-overview*
 onebeer-plugin-index	onebeer.txt	/*onebeer-plugin-index*
 onebeer-search	onebeer.txt	/*onebeer-search*
-onebeer-sessions	onebeer.txt	/*onebeer-sessions*
 onebeer-snippets	onebeer.txt	/*onebeer-snippets*
 onebeer-startup	onebeer.txt	/*onebeer-startup*
 onebeer-testing	onebeer.txt	/*onebeer-testing*
