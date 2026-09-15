@@ -190,7 +190,9 @@ local function apply_registry_fields(spec, name, raw, src)
   -- Preserve an earlier explicit pin when the same plugin is later referenced as an unpinned dependency.
   spec.version = pinned_version(raw) or spec.version
   spec.main = default_main(name, raw)
-  spec.lazy = raw.lazy ~= nil and raw.lazy or spec.lazy
+  if raw.lazy ~= nil then
+    spec.lazy = raw.lazy
+  end
   spec.priority = raw.priority or spec.priority
   for _, field in ipairs({ "event", "ft", "cmd", "keys", "init", "opts", "config", "build" }) do
     spec[field] = raw[field] or spec[field]
