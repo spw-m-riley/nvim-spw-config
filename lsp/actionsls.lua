@@ -10,7 +10,7 @@
 ---@field workspaceUri string
 
 ---@class ActionslsConfig
----@field cmd string[]
+---@field cmd string[]|function
 ---@field filetypes string[]
 ---@field root_dir fun(bufnr: integer, on_dir: fun(path: string))
 ---@field handlers table<string, function>
@@ -186,15 +186,13 @@ local function read_file_handler(_, result)
   return text, nil
 end
 
----@type string
-local server_cmd = resolve_server_cmd()
-
----@type string|nil
-local session_token = get_github_token()
-
 ---@type ActionslsConfig
 return {
-  cmd = { server_cmd, "--stdio" },
+  -- Resolve the executable when the server starts so a Mason installation made
+  -- during this session is immediately visible.
+  cmd = function(dispatchers)
+    return vim.lsp.rpc.start({ resolve_server_cmd(), "--stdio" }, dispatchers)
+  end,
   filetypes = { "yaml", "yaml.ghactions" },
   root_dir = function(bufnr, on_dir)
     local filename = vim.api.nvim_buf_get_name(bufnr)
@@ -219,14 +217,14 @@ return {
     ["actions/readFile"] = read_file_handler,
   },
   ---@type ActionslsInitOptions
-  init_options = {
-    sessionToken = session_token,
-  },
+  init_options = {},
   ---@param new_config ActionslsRuntimeConfig
   ---@param root_dir string
   on_new_config = function(new_config, root_dir)
     new_config.init_options = new_config.init_options or {}
-    new_config.init_options.sessionToken = session_token
+    -- Resolve credentials only when a workflow starts an Actions server. Avoid
+    -- shelling out to `gh` while loading the LSP configuration at startup.
+    new_config.init_options.sessionToken = get_github_token()
     new_config.init_options.repos = get_repos_config(root_dir)
   end,
 }

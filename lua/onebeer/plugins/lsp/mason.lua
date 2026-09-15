@@ -7,158 +7,172 @@ local actions_server_cmd_candidates = {
   "actions-language-server",
 }
 
--- Repo-root lsp/*.lua files own per-server config. Keep this registry limited
--- to ensure-installed lspconfig IDs plus availability checks so later language tracks can add
--- shared-surface entries in one place without moving config ownership.
+---@class OneBeerLspServer
+---@field config string Neovim LSP configuration name
+---@field package string? Mason package name
+---@field executable string|string[] Runtime executable name(s)
+---@field filetypes string[]
+---@field runtime_owned boolean
+---@field runtime_available fun(): boolean|nil
 local servers = {
   {
-    name = "actionsls",
-    ensure = "gh_actions_ls",
-    is_available = function()
-      return lsp_settings.resolve_executable(actions_server_cmd_candidates) ~= nil
-    end,
+    config = "actionsls",
+    package = "gh-actions-language-server",
+    executable = actions_server_cmd_candidates,
+    filetypes = { "yaml", "yaml.ghactions" },
   },
   {
-    name = "astro",
-    ensure = "astro",
-    is_available = function()
-      return lsp_settings.is_executable("astro-ls")
-    end,
+    config = "astro",
+    package = "astro-language-server",
+    executable = "astro-ls",
+    filetypes = { "astro" },
   },
   {
-    name = "bashls",
-    ensure = "bashls",
-    is_available = function()
-      return lsp_settings.is_executable("bash-language-server")
-    end,
+    config = "bashls",
+    package = "bash-language-server",
+    executable = "bash-language-server",
+    filetypes = { "sh", "bash", "zsh" },
   },
   {
-    name = "gleam",
-    is_available = function()
+    config = "gleam",
+    executable = "gleam",
+    filetypes = { "gleam" },
+    runtime_owned = true,
+    runtime_available = function()
       return lsp_settings.is_executable("gleam")
     end,
   },
   {
-    name = "gopls",
-    ensure = "gopls",
-    is_available = function()
-      return lsp_settings.is_executable("gopls")
-    end,
+    config = "gopls",
+    package = "gopls",
+    executable = "gopls",
+    filetypes = { "go", "gomod", "gowork", "gotmpl" },
   },
   {
-    name = "html",
-    ensure = "html",
-    is_available = function()
-      return lsp_settings.is_executable("vscode-html-language-server")
-    end,
+    config = "html",
+    package = "html-lsp",
+    executable = "vscode-html-language-server",
+    filetypes = { "html" },
   },
   {
-    name = "jsonls",
-    ensure = "jsonls",
-    is_available = function()
-      return lsp_settings.is_executable("vscode-json-language-server")
-    end,
+    config = "jsonls",
+    package = "json-lsp",
+    executable = "vscode-json-language-server",
+    filetypes = { "json", "jsonc" },
   },
   {
-    name = "lemminx",
-    ensure = "lemminx",
-    is_available = function()
-      return lsp_settings.is_executable("lemminx")
-    end,
+    config = "lemminx",
+    package = "lemminx",
+    executable = "lemminx",
+    filetypes = { "xml", "xsd", "xsl", "xslt", "svg" },
   },
   {
-    name = "lua_ls",
-    ensure = "lua_ls",
-    is_available = function()
-      return lsp_settings.is_executable("lua-language-server")
-    end,
+    config = "lua_ls",
+    package = "lua-language-server",
+    executable = "lua-language-server",
+    filetypes = { "lua" },
   },
   {
-    name = "pyright",
-    ensure = "pyright",
-    is_available = function()
-      return lsp_settings.is_executable("pyright-langserver")
-    end,
+    config = "pyright",
+    package = "pyright",
+    executable = "pyright-langserver",
+    filetypes = { "python" },
   },
   {
-    name = "ruff",
-    is_available = function()
+    config = "ruff",
+    executable = "ruff",
+    filetypes = { "python" },
+    runtime_owned = true,
+    runtime_available = function()
       return lsp_settings.is_executable("ruff")
     end,
   },
   {
-    name = "ruby_lsp",
-    is_available = function()
-      return vim.fn.exepath("ruby-lsp") ~= ""
-    end,
+    config = "ruby_lsp",
+    executable = "ruby-lsp",
+    filetypes = { "ruby", "eruby" },
+    runtime_owned = true,
   },
   {
-    name = "rust_analyzer",
-    ensure = "rust_analyzer",
-    is_available = function()
-      return lsp_settings.is_executable("rust-analyzer")
-    end,
+    config = "rust_analyzer",
+    package = "rust-analyzer",
+    executable = "rust-analyzer",
+    filetypes = { "rust" },
   },
   {
-    name = "svelte",
-    ensure = "svelte",
-    is_available = function()
-      return lsp_settings.is_executable("svelteserver")
-    end,
+    config = "svelte",
+    package = "svelte-language-server",
+    executable = "svelteserver",
+    filetypes = { "svelte" },
   },
   {
-    name = "taplo",
-    ensure = "taplo",
-    is_available = function()
-      return lsp_settings.is_executable("taplo")
-    end,
+    config = "taplo",
+    package = "taplo",
+    executable = "taplo",
+    filetypes = { "toml" },
   },
   {
-    name = "terraformls",
-    ensure = "terraformls",
-    is_available = function()
-      return lsp_settings.is_executable("terraform-ls")
-    end,
+    config = "terraformls",
+    package = "terraform-ls",
+    executable = "terraform-ls",
+    filetypes = { "terraform", "terraform-vars" },
   },
   {
-    name = "ts_ls",
-    ensure = "ts_ls",
-    is_available = function()
-      return lsp_settings.is_executable("typescript-language-server")
-    end,
+    config = "ts_ls",
+    package = "typescript-language-server",
+    executable = "typescript-language-server",
+    filetypes = { "javascript", "javascriptreact", "typescript", "typescriptreact" },
   },
   {
-    name = "yamlls",
-    ensure = "yamlls",
-    is_available = function()
-      return lsp_settings.is_executable("yaml-language-server")
-    end,
+    config = "yamlls",
+    package = "yaml-language-server",
+    executable = "yaml-language-server",
+    filetypes = { "yaml", "yaml.docker-compose", "yaml.gitlab", "yaml.helm-values" },
   },
   {
-    name = "zls",
-    ensure = "zls",
-    is_available = function()
-      return lsp_settings.is_executable("zls")
-    end,
+    config = "zls",
+    package = "zls",
+    executable = "zls",
+    filetypes = { "zig", "zir" },
   },
 }
 
-local function mason_packages()
-  local packages = {}
+local servers_by_filetype = {}
+local servers_by_package = {}
 
-  for _, server in ipairs(servers) do
-    if server.ensure then
-      table.insert(packages, server.ensure)
-    end
+for _, server in ipairs(servers) do
+  for _, filetype in ipairs(server.filetypes) do
+    servers_by_filetype[filetype] = servers_by_filetype[filetype] or {}
+    table.insert(servers_by_filetype[filetype], server)
   end
 
-  return packages
+  if server.package then
+    servers_by_package[server.package] = server
+  end
+end
+
+local function is_available(server)
+  if server.runtime_owned then
+    if server.runtime_available then
+      return server.runtime_available()
+    end
+
+    -- Ruby LSP must stay inside the active Ruby environment, never Mason.
+    return vim.fn.exepath(server.executable) ~= ""
+  end
+
+  return lsp_settings.resolve_executable(server.executable) ~= nil
+end
+
+local function notify(message, level)
+  vim.notify(("[onebeer] %s"):format(message), level)
 end
 
 return {
   "mason-org/mason-lspconfig.nvim",
   event = { "BufReadPre", "BufNewFile" },
   opts = {
+    -- Server configuration remains owned by the repo-root lsp/*.lua files.
     automatic_enable = false,
   },
   dependencies = {
@@ -184,14 +198,110 @@ return {
     "neovim/nvim-lspconfig",
   },
   config = function(_, opts)
-    require("mason-lspconfig").setup(vim.tbl_deep_extend("force", opts, {
-      ensure_installed = mason_packages(),
-    }))
+    local mason_lspconfig = require("mason-lspconfig")
+    local registry = require("mason-registry")
 
-    for _, server in ipairs(servers) do
-      if server.is_available() then
-        vim.lsp.enable(server.name)
+    local pending = {}
+    local waiting_for_registry = {}
+    local warned_runtime = {}
+    local install_server
+
+    -- vim.lsp.config() calls have higher precedence than every lsp/*.lua file.
+    -- Keep this here so nvim-lspconfig's bashls defaults cannot drop zsh.
+    vim.lsp.config("bashls", { filetypes = { "sh", "bash", "zsh" } })
+
+    local function enable_server(server)
+      vim.lsp.enable(server.config)
+    end
+
+    registry:on("update:success", function()
+      vim.schedule(function()
+        local waiting = waiting_for_registry
+        waiting_for_registry = {}
+        for _, server in pairs(waiting) do
+          install_server(server)
+        end
+      end)
+    end)
+
+    mason_lspconfig.setup(opts)
+
+    local function on_install_success(package)
+      local server = servers_by_package[package.name]
+      if not server then
+        return
+      end
+
+      vim.schedule(function()
+        notify(("Mason installed %s; enabling %s"):format(package.name, server.config), vim.log.levels.INFO)
+        -- Enabling also checks existing buffers, so the server can attach in this session.
+        enable_server(server)
+      end)
+    end
+
+    registry:on("package:install:success", on_install_success)
+
+    install_server = function(server)
+      if not server.package or pending[server.package] then
+        return
+      end
+
+      local ok, package = pcall(registry.get_package, server.package)
+      if not ok then
+        waiting_for_registry[server.package] = server
+        notify(("Waiting for the Mason registry before installing %s"):format(server.package), vim.log.levels.INFO)
+        return
+      end
+
+      if package:is_installed() then
+        enable_server(server)
+        return
+      end
+
+      if package:is_installing() then
+        pending[server.package] = true
+        return
+      end
+
+      pending[server.package] = true
+      notify(("Installing Mason package %s for %s"):format(server.package, server.config), vim.log.levels.INFO)
+
+      local callback = vim.schedule_wrap(function(success, result)
+        pending[server.package] = nil
+        if not success then
+          notify(("Failed to install %s: %s"):format(server.package, tostring(result)), vim.log.levels.ERROR)
+        end
+      end)
+
+      local install_ok, install_error = pcall(function()
+        package:install({}, callback)
+      end)
+      if not install_ok then
+        pending[server.package] = nil
+        notify(
+          ("Could not start Mason installation for %s: %s"):format(server.package, tostring(install_error)),
+          vim.log.levels.ERROR
+        )
       end
     end
+
+    local group = vim.api.nvim_create_augroup("OneBeerLspMason", { clear = true })
+    vim.api.nvim_create_autocmd("FileType", {
+      group = group,
+      callback = function(args)
+        for _, server in ipairs(servers_by_filetype[vim.bo[args.buf].filetype] or {}) do
+          if is_available(server) then
+            enable_server(server)
+          elseif server.runtime_owned then
+            if not warned_runtime[server.config] then
+              warned_runtime[server.config] = true
+              notify(("%s is runtime-managed but is not available"):format(server.config), vim.log.levels.WARN)
+            end
+          else
+            install_server(server)
+          end
+        end
+      end,
+    })
   end,
 }
