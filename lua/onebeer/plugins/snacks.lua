@@ -72,13 +72,6 @@ return {
           indent = 2,
           padding = 1,
         },
-        {
-          icon = "󰁯 ",
-          title = "Sessions",
-          section = "session",
-          indent = 2,
-          padding = 1,
-        },
         pack_dashboard_summary,
       },
     },
