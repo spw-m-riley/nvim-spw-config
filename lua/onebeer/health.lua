@@ -57,6 +57,7 @@ local version_commands = {
   gleam = { "gleam", "--version" },
   go = { "go", "version" },
   hadolint = { "hadolint", "--version" },
+  ["js-debug-adapter"] = { "js-debug-adapter", "--version" },
   jq = { "jq", "--version" },
   markdownlint = { "markdownlint", "--version" },
   mise = { "mise", "--version" },
@@ -71,6 +72,7 @@ local version_commands = {
   ["ruby-lsp"] = { "ruby-lsp", "--version" },
   rustfmt = { "rustfmt", "--version" },
   selene = { "selene", "--version" },
+  dlv = { "dlv", "version" },
   shellcheck = { "shellcheck", "--version" },
   sqlfluff = { "sqlfluff", "--version" },
   stylua = { "stylua", "--version" },
@@ -510,13 +512,10 @@ end
 
 local mason_installable = {
   stylua = true,
-  shfmt = true,
   oxlint = true,
   selene = true,
   shellcheck = true,
-  yamllint = true,
   hadolint = true,
-  gitlint = true,
   actionlint = true,
 }
 
@@ -563,6 +562,18 @@ local function check_exes(commands, missing)
   end
 end
 
+---@param name string
+---@return boolean
+local function mason_package_available(name)
+  local registry = get_mason_registry()
+  if not registry or type(registry.has_package) ~= "function" then
+    return false
+  end
+
+  local ok, available = pcall(registry.has_package, name)
+  return ok and available == true
+end
+
 ---Check formatter/linter is installed
 ---@param name string
 ---@param missing? OneBeerMissingList
@@ -573,8 +584,13 @@ local function check_formatter(name, missing)
     return
   end
 
-  vim.health.warn(("`%s` is not installed. Please use :Mason to install"):format(name))
-  queue_missing(missing, "mason", name)
+  if mason_package_available(name) and mason_installable[name] then
+    vim.health.warn(("`%s` is not installed. Please use :Mason to install"):format(name))
+    queue_missing(missing, "mason", name)
+    return
+  end
+
+  vim.health.warn(("`%s` is not installed. Install it with your system package manager"):format(name))
 end
 
 ---Check an executable without offering automated installation.
@@ -699,6 +715,18 @@ local function check_formatters_and_linters(missing)
   check_formatter("actionlint", missing)
 end
 
+local function check_debug_tools()
+  vim.health.start("Debugging")
+  check_manual_executable(
+    "js-debug-adapter",
+    "Install the VS Code JavaScript debug adapter and put `js-debug-adapter` on PATH to enable JavaScript/TypeScript DAP support"
+  )
+  check_manual_executable(
+    "dlv",
+    "Install Delve with `go install github.com/go-delve/delve/cmd/dlv@latest` or your system package manager"
+  )
+end
+
 local function check_language_tooling()
   vim.health.start("Language Tooling")
   check_runtime_executable(
@@ -719,7 +747,7 @@ local function check_language_tooling()
   check_runtime_executable("zig", "Install Zig to enable `zig fmt` support")
   check_runtime_executable("zls", "Install `zls` or let Mason manage it to enable Zig LSP support")
   vim.health.info(
-    "Validate Mason-managed servers and attachment separately with `:checkhealth mason`, `:checkhealth vim.lsp`, and `:checkhealth ts-install`."
+    "Validate Mason-managed servers and attachment separately with `:checkhealth mason`, `:checkhealth vim.lsp`, and `:checkhealth nvim-treesitter`."
   )
 end
 
@@ -791,6 +819,7 @@ function M.check()
   local missing = {}
   check_config_tools(missing)
   check_formatters_and_linters(missing)
+  check_debug_tools()
   check_language_tooling()
 
   local ok_mule_health, mule_health = pcall(require, "onebeer.mule.health")
