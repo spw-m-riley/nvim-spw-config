@@ -18,7 +18,7 @@ CONTENTS                                    *onebeer* *onebeer-contents*
 6. Search, files, and navigation................|onebeer-search|
 7. Git and GitHub workflows.....................|onebeer-git|
 8. AI, completion, and snippets.................|onebeer-ai|
-9. Testing, debugging, sessions, utilities......|onebeer-testing|
+9. Testing, debugging, utilities................|onebeer-testing|
 10. Commands and toggles........................|onebeer-commands|
 11. MuleSoft workflow...........................|onebeer-mule|
 12. Health, development, troubleshooting........|onebeer-health|
@@ -120,8 +120,6 @@ First-run behavior you can expect:
 - native `nvim-treesitter` installs a parser asynchronously the first time a
   supported filetype is opened and then enables highlighting, folds, and
   indentation for that buffer.
-- `slides.nvim` stays intentionally excluded from the current `vim.pack`
-  module list until its upstream repo metadata is fixed.
 - |:checkhealth| `onebeer` reports exact versions for core tools, flags
   language-surface tooling explicitly, and can offer guided installs for
   supported tools when you run it interactively.
@@ -193,7 +191,6 @@ Key		Meaning ~
 `<leader>uS`	toggle Snacks smooth scroll
 `<leader>cd`	toggle current-line virtual lines / native virtual text
 `<leader>uu`	toggle Undotree
-`<leader>p`	toggle Precognition hints
 
 A few behavior notes:
 
@@ -286,7 +283,6 @@ TypeScript / JavaScript                     *onebeer-lsp-typescript*
 - inlay hints are enabled broadly for parameters, variables, returns,
   properties, and enum members.
 - rename/import/file-operation preferences are explicitly tuned for editor use.
-- `typescript-tools.nvim` exists in the repo but is disabled.
 
 Python
 - `pyright` and `ruff` intentionally attach together for Python buffers.
@@ -395,8 +391,6 @@ Motion helpers that cut down on travel:
   searches show live labels; press `<C-s>` followed by a label to jump. Press
   `<C-s>` again while choosing, or when no labels are visible, to disable them;
   pressing `<C-s>` while disabled enables them again.
-- `precognition.nvim` shows motion hints for `w`, `b`, `e`, `%`, `gg`, `G`,
-  `{`, and `}` and is toggled with `<leader>p`.
 - `zp` peeks folded text in a rounded floating preview.
 
 ==============================================================================
@@ -524,7 +518,7 @@ Included examples cover Go error checks, handler templates, structs,
 table-driven tests, Lua safe `require` blocks, and Lazy spec stubs.
 
 ==============================================================================
-TESTING, DEBUGGING, SESSIONS, UTILITIES     *onebeer-testing*
+TESTING, DEBUGGING, UTILITIES               *onebeer-testing*
 
 Testing via `neotest`
 
@@ -567,19 +561,16 @@ A few debugging notes:
 - Mule DAP support is intentionally unavailable until the experimental toggle,
   Java, nvim-dap, and a registered Java adapter prove JDWP support locally.
 
-Sessions and diagnostics lists              *onebeer-sessions*
+Diagnostics list                            *onebeer-diagnostics*
 
 Key		Meaning ~
-`<leader>qs`	restore session for current workspace
-`<leader>qS`	restore last session
-`<leader>qd`	disable session saving for current workspace
 `<leader>qf`	open diagnostics list in Trouble
 
 Other utilities worth remembering:
 
-- `StartupTime` is available for startup profiling.
-- `slides.nvim` is intentionally excluded from the current `vim.pack` setup
-  while its repo metadata is cleaned up.
+- `nvim --startuptime <file>` is available for startup profiling.
+- Native sessions remain available with `:mksession` and `:source Session.vim`;
+  automatic per-workspace restore is intentionally not configured.
 - `markview.nvim` activates for Markdown buffers.
 
 Native multicursor (Neovim Nightly)           *onebeer-multicursor*
@@ -923,16 +914,13 @@ PLUGIN INDEX                                  *onebeer-plugin-index*
 Core support
 - `common.lua`             plenary + devicons shared dependencies
 - `pack.lua`               vim.pack bootstrap and runtime pruning
-- `startup.lua`            `:StartupTime` profiling helper
 
 UI and presentation
 - `catppuccin.lua`         theme and highlight integration
 - `snacks.lua`             dashboard, notifier, scope, statuscolumn, words
 - `mini-clue.lua`          leader / g / z key hint popup
-- `slides.lua`             code slide support (currently excluded from vim.pack)
 - `markview.lua`           Markdown enhancement
 - `onebeer/undotree.lua`   native undo history helper and startup :Undotree wrapper
-- `precognition.lua`       motion hints
 
 Search, files, navigation
 - `fzf.lua`                search and picker workflows
@@ -960,12 +948,10 @@ Code intelligence and editing
 Language and syntax support
 - `treesitter.lua`         Native Treesitter parser installation, aliases, and buffer setup
 - `lsp/mason.lua`          Mason + LSP enablement policy
-- `typescript.lua`         disabled alternative TypeScript plugin
 
-Testing, debugging, sessions
+Testing and debugging
 - `neotest.lua`            test runner adapters and keymaps
 - `nvim-dap.lua`           debug adapters and UI
-- `persistence.lua`        session restore / disable flows
 - `trouble.lua`            diagnostics panel
 
 Other
@@ -987,8 +973,7 @@ Prefix		Meaning ~
 `<leader>l`	line-hunk actions
 `<leader>m`	move lines
 `<leader>o`	GitHub workflows
-`<leader>p`	Precognition
-`<leader>q`	Trouble + sessions
+`<leader>q`	Trouble diagnostics
 `<leader>s`	search
 `<leader>t`	tests
 `<leader>u`	UI, doctor, log, toggles

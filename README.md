@@ -117,7 +117,6 @@ Linting runs through [nvim-lint](https://github.com/mfussenegger/nvim-lint) with
 - The startup dashboard uses a pack-aware summary instead of Snacks' built-in `lazy.stats` widget.
 - **Native statusline** — rendered by `lua/onebeer/ui/statusline.lua` with diagnostics, LSP progress, attached client names, and cursor position via core Neovim APIs.
 - **Native diagnostics** — current-line virtual lines are the default inline surface, with quick toggles for native virtual text when you want a denser view.
-- **[precognition.nvim](https://github.com/tris203/precognition.nvim)** — shows motion targets (`w`, `b`, `e`, `$`, `G`, `gg`, `{`, `}`) as hints so you always know where you're going. > Great for building muscle memory.
 - **[mini.clue](https://github.com/echasnovski/mini.clue)** — keymap hint popup on leader / `g` / `z` with 50+ custom descriptions.
 
 ### Navigation
@@ -171,9 +170,7 @@ Linting runs through [nvim-lint](https://github.com/mfussenegger/nvim-lint) with
 
 - **[trouble.nvim](https://github.com/folke/trouble.nvim)** — browse diagnostics, references, and quickfix lists in a dedicated panel.
 - **Bundled `:Undotree` / `<leader>uu`** — visual undo history via Neovim's bundled `nvim.undotree` package with a single-panel toggle wrapper.
-- **[persistence.nvim](https://github.com/folke/persistence.nvim)** — automatically saves and restores sessions per working directory.
 - **Native multicursor support (Neovim Nightly)** — use `Q`, `{Visual}Q`, `[count]Q`, `gQ`, and `q=` without a plugin.
-- **[slides.nvim](https://github.com/matt-riley/slides.nvim)** — build and present code slides without leaving Neovim. Handy for demos and walkthroughs. _Temporarily excluded from the current `vim.pack` config while its repo metadata is cleaned up._
 
 ---
 
@@ -223,9 +220,8 @@ git clone <your-repo-url> ~/.config/nvim
 
 Then open Neovim. `vim.pack` will install and register plugins on first launch. When you open a supported filetype, Mason installs the curated LSP for that language when needed, while native Treesitter installs its parser asynchronously and enables highlighting, folds, and indentation in the current buffer. The health check guides you through missing external tools.
 
-Two migration-era caveats are still intentional today:
+One migration-era caveat remains intentional today:
 
-- `slides.nvim` stays out of `onebeer.pack` until its upstream repo metadata stops tripping `vim.pack` installs.
 - UI-only startup behavior such as the Snacks dashboard and the Catppuccin colorscheme should be validated in a real TTY session when you change them; `nvim --headless` is useful for health checks but is not a full proxy for attached-UI startup.
 
 ### Health check
