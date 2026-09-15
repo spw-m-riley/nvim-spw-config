@@ -4,6 +4,8 @@ local create_autocmd = autocmds.create_autocmd
 local opt = vim.opt
 
 local data_dir = vim.fn.stdpath("data")
+local backup_dir = data_dir .. "/backups"
+local undo_dir = data_dir .. "/undo"
 
 ---@class OneBeerSettings
 local M = {}
@@ -11,8 +13,8 @@ local M = {}
 ---Apply default editor options, keymaps, and supporting autocommands.
 ---@return nil
 function M.defaults()
-  vim.fn.mkdir(data_dir .. "/backups", "p")
-  vim.fn.mkdir(data_dir .. "/undo", "p")
+  vim.fn.mkdir(backup_dir, "p")
+  vim.fn.mkdir(undo_dir, "p")
   local has_keymaps, keymaps = pcall(require, "onebeer.keymaps")
 
   if has_keymaps then
@@ -25,7 +27,8 @@ function M.defaults()
   opt.backspace = "indent,eol,start"
   opt.backup = true
   opt.backupcopy = "auto"
-  opt.backupdir = data_dir .. "/backups"
+  -- A trailing `//` preserves the absolute path below the backup directory.
+  opt.backupdir = backup_dir .. "//"
   opt.breakindent = true
   opt.clipboard = "unnamedplus"
   opt.cmdheight = 0
@@ -69,7 +72,8 @@ function M.defaults()
   opt.tabstop = 2
   opt.termguicolors = true
   opt.title = true
-  opt.undodir = data_dir .. "/undo"
+  -- Keep undo files collision-safe for buffers with the same basename.
+  opt.undodir = undo_dir .. "//"
   opt.undofile = true
   opt.updatetime = 250
   opt.viewoptions = "folds,cursor"
