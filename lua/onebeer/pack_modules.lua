@@ -1,11 +1,6 @@
 ---@class onebeer.pack_modules
 local M = {}
 
----@type table<string, boolean>
-local ignored = {
-  ["onebeer.plugins.slides"] = true,
-}
-
 ---@param path string
 ---@param prefix string
 ---@return string[]
@@ -16,9 +11,7 @@ local function scandir(path, prefix)
   for name, kind in vim.fs.dir(path) do
     if kind == "file" and name:sub(-4) == ".lua" then
       local module = table.concat({ prefix, name:sub(1, -5) }, ".")
-      if not ignored[module] then
-        table.insert(modules, module)
-      end
+      table.insert(modules, module)
     end
   end
 
