@@ -91,11 +91,6 @@
       "src": "https://github.com/echasnovski/mini.nvim",
       "version": "'stable'"
     },
-    "multicursor.nvim": {
-      "rev": "704b99f10a72cc05d370cfeb294ff83412a8ab55",
-      "src": "https://github.com/jake-stewart/multicursor.nvim",
-      "version": "'1.0'"
-    },
     "neogit": {
       "rev": "5adc81b26232954cd7a90f158aa7844c18fc3165",
       "src": "https://github.com/NeogitOrg/neogit"
@@ -192,10 +187,6 @@
     "trouble.nvim": {
       "rev": "bd67efe408d4816e25e8491cc5ad4088e708a69a",
       "src": "https://github.com/folke/trouble.nvim"
-    },
-    "ts-install.nvim": {
-      "rev": "94e4e151c0d98f72b0e0ac30f64cea8ae6d9c627",
-      "src": "https://github.com/lewis6991/ts-install.nvim"
     },
     "vim-startuptime": {
       "rev": "f10474b400c197787a0434548d842a2db583c333",
