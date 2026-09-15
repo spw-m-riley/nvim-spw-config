@@ -10,7 +10,12 @@ return {
       ft = { "go", "gomod", "templ" },
       opts = {},
       config = function(_, opts)
-        require("dap-go").setup(opts)
+        local lsp_settings = require("onebeer.settings.lsp")
+        local delve = lsp_settings.resolve_executable("dlv")
+        if delve then
+          opts = vim.tbl_deep_extend("force", opts or {}, { delve = { path = delve } })
+          require("dap-go").setup(opts)
+        end
       end,
     },
   },
@@ -23,35 +28,37 @@ return {
 
     dap.set_log_level("WARN")
 
-    dap.adapters = {
-      ["pwa-node"] = {
+    local lsp_settings = require("onebeer.settings.lsp")
+    local js_debug_adapter = lsp_settings.resolve_executable("js-debug-adapter")
+    if js_debug_adapter then
+      dap.adapters["pwa-node"] = {
         type = "server",
         host = "::1",
         port = "${port}",
         executable = {
-          command = "js-debug-adapter",
+          command = js_debug_adapter,
           args = { "${port}" },
         },
-      },
-    }
-
-    for _, language in ipairs({ "typescript", "javascript" }) do
-      dap.configurations[language] = {
-        {
-          type = "pwa-node",
-          request = "launch",
-          name = "Launch File",
-          program = "${file}",
-          cwd = "${workspaceFolder}",
-        },
-        {
-          type = "pwa-node",
-          request = "attach",
-          name = "Attach to process ID",
-          processId = utils.pick_process,
-          cwd = "${workspaceFolder}",
-        },
       }
+
+      for _, language in ipairs({ "typescript", "typescriptreact", "javascript", "javascriptreact" }) do
+        dap.configurations[language] = {
+          {
+            type = "pwa-node",
+            request = "launch",
+            name = "Launch File",
+            program = "${file}",
+            cwd = "${workspaceFolder}",
+          },
+          {
+            type = "pwa-node",
+            request = "attach",
+            name = "Attach to process ID",
+            processId = utils.pick_process,
+            cwd = "${workspaceFolder}",
+          },
+        }
+      end
     end
 
     local ok_mule_dap, mule_dap = pcall(require, "onebeer.mule.integrations.dap")
