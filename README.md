@@ -66,7 +66,7 @@ cheatsheet, tap `<leader>uh` or run `:OneBeerHelp`.
 
 ## Language support
 
-LSP enablement is centralized in `lua/onebeer/plugins/lsp/mason.lua`, while each repo-root `lsp/*.lua` file still owns its server-specific config. Mason installs the shared first-class server set, and runtime-owned servers stay opt-in when their executable is already on `PATH`. `.github/lsp.json` mirrors the extension-safe subset for Copilot CLI code intelligence.
+LSP enablement is centralized in `lua/onebeer/plugins/lsp/mason.lua`, while each repo-root `lsp/*.lua` file still owns its server-specific config. Mason installs curated servers on demand when their filetype is opened and enables them in the current session. Runtime-owned servers stay opt-in when their executable is already available. `.github/lsp.json` mirrors the extension-safe subset for Copilot CLI code intelligence.
 
 | Language | Surface | Ownership notes |
 |---|---|---|
@@ -79,7 +79,7 @@ LSP enablement is centralized in `lua/onebeer/plugins/lsp/mason.lua`, while each
 | Zig | `zls` + Treesitter + `zig fmt` | `zls` owns diagnostics/code actions; Conform owns formatting |
 | Gleam | `gleam` + Treesitter + `gleam format` | Explicit partial support: runtime-managed LSP/formatter, no extra `nvim-lint` layer |
 | SQL | Treesitter + `sqlfluff` | Explicit partial support in wave 1: parser + formatter only, no SQL LSP |
-| GitHub Actions | `gh_actions_ls` | Path-aware YAML support in Neovim; not mirrored in `.github/lsp.json` because that config is extension-only |
+| GitHub Actions | `actionsls` | Path-aware YAML support in Neovim; not mirrored in `.github/lsp.json` because that config is extension-only |
 
 Astro, HTML, JSON, Shell, and Terraform keep their existing curated server surface (`astro`, `html`, `jsonls`, `bashls`, `terraformls`) without changing ownership.
 
@@ -172,7 +172,7 @@ Linting runs through [nvim-lint](https://github.com/mfussenegger/nvim-lint) with
 - **[trouble.nvim](https://github.com/folke/trouble.nvim)** — browse diagnostics, references, and quickfix lists in a dedicated panel.
 - **Bundled `:Undotree` / `<leader>uu`** — visual undo history via Neovim's bundled `nvim.undotree` package with a single-panel toggle wrapper.
 - **[persistence.nvim](https://github.com/folke/persistence.nvim)** — automatically saves and restores sessions per working directory.
-- **[multicursor.nvim](https://github.com/jake-stewart/multicursor.nvim)** — multiple cursors when you really need them.
+- **Native multicursor support (Neovim Nightly)** — use `Q`, `{Visual}Q`, `[count]Q`, `gQ`, and `q=` without a plugin.
 - **[slides.nvim](https://github.com/matt-riley/slides.nvim)** — build and present code slides without leaving Neovim. Handy for demos and walkthroughs. _Temporarily excluded from the current `vim.pack` config while its repo metadata is cleaned up._
 
 ---
@@ -221,7 +221,7 @@ Clone this repo into your Neovim config directory:
 git clone <your-repo-url> ~/.config/nvim
 ```
 
-Then open Neovim. `vim.pack` will install and register plugins on first launch, Mason will install LSP servers, and the health check will guide you through any missing external tools.
+Then open Neovim. `vim.pack` will install and register plugins on first launch. When you open a supported filetype, Mason installs the curated LSP for that language when needed, while native Treesitter installs its parser asynchronously and enables highlighting, folds, and indentation in the current buffer. The health check guides you through missing external tools.
 
 Two migration-era caveats are still intentional today:
 
@@ -232,9 +232,9 @@ Two migration-era caveats are still intentional today:
 
 Run `:checkhealth onebeer` to see the status of every external dependency. It reports exact versions for the core toolchain, keeps the guided installer flow for the existing brew → mise → go → gojson chain when you run it interactively, and calls out language-surface tools such as `ruff`, `rustfmt`, `sqlfluff`, `ruby-lsp`, `rubocop`, `gleam`, `zig`, and `zls` without pretending missing runtime-managed tools are already healthy. If it's your first time setting up, start here.
 
-Server, client, and parser state stay in their own providers: `:checkhealth vim.lsp`, `:checkhealth mason`, and `:checkhealth ts-install`.
+Server, client, and parser state stay in their own providers: `:checkhealth vim.lsp`, `:checkhealth mason`, and `:checkhealth nvim-treesitter`.
 
-Verified extra `:checkhealth` providers in this environment are `mason`, `nvim-treesitter`, `sidekick`, `snacks`, `ts-install`, and `fzf-lua-frecency`. `:checkhealth copilot` is intentionally not listed because it currently returns `No healthcheck found for "copilot" plugin`.
+Verified extra `:checkhealth` providers in this environment are `mason`, `nvim-treesitter`, `sidekick`, `snacks`, and `fzf-lua-frecency`. `:checkhealth copilot` is intentionally not listed because it currently returns `No healthcheck found for "copilot" plugin`.
 
 If you plan to use `octo.nvim`, also make sure `gh auth status` succeeds. Features that touch GitHub Projects v2 may additionally require refreshing your token with the `read:project` scope.
 
@@ -257,14 +257,14 @@ When working on the config itself, use this validation matrix:
 | Mule workflow | `nvim --headless "+lua require('onebeer.mule.smoke').run('all')" +qa` | fixture-backed Mule integrations and user commands |
 | Interactive | `nvim` (real TTY) | dashboard, native statusline, and inline-completion / command-driven AI behavior |
 | Core | `nvim --headless "+checkhealth vim.lsp" +qa` | Neovim LSP client state |
+| Core | `nvim --headless "+edit init.lua" "+lua dofile('tests/config/smoke.lua')" +qa` | language bootstrap and config regression smoke |
 | Verified add-on | `nvim --headless "+checkhealth mason" +qa` | Mason registry and external runtime availability |
-| Verified add-on | `nvim --headless "+checkhealth nvim-treesitter" +qa` | parser runtime/tooling state |
+| Verified add-on | `nvim --headless "+checkhealth nvim-treesitter" +qa` | Treesitter install/query state |
 | Verified add-on | `nvim --headless "+checkhealth sidekick" +qa` | Copilot LSP + optional AI CLI surface |
 | Verified add-on | `nvim --headless "+checkhealth snacks" +qa` | optional UI/runtime integrations |
-| Verified add-on | `nvim --headless "+checkhealth ts-install" +qa` | Treesitter install/query state |
 | Verified add-on | `nvim --headless "+checkhealth fzf-lua-frecency" +qa` | frecency extension wiring |
 
-Current validation on this machine still expects explicit warnings from `mason` (optional Composer/PHP/Java/Julia runtimes), `sidekick` (missing optional AI CLIs), and `snacks` (headless/renderer-specific features). If `ts-install` reports local `ecma`, `html_tags`, or `jsx` query issues under `~/.local/share/nvim/ts-install` while `nvim-treesitter` health is otherwise clean, treat that as local parser-cache drift and repair the local `ts-install` cache rather than editing the repo parser list.
+Current validation on this machine still expects explicit warnings from `mason` (optional Composer/PHP/Java/Julia runtimes), `sidekick` (missing optional AI CLIs), and `snacks` (headless/renderer-specific features). Native Treesitter parsers are installed under `stdpath('data')/site` on demand; parser installation failures should be investigated with `:checkhealth nvim-treesitter` rather than hidden by changing the language catalog.
 
 For UI-specific startup work, follow the headless matrix with a real TTY launch (`nvim` in a normal terminal) so you can confirm attached-UI behavior such as the dashboard and colorscheme load path.
 

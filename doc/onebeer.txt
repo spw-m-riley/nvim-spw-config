@@ -115,8 +115,11 @@ Recommended tools for a smoother first run:
 First-run behavior you can expect:
 
 - `vim.pack` installs and registers the pinned plugin set on first launch.
-- Mason installs the curated language-server set.
-- `ts-install.nvim` auto-installs the configured Treesitter parsers.
+- Mason installs a curated language server on demand when its filetype is opened
+  and enables it in the current session.
+- native `nvim-treesitter` installs a parser asynchronously the first time a
+  supported filetype is opened and then enables highlighting, folds, and
+  indentation for that buffer.
 - `slides.nvim` stays intentionally excluded from the current `vim.pack`
   module list until its upstream repo metadata is fixed.
 - |:checkhealth| `onebeer` reports exact versions for core tools, flags
@@ -221,7 +224,7 @@ Global LSP behavior you can count on:
 - rounded borders come from the global float defaults
 - semantic tokens are enabled on attach when the server supports them
 - inlay hints are enabled on attach when supported and can be toggled later
-- codelens is enabled and refreshed once on attach when supported
+- codelens is enabled on attach when supported
 - document highlights are enabled when the server supports them
 - LSP progress is surfaced in the native statusline via `vim.ui.progress_status()`
 
@@ -253,7 +256,7 @@ Shared language-server enablement policy:
 - `astro`
 - `bashls`
 - `gopls`
-- `gh_actions_ls`
+- `actionsls`
 - `html`
 - `jsonls`
 - `lua_ls`
@@ -335,8 +338,9 @@ GitHub Actions                              *onebeer-lsp-actions*
 Treesitter and parser notes:
 
 - `nvim-treesitter` is on the `main` branch and updates via `:TSUpdate`.
-- `ts-install.nvim` auto-installs parsers for the configured language list,
-  including Python, Gleam, SQL, Ruby, Rust, and Zig.
+- native Treesitter parser installation is demand-driven: opening a supported
+  filetype installs its parser asynchronously when needed, then starts
+  highlighting, folds, and indentation without requiring a restart.
 - `terraform-vars` is registered as the `terraform` language.
 - `nvim-ts-autotag` auto-closes and renames matching tags in markup-like files.
 
@@ -368,23 +372,21 @@ Key		Meaning ~
 `<leader>svB`	git branches picker
 `<leader>svs`	git status picker
 
-For syntax-aware rewrites, `ssr.nvim` opens structural search and replace on
-the current Treesitter node or visual selection:
-
-Key		Meaning ~
-`<leader>cs`	structural search and replace (current node / visual selection)
+OneBeer Jump provides Treesitter-aware labelled navigation across the current
+buffer and connected windows. Its search and motion labels are available from
+the normal jump mappings described in the quick help.
 
 Files and project navigation:
 
 Key		Meaning ~
 `<leader>f`	open Mini.files at current file or cwd
-`<leader>go`	open Grapple tag list
-`<leader>gt`	toggle Grapple tag for current file
-`<leader>gT`	toggle Grapple tags window
-`<leader>gs`	toggle Grapple scopes
-`<leader>gf`	cycle Grapple forward
-`<leader>gb`	cycle Grapple backward
-`<leader>g1..g4`	jump to Grapple slot 1-4
+`<leader>go`	open Waystone file list
+`<leader>gt`	toggle the current file in Waystone
+`<leader>gT`	toggle the Waystone list
+`<leader>gs`	show the Waystone scope
+`<leader>gf`	cycle Waystone forward
+`<leader>gb`	cycle Waystone backward
+`<leader>g1..g4`	select a Waystone slot
 
 Motion helpers that cut down on travel:
 
@@ -466,7 +468,7 @@ quiet where they should stay quiet:
 - `onebeer.config` computes whether Copilot is enabled.
 - Copilot and Sidekick are disabled automatically when the current working
   directory is equal to or nested under `nopilot_dir` / `NOPILOT_DIR`.
-- Tabnine support exists as a config flag but is not an active workflow.
+- AI features are gated by the current working directory and remain command/key driven so they do not dominate startup.
 
 Copilot and Sidekick entrypoints:
 
@@ -579,23 +581,20 @@ Other utilities worth remembering:
 - `slides.nvim` is intentionally excluded from the current `vim.pack` setup
   while its repo metadata is cleaned up.
 - `markview.nvim` activates for Markdown buffers.
-- `wakatime` support exists in the repo but is disabled.
 
-Multicursor                                 *onebeer-multicursor*
+Native multicursor (Neovim Nightly)           *onebeer-multicursor*
+
+Neovim Nightly provides multicursor editing directly; no plugin setup is
+needed.
 
 Key		Meaning ~
-`<Up>` / `<Down>`	add cursor above / below
-`CTRL-N`	add cursor to next match
-`CTRL-S`	skip next match
-`<Left>` / `<Right>`	rotate main cursor
-`<leader>x`	delete main cursor
-`CTRL-Q`	add cursor or freeze other cursors
-`<Esc>`		re-enable or clear multicursors
-`<leader>a`	align cursors
-Visual `S`		split cursors by regex
-Visual `I` / `A`	insert / append per selected line
-Visual `M`		match cursors by regex
-`<leader>t` / `<leader>T`	transpose cursor contents
+`Q`		toggle a multicursor at the cursor
+`{Visual}Q`	place a cursor on each selected line
+`[count]Q`	place cursors at matches of the last search
+`gQ`		restore the previous multicursors
+`q=`		follow the primary cursor's motions
+`CTRL-L`	clear multicursors
+`g CTRL-A`	insert an ascending number at each cursor
 
 ==============================================================================
 MULESOFT WORKFLOW                           *onebeer-mule*
@@ -814,7 +813,7 @@ Adjacent providers worth using when you touch those surfaces:
 
 - `:checkhealth vim.lsp`
 - `:checkhealth mason`
-- `:checkhealth ts-install`
+- `:checkhealth nvim-treesitter`
 
 Verified plugin-specific health commands in this environment:
 
@@ -822,7 +821,6 @@ Verified plugin-specific health commands in this environment:
 - `:checkhealth nvim-treesitter`
 - `:checkhealth sidekick`
 - `:checkhealth snacks`
-- `:checkhealth ts-install`
 - `:checkhealth fzf-lua-frecency`
 
 `:checkhealth copilot` is intentionally not listed because it currently
@@ -849,7 +847,6 @@ nvim --headless "+checkhealth mason" +qa
 nvim --headless "+checkhealth nvim-treesitter" +qa
 nvim --headless "+checkhealth sidekick" +qa
 nvim --headless "+checkhealth snacks" +qa
-nvim --headless "+checkhealth ts-install" +qa
 nvim --headless "+checkhealth fzf-lua-frecency" +qa
 nvim --headless "+helptags doc" +qa
 <
@@ -861,11 +858,9 @@ being papered over:
 - `sidekick`: missing optional AI CLI warnings
 - `snacks`: headless or renderer-specific optional feature warnings
 
-If `:checkhealth ts-install` reports local `ecma`, `html_tags`, or `jsx`
-query issues under `~/.local/share/nvim/ts-install` while
-`:checkhealth nvim-treesitter` is otherwise clean, treat that as local parser
-cache drift and repair the local `ts-install` cache rather than editing the
-repo parser list.
+Native Treesitter parsers are installed under `stdpath('data')/site` on demand.
+If parser installation fails, inspect `:checkhealth nvim-treesitter` and the
+Treesitter log before changing the supported-language policy.
 
 When you change UI-only startup behavior such as the dashboard or colorscheme,
 follow the headless validation pass with a real TTY `nvim` launch; attached-UI
@@ -943,7 +938,7 @@ Search, files, navigation
 - `fzf.lua`                search and picker workflows
 - `mini-files.lua`         floating file explorer
 - `waystone.lua`           git-scoped hot-file navigation
-- `flash.lua`              jump navigation
+- `jump/init.lua`          labelled jump navigation
 
 Git and GitHub
 - `gitsigns.lua`           buffer-level Git hunk tooling
@@ -963,8 +958,7 @@ Code intelligence and editing
 - `nvim-ts-autotag.lua`    paired tag close / rename
 
 Language and syntax support
-- `treesitter.lua`         Treesitter core
-- `ts-install.lua`         Treesitter parser auto-install and aliasing
+- `treesitter.lua`         Native Treesitter parser installation, aliases, and buffer setup
 - `lsp/mason.lua`          Mason + LSP enablement policy
 - `typescript.lua`         disabled alternative TypeScript plugin
 
@@ -973,12 +967,10 @@ Testing, debugging, sessions
 - `nvim-dap.lua`           debug adapters and UI
 - `persistence.lua`        session restore / disable flows
 - `trouble.lua`            diagnostics panel
-- `multicursor.lua`        multicursor editing
 
 Other
 - `luasnip/init.lua`       snippet engine setup
 - `snippets/*.lua`         local snippet packs
-- `wakatime.lua`           disabled time-tracking integration
 
 ==============================================================================
 QUICK REFERENCE                               *onebeer-keymap-summary*
@@ -986,11 +978,11 @@ QUICK REFERENCE                               *onebeer-keymap-summary*
 Leader groups:
 
 Prefix		Meaning ~
-`<leader>a`	AI / Sidekick prompts (`<leader>a` alone aligns multicursors)
-`<leader>c`	code actions, diagnostics, inlay hints, codelens, Copilot, SSR
+`<leader>a`	AI / Sidekick prompts
+`<leader>c`	code actions, diagnostics, inlay hints, codelens, and Copilot
 `<leader>d`	debugger
 `<leader>f`	files
-`<leader>g`	Grapple navigation
+`<leader>g`	Waystone navigation
 `<leader>j`	JSON generators
 `<leader>l`	line-hunk actions
 `<leader>m`	move lines
@@ -998,7 +990,7 @@ Prefix		Meaning ~
 `<leader>p`	Precognition
 `<leader>q`	Trouble + sessions
 `<leader>s`	search
-`<leader>t`	tests / multicursor transpose
+`<leader>t`	tests
 `<leader>u`	UI, doctor, log, toggles
 `<leader>v`	VCS helpers
 
